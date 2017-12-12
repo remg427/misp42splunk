@@ -3,27 +3,21 @@
 # Extract IOC's from MISP
 #
 # Author: Xavier Mertens <xavier@rootshell.be>
+# Author: Remi Seguy <remg427@gmail.com>
 #
-# Copyright: GPLv3 (http://gplv3.fsf.org/)
+# Copyright: LGPLv3 (https://www.gnu.org/licenses/lgpl-3.0.txt)
 # Feel free to use the code, but please share the changes you've made
 #
 
 from __future__ import absolute_import, division, print_function, unicode_literals
-import os, sys, subprocess
-
-# Path to SPplunk-SDK
-# See: http://dev.splunk.com/view/python-sdk/SP-CAAAEDG
-try:
-        sys.path.insert(0,'/usr/local/lib/python2.7/dist-packages')
-        from splunklib.searchcommands import dispatch, ReportingCommand, Configuration, Option, validators
-except:
-        print('Splunk-SDK not installed?')
-        exit(1)
+import os, sys, subprocess, ConfigParser
+from splunklib.searchcommands import dispatch, ReportingCommand, Configuration, Option, validators
 
 @Configuration(requires_preop=False)
+
 class mispgetioc(ReportingCommand):
-        server          = Option(require=False, validate=validators.Match("server",     r"^https?:\/\/[0-9a-zA-Z\.]+(?:\:\d+)?$"))
-        authkey         = Option(require=False, validate=validators.Match("authkey",    r"^[0-9a-zA-Z]{40}$"))
+        mispsrv         = Option(require=False, validate=validators.Match("mispsrv",    r"^https?:\/\/[0-9a-zA-Z\.]+(?:\:\d+)?$"))
+        mispkey         = Option(require=False, validate=validators.Match("mispkey",    r"^[0-9a-zA-Z]{40}$"))
         sslcheck        = Option(require=False, validate=validators.Match("sslcheck",   r"^[yYnN01]$"))
         eventid         = Option(require=False, validate=validators.Match("eventid",    r"^[0-9]+$"))
         last            = Option(require=False, validate=validators.Match("last",       r"^[0-9]+[hdwm]$"))
@@ -32,6 +26,7 @@ class mispgetioc(ReportingCommand):
         type            = Option(require=False)
 
         @Configuration()
+
         def map(self, records):
                 self.logger.debug('mispgetioc.map')
                 yield {}
@@ -42,14 +37,25 @@ class mispgetioc(ReportingCommand):
                 if self.sslcheck == None:
                         self.sslcheck = 'n'
 
+                # open misp.conf
+                config_file = '/opt/splunk/etc/apps/misp42splunk/local/misp.conf'
+                config = ConfigParser.RawConfigParser()
+                config.read(config_file)
+
                 # Generate args
                 my_args = {}
-                if self.server:
-                        my_args['server'] = self.server
-                if self.authkey:
-                        my_args['authkey'] = self.authkey
+                if self.mispsrv:
+                        my_args['mispsrv'] = self.mispsrv
+                else:
+                        my_args['mispsrv'] = config.get('mispsetup','mispsrv')
+                if self.mispkey:
+                        my_args['mispkey'] = self.mispkey
+                else:
+                        my_args['mispkey'] = config.get('mispsetup','mispkey')
                 if self.sslcheck:
                         my_args['sslcheck'] = self.sslcheck
+                else:
+                        my_args['sslcheck'] = config.getboolean('mispsetup','sslcheck')
 
                 if self.onlyids == 'Y' or self.onlyids == 'y' or self.onlyids == '1':
                         onlyids = True
@@ -72,21 +78,21 @@ class mispgetioc(ReportingCommand):
                 _NEW_PYTHON_PATH = '/usr/bin/python3'
                 _SPLUNK_PYTHON_PATH = os.environ['PYTHONPATH']
                 os.environ['PYTHONPATH'] = _NEW_PYTHON_PATH
-                my_process = _SPLUNK_PATH.'/etc/apps/misp42splunk/bin/misp-get-ioc.py'
+                my_process = _SPLUNK_PATH + '/etc/apps/misp42splunk/bin/misp-get-ioc.py'
 
                 # Remove LD_LIBRARY_PATH from the environment (otherwise, we will face some SSL issues
                 env = dict(os.environ)
                 del env['LD_LIBRARY_PATH']
 
                 FNULL = open(os.devnull, 'w')
-                p = subprocess.Popen([ os.environ['PYTHONPATH'], my_process, str(my_args)],
+                p = subprocess.Popen([ _NEW_PYTHON_PATH, my_process, str(my_args) ],
                         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=FNULL, env=env)
                 output = p.communicate()[0]
                 results = {}
                 for v in eval(output):
                         # Do not display deleted attributes
                         if v['deleted'] == False:
-                                # If wpecified, do not display attributed with the non-ids flag set to False
+                                # If specified, do not display attributes with the non-ids flag set to False
                                 if onlyids == True and v['to_ids'] == False:
                                         continue
                                 if self.category != None and self.category != v['category']:
@@ -98,5 +104,5 @@ class mispgetioc(ReportingCommand):
                                 results['type']         = v['type']
                                 results['to_ids']       = str(v['to_ids'])
                                 yield results
-
-dispatch(mispgetioc, sys.argv, sys.stdin, sys.stdout, __name__)
+if __name__ == "__main__":
+    dispatch(mispgetioc, sys.argv, sys.stdin, sys.stdout, __name__)

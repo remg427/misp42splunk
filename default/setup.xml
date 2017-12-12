@@ -1,0 +1,20 @@
+<setup>
+  <block title="Define MISP server parameters" endpoint="misp/customendpoint" entity="mispsetup">
+    <input field="mispsrv">
+      <label>MISP url:</label>
+      <type>text</type>
+    </input>
+
+    <input field="mispkey" endpoint="misp/customendpoint" entity="mispsetup">
+      <label>Set the MISP auth key</label>
+      <type>text</type>
+    </input>
+  </block>
+
+  <block title="SSL check" endpoint="misp/customendpoint" entity="mispsetup">
+    <input field="sslcheck">
+      <label>Check SSL certificate of MISP server</label>
+      <type>bool</type>
+    </input>
+  </block>
+</setup>
