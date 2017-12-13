@@ -1,22 +1,44 @@
 # misp42splunk
 A Splunk app to use MISP in background
 
-# Credits 
+# Credits
+This app is largely inspired by https://github.com/xme/splunk/tree/master/getmispioc and the associated blog https://blog.rootshell.be/2017/10/31/splunk-custom-search-command-searching-misp-iocs/
+
 # Prerequisites
+1. Install Python 3 on the Splunk Search Head
+2. Check that python3 is at /usr/bin/python3
+    i) if not you may create a symbolic link to the python3.x binary
+    ii) alternatively you may edit misp42splunk/bin/misp-get-ioc.py and adjuut the path to your environment
+3. Install PyMISP (see https://github.com/CIRCL/PyMISP)
+4. Check that your Splunk SH can connect to the MISP instance. 
 
-    Install Python 3 on the Splunk server
-    Install PyMISP (see https://github.com/CIRCL/PyMISP)
+# Installation
+1. Download the zip file and install the app on your splunk search head (you may remove -master from file name)
+2. A custom endpoint has been defined so you will need to restart Splunk (for later updates you may skip this part)
+3. At next logon, you should be invited to configure the app (if not goto Manage Apps > TA-MISP 42 Spliunk > Set up) 
+    a) provide the url to your MISP instance
+    b) provide the authkey 
+    c) [not implemented] check the certificate of the MISP server
 
-Installation
+# Usage
 
-    Copy get-ioc-misp.py & mispconfig.py in /usr/local/bin
+## mispgetioc
+This custom command must be the first of a search (or a sub-search). The results are displayed in a table.
+The command syntax is as follow:
 
-    Edit mispconfig.py and specify your MISP URL and authorization key
+    |mispgetioc [server=https://host:port] 
+                [authkey=misp-authorization-key]
+                [sslcheck=y|n]
+                [eventid=id]
+                [last=interval]
+                [onlyids=y|n]
+                [category=string]
+                [type=string]
+                
+# Todo
+- implement sslcheck boolean
+- implemet alert_action
+- store some saved searches as examples
 
-    Copy getiocmisp.py in /opt/splunk/etc/apps//bin/
-
-    Copy the commands.conf or change the existing one in /opt/splunk/etc/apps//local/
-
-    Restart Splunk
-
-Usage
+# Licence
+This app misp42splunk is licensed under the GNU Lesser General Public License v3.0
