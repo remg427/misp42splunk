@@ -8,8 +8,8 @@ This app is largely inspired by https://github.com/xme/splunk/tree/master/getmis
 1. Install Python 3 on the Splunk Search Head
 2. Check that python3 is at /usr/bin/python3
 
-    i) if not you may create a symbolic link to the python3.x binary
-    ii) alternatively you may edit misp42splunk/bin/misp-get-ioc.py and adjuut the path to your environment
+    + if not you may create a symbolic link to the python3.x binary
+    + alternatively you may edit misp42splunk/bin/misp-get-ioc.py and adjuut the path to your environment
 
 3. Install PyMISP (see https://github.com/CIRCL/PyMISP)
 4. Check that your Splunk SH can connect to the MISP instance. 
@@ -19,9 +19,9 @@ This app is largely inspired by https://github.com/xme/splunk/tree/master/getmis
 2. A custom endpoint has been defined so you will need to restart Splunk (for later updates you may skip this part)
 3. At next logon, you should be invited to configure the app (if not goto Manage Apps > TA-MISP 42 Spliunk > Set up) 
 
-    a) provide the url to your MISP instance
-    b) provide the authkey 
-    c) [not implemented] check the certificate of the MISP server
+    - provide the url to your MISP instance
+    - provide the authkey 
+    - [not implemented] check the certificate of the MISP server
 
 # Usage
 
