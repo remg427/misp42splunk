@@ -99,6 +99,8 @@ class mispgetioc(ReportingCommand):
                                         continue
                                 if self.type != None and self.type != v['type']:
                                         continue
+                                results['uuid']         = v['uuid']
+                                results['event_id']     = v['event_id']
                                 results['value']        = v['value']
                                 results['category']     = v['category']
                                 results['type']         = v['type']
