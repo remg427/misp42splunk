@@ -78,7 +78,7 @@ class mispgetioc(ReportingCommand):
                 _NEW_PYTHON_PATH = '/usr/bin/python3'
                 _SPLUNK_PYTHON_PATH = os.environ['PYTHONPATH']
                 os.environ['PYTHONPATH'] = _NEW_PYTHON_PATH
-                my_process = _SPLUNK_PATH + '/etc/apps/misp42splunk/bin/misp-get-ioc.py'
+                my_process = _SPLUNK_PATH + '/etc/apps/misp42splunk/bin/pymisp_getioc.py'
 
                 # Remove LD_LIBRARY_PATH from the environment (otherwise, we will face some SSL issues
                 env = dict(os.environ)
