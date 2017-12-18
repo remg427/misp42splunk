@@ -13,11 +13,11 @@
 import os, sys, subprocess, json, gzip, csv, requests, time, ConfigParser
 from requests.auth import HTTPBasicAuth
 
-def create_alert(config, rows):
+def create_alert(config, results):
 	print >> sys.stderr, "DEBUG Creating alert with config %s" % json.dumps(config)
 
-	# Generate args
-	my_args = {}
+	# check and complement config
+	config_args = {}
 
 	# get the URL we need to connect to MISP
 	# this can be passed as params of the alert. Defaults to values set in misp.conf
@@ -29,44 +29,45 @@ def create_alert(config, rows):
 	mispurl = config.get('URL')
 	mispkey = config.get('authkey')
 	
-	if not mispurl or not mispauthkey:
-		my_args['mispsrv'] = mispconf.get('mispsetup','mispsrv') 
-		my_args['mispkey'] = mispconf.get('mispsetup','mispkey')
+	if not mispurl or not mispkey:
+		config_args['mispsrv'] = mispconf.get('mispsetup','mispsrv') 
+		config_args['mispkey'] = mispconf.get('mispsetup','mispkey')
 	else:
-		my_args['mispsrv'] = mispurl 
-		my_args['mispkey'] = mispkey
+		config_args['mispsrv'] = mispurl 
+		config_args['mispkey'] = mispkey
 	
 	if mispconf.has_option('mispsetup','sslcheck'):
-		my_args['sslcheck'] = mispconf.getboolean('mispsetup','sslcheck')
+		config_args['sslcheck'] = mispconf.getboolean('mispsetup','sslcheck')
 	else:
-		my_args['sslcheck'] = False
+		config_args['sslcheck'] = False
 	
 
 	# Get string values from alert form
 	if 'unique' in config:
-		my_args['eventkey'] = config.get('unique')
+		config_args['eventkey'] = config.get('unique')
 	else:
-		my_args['eventkey'] = 'oneevent'
-	if 'title' in config:
-		my_args['title']    = config.get('title')
-	if 'description' in config:
-		my_args['info']     = config.get('description')
+		config_args['eventkey'] = 'oneevent'
+	if 'info' in config:
+		config_args['info']     = config.get('info')
+	else:
+		config_args['info']     = 'notable event'
+
 	if 'tags' in config:
-		my_args['tags']     = config.get('tags')
+		config_args['tags']     = config.get('tags')
 
 	# Get numeric values from alert form
-	my_args['analysis']     = int(config.get('analysis'))
-	my_args['tlp']          = int(config.get('tlp'))
-	my_args['analysis']     = int(config.get('analysis'))
-	my_args['threatlevel']  = int(config.get('threatlevel'))
-	my_args['distribution'] = int(config.get('distribution'))
+	config_args['analysis']     = int(config.get('analysis'))
+	config_args['tlp']          = int(config.get('tlp'))
+	config_args['analysis']     = int(config.get('analysis'))
+	config_args['threatlevel']  = int(config.get('threatlevel'))
+	config_args['distribution'] = int(config.get('distribution'))
 
-	print >> sys.stderr, "check my_args: %s" % my_args
+	print >> sys.stderr, "check config_args: %s" % config_args
 
 
 	# iterate through each row, cleaning multivalue fields and then adding the attributes under same event key
 	events = {}
-	for row in rows:
+	for row in results:
 	
 		# Splunk makes a bunch of dumb empty multivalue fields - we filter those out here 
 		row = {key: value for key, value in row.iteritems() if not key.startswith("__mv_")}
@@ -75,7 +76,7 @@ def create_alert(config, rows):
 		if 'eventkey' in row:
 			eventkey = row.pop('eventkey')
 		else:
-			eventkey = my_args['eventkey']
+			eventkey = config_args['eventkey']
 
 		# check if building event has been initiated
 		# if yes simply add attribute entry otherwise collect other metadata
@@ -90,7 +91,7 @@ def create_alert(config, rows):
 			if 'info' in row:
 				event['info'] = row.get('info')
 			else:
-				event['info'] = my_args['info']
+				event['info'] = config_args['info']
 
 		# collect attribute value and build type=value entry
 		Attribute = {}
@@ -129,10 +130,7 @@ def create_alert(config, rows):
 		FNULL = open(os.devnull, 'w')
 		for key, event in events.items():
 			print >> sys.stderr, 'INFO Calling pymisp_create_event.py for event %s' % key
-			p = subprocess.Popen([ _NEW_PYTHON_PATH, my_process, str(my_args), str(event) ], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=FNULL, env=env)
-			output = p.communicate()[0]
-			for v in eval(output):
-				print >> sys.stderr, 'INFO output=%s' % v
+			p = subprocess.Popen([ _NEW_PYTHON_PATH, my_process, str(config_args), str(event) ], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=FNULL, env=env)
 
 	# somehow we got a bad response code from thehive
 	# some other request error occurred

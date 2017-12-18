@@ -1,29 +1,46 @@
 <!DOCTYPE html>
 <form class="form-horizontal form-complex">
     <div class="control-group">
-        <label class="control-label" for="misp_alert_create_event_type">Type</label>
+        <h4>Alert overall description</h4>
+    </div>
+    <div class="control-group">
+        <label class="control-label" for="misp_alert_create_event_title">Title</label>
+
         <div class="controls">
-            <input type="text" name="action.misp_alert_create_event.param.type" id="misp_alert_create_event_type" value="alert" required />
+            <input type="text" name="action.misp_alert_create_event.param.title" id="misp_alert_create_event_title" value="$name$" required />
             <span class="help-block">
-                The alert type. Defaults to "alert".
+              The title of this alert.
             </span>
         </div>
+    </div>
+    <div class="control-group">
+        <label class="control-label" for="misp_alert_create_event_description">Description</label>
+
+        <div class="controls">
+            <textarea name="action.misp_alert_create_event.param.description" id="misp_alert_create_event_description" required>$description$</textarea>
+            <span class="help-block">
+                The description to send with the alert.
+            </span>
+        </div>
+    </div>
+    <div class="control-group">
+        <h4>Global event parameters</h4>
     </div>
     <div class="control-group">
         <label class="control-label" for="misp_alert_create_event_unique">Unique ID</label>
         <div class="controls">
             <input type="text" name="action.misp_alert_create_event.param.unique" id="misp_alert_create_event_unique" value="eventkey" required></input>
             <span class="help-block">
-                A field name that contains a unique identifier specific to the source event.
+                This is the default eventkey value if not provided in results.
             </span>
         </div>
     </div>
     <div class="control-group">
-        <label class="control-label" for="misp_alert_create_event_description">Info</label>
+        <label class="control-label" for="misp_alert_create_event_info">Info</label>
         <div class="controls">
-            <textarea name="action.misp_alert_create_event.param.description" id="misp_alert_create_event_description" required>$description$</textarea>
+            <textarea name="action.misp_alert_create_event.param.info" id="misp_alert_create_event_info" required>$description$</textarea>
             <span class="help-block">
-                The Info field for the MISP event.
+                The default Info field for the MISP events if not provided in results.
             </span>
         </div>
     </div>
@@ -84,6 +101,9 @@
                 Use single comma-separated string without quotes for multiple tags (ex. "badIP,spam").
             </span>
         </div>
+    </div>
+    <div class="control-group">
+        <h4>Specific alert parameters</h4>
     </div>
     <div class="control-group">
         <label class="control-label" for="misp_alert_create_event_URL">URL</label>
