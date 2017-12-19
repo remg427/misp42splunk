@@ -60,8 +60,7 @@ def create_alert(config, results):
 	config_args['distribution'] = int(config.get('distribution'))
 	config_args['tlp']          = int(config.get('tlp'))
 	
-	print >> sys.stderr, "check config_args: %s" % config_args
-
+	print >> sys.stderr, "DEBUG check config_args: %s" % config_args
 
 	# iterate through each row, cleaning multivalue fields and then adding the attributes under same event key
 	events = {}
@@ -96,9 +95,9 @@ def create_alert(config, results):
 		Attribute['type'] = row.get('type')
 		Attribute['value'] = row.get('value')
 		if 'to_ids' in row:
-			Attribute['to_ids'] = row.get('to_ids')
+			Attribute['to_ids'] = row.getboolean('to_ids')
 		else:
-			Attribute['to_ids'] = 'False'
+			Attribute['to_ids'] = False
 		if 'category' in row:
 			Attribute['category'] = row.get('category')
 		else:
@@ -108,8 +107,6 @@ def create_alert(config, results):
 		event['attribute'] = artifacts
 		
 		events[eventkey] = event
-
-	#return self.add_named_attribute(event, 'filename', filename, category, to_ids, comment, distribution, proposal, **kwargs)
 	
 	# actually send the request to create the alert; fail gracefully
 	try:
@@ -128,8 +125,7 @@ def create_alert(config, results):
 
 		FNULL = open(os.devnull, 'w')
 		for key, event in events.items():
-			print >> sys.stderr, 'INFO Calling pymisp_create_event.py for event %s' % key
-			print >> sys.stderr, 'INFO Calling pymisp_create_event.py for event %s' % event
+			print >> sys.stderr, 'DEBUG Calling pymisp_create_event.py for event %s' % event
 			p = subprocess.Popen([ _NEW_PYTHON_PATH, my_process, str(config_args), str(event) ], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=FNULL, env=env)
 
 	# somehow we got a bad response code from thehive
