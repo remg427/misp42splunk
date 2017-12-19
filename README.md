@@ -66,8 +66,8 @@ At the moment you need to search and prepare the results as a table with the fol
 Save your search as alert. Select "Alert to create MISP event(s)" as action
 Fill in the form to tune your alert to your needs.
 
-=> Alert overall description: this section is for Splunk documentation
-=> Global event parameters: the parameters will apply for all events created by this alert unless overwritten (see above)
+* Alert overall description: this section is for Splunk documentation
+* Global event parameters: the parameters will apply for all events created by this alert unless overwritten (see above)
     - Unique ID: define the default eventkey. if not defined an default eventkey will be generated and all results will be added to the same event.
     - Info: This string will be set in the Info field of MISP event. If not defined, the Info field will contain 'malspam'
     - Distribution:
@@ -75,7 +75,7 @@ Fill in the form to tune your alert to your needs.
     - Analysis:
     - TLP: (not implemented yet)
     - tags: comma-separated list of tags (not implemented yet)
-=> MISP server parameters: If specified, URL and auth key will superseede the config file (misp.conf)
+* MISP server parameters: If specified, URL and auth key will superseede the config file (misp.conf)
 
 # Todo
 - implement sslcheck boolean. Always set to False for mispgetioc (it works for alert_action)
