@@ -9,26 +9,44 @@
 # -*- coding: utf-8 -*-
 
 from pymisp import PyMISP
-import urllib3
+import os, sys, json, time
 
 def init(url, key, ssl):
     return PyMISP(url, key, ssl, 'json')
 
 try:
-    my_args = eval(sys.argv[1])
-    event   = eval(sys.argv[2])
+    config = eval(sys.argv[1])
+    event  = eval(sys.argv[2])
+
+
+    mispsrv  = config['mispsrv']
+    mispkey  = config['mispkey']
+    sslcheck = config['sslcheck']
+
+    analysis = config['analysis']
+    distrib  = config'distribution']
+    threat   = config['threatlevel']
+    tlp      = config['tlp']
+
+    date    = event['timestamp']
+    info    = event['info']
+
 except:
     pass
 
-mispsrv  = my_args['mispsrv']
-mispkey  = my_args['mispkey']
-sslcheck = my_args['sslcheck']
 
-filename = '/opt/splunk/etc/apps/misp42splunk/bin/test.json'
-with open('filename.txt', 'w') as file_object:
-    file_object.write("I test pymisp")
-    file_object.write(my_args)
-print(my_args)
+try:
+    misp = init(mispsrv, mispkey, False)
+
+#def new_event(self, distribution=None, threat_level_id=None, analysis=None, info=None, date=None, published=False, orgc_id=None, org_id=None, sharing_group_id=None):
+    my_event = new_event(distrib, threat, analysis, info, date)
+
+#def add_named_attribute(self, event, type_value, value, category=None, to_ids=False, comment=None, distribution=None, proposal=False, **kwargs):
+    for attribute in event['attribute']:
+        my_event = add_named_attribute(my_event, attribute['type'], attribute['value'], attribute['category'], attribute['to_ids'] )
+
+except:
+    exit(1)
 
 
 '''
@@ -54,16 +72,12 @@ def add_named_attribute(self, event, type_value, value, category=None, to_ids=Fa
 return self._send_attributes(event, attributes, proposal)
 
 
-try:
-        misp = init(mispsrv, mispkey, False)
-except:
-        exit(1)
 
 
-if 'eventid' in my_args:
-        print(str(get_event(misp, my_args['eventid'])))
-elif 'last' in my_args:
-        print(str(get_last(misp, my_args['last'])))
+if 'eventid' in config:
+        print(str(get_event(misp, config['eventid'])))
+elif 'last' in config:
+        print(str(get_last(misp, config['last'])))
 else:
         exit(1)
 

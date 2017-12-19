@@ -63,7 +63,7 @@ class mispgetioc(ReportingCommand):
                         onlyids = False
 
                 if self.eventid and self.last:
-                        print('Options "eventid" and "last" are mutually exclusive')
+                        print('DEBUG Options "eventid" and "last" are mutually exclusive')
                         exit(1)
 
                 if self.eventid:
@@ -71,7 +71,7 @@ class mispgetioc(ReportingCommand):
                 elif self.last:
                         my_args['last'] = self.last
                 else:
-                        print('Missing "eventid" or "last" argument')
+                        print('DEBUG Missing "eventid" or "last" argument')
                         exit(1)
 
                 _SPLUNK_PATH = '/opt/splunk'

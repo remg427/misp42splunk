@@ -10,8 +10,7 @@
 # most of the code here was based on the following example on splunk custom alert actions
 # http://docs.splunk.com/Documentation/Splunk/6.5.3/AdvancedDev/ModAlertsAdvancedExample
 
-import os, sys, subprocess, json, gzip, csv, requests, time, ConfigParser
-from requests.auth import HTTPBasicAuth
+import os, sys, subprocess, json, gzip, csv, ConfigParser
 
 def create_alert(config, results):
 	print >> sys.stderr, "DEBUG Creating alert with config %s" % json.dumps(config)
@@ -57,11 +56,10 @@ def create_alert(config, results):
 
 	# Get numeric values from alert form
 	config_args['analysis']     = int(config.get('analysis'))
-	config_args['tlp']          = int(config.get('tlp'))
-	config_args['analysis']     = int(config.get('analysis'))
 	config_args['threatlevel']  = int(config.get('threatlevel'))
 	config_args['distribution'] = int(config.get('distribution'))
-
+	config_args['tlp']          = int(config.get('tlp'))
+	
 	print >> sys.stderr, "check config_args: %s" % config_args
 
 
@@ -95,11 +93,12 @@ def create_alert(config, results):
 
 		# collect attribute value and build type=value entry
 		Attribute = {}
-		Attribute[row['type']] = row.get('value')
-		if 'toids' in row:
-			Attribute['toids'] = row.get('toids')
+		Attribute['type'] = row.get('type')
+		Attribute['value'] = row.get('value')
+		if 'to_ids' in row:
+			Attribute['to_ids'] = row.get('to_ids')
 		else:
-			Attribute['toids'] = 'False'
+			Attribute['to_ids'] = 'False'
 		if 'category' in row:
 			Attribute['category'] = row.get('category')
 		else:
@@ -130,6 +129,7 @@ def create_alert(config, results):
 		FNULL = open(os.devnull, 'w')
 		for key, event in events.items():
 			print >> sys.stderr, 'INFO Calling pymisp_create_event.py for event %s' % key
+			print >> sys.stderr, 'INFO Calling pymisp_create_event.py for event %s' % event
 			p = subprocess.Popen([ _NEW_PYTHON_PATH, my_process, str(config_args), str(event) ], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=FNULL, env=env)
 
 	# somehow we got a bad response code from thehive
