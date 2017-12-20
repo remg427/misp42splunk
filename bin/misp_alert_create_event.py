@@ -95,7 +95,10 @@ def create_alert(config, results):
 		Attribute['type'] = row.get('type')
 		Attribute['value'] = row.get('value')
 		if 'to_ids' in row:
-			Attribute['to_ids'] = row.getboolean('to_ids')
+			if row.get('to_ids') == 'True'
+				Attribute['to_ids'] = True
+			else:
+				Attribute['to_ids'] = False
 		else:
 			Attribute['to_ids'] = False
 		if 'category' in row:
