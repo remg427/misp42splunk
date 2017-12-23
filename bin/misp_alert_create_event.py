@@ -63,6 +63,7 @@ def create_alert(config, results):
 	print >> sys.stderr, "DEBUG check config_args: %s" % config_args
 
 	# iterate through each row, cleaning multivalue fields and then adding the attributes under same event key
+	# this builds the dict events
 	events = {}
 	for row in results:
 	
@@ -95,7 +96,7 @@ def create_alert(config, results):
 		Attribute['type']  = row.get('type')
 		Attribute['value'] = row.get('value')
 		if 'to_ids' in row:
-			if row.get('to_ids') == 'True'
+			if row.get('to_ids') == 'True':
 				Attribute['to_ids'] = True
 			else:
 				Attribute['to_ids'] = False
@@ -111,7 +112,7 @@ def create_alert(config, results):
 		
 		events[eventkey] = event
 	
-	# actually send the request to create the alert; fail gracefully
+
 	try:
 
 		# call Python3 script to created event
@@ -127,8 +128,10 @@ def create_alert(config, results):
 		del env['LD_LIBRARY_PATH']
 
 		FNULL = open(os.devnull, 'w')
+		# iterate in dict events to create events
 		for key, event in events.items():
 			print >> sys.stderr, 'DEBUG Calling pymisp_create_event.py for event %s' % event
+			# actually send the request to create the alert; fail gracefully
 			p = subprocess.Popen([ _NEW_PYTHON_PATH, my_process, str(config_args), str(event) ], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=FNULL, env=env)
 
 	# somehow we got a bad response code from thehive
