@@ -15,11 +15,11 @@ This app is largely inspired by https://github.com/xme/splunk/tree/master/getmis
 4. Check that your Splunk SH can connect to the MISP instance. 
 
 # Installation
-This App is meant for Splunk Search heads
+This App is designed to run on Splunk Search Head(s)
 1. Download the ZIP file and install the app on your Splunk Search Head(s) (you may remove -master from file name)
     * Please note that this app come with a copy of Splunk SDK under misp42splunk/bin
 2. A custom endpoint has been defined so you need to restart Splunk (for later updates, you may skip this step)
-3. At next logon, you should be invited to configure the app (if not go to Manage Apps > TA-MISP 42 Spliunk > Set up) 
+3. At next logon, you should be invited to configure the app (if not go to Manage Apps > TA-MISP 42 Splunk > Set up) 
 
     - provide the url to your MISP instance;
     - provide the authkey;
@@ -73,13 +73,13 @@ Fill in the form to tune your alert to your needs.
     - Distribution:
     - Threat Level:
     - Analysis:
-    - TLP: (not implemented yet)
+    - TLP:
     - tags: comma-separated list of tags (not implemented yet)
 * MISP server parameters: If specified, URL and auth key will superseede the config file (misp.conf)
 
 # Todo
 - implement sslcheck boolean. Always set to False for mispgetioc (it works for alert_action)
-- implement event tagging (TLP, etc.) in misp_alert_create_event
+- implement event tagging in misp_alert_create_event
 - store some saved searches and lookups as examples
 
 # Licence
