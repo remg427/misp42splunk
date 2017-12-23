@@ -58,7 +58,7 @@ def create_alert(config, results):
 	config_args['analysis']     = int(config.get('analysis'))
 	config_args['threatlevel']  = int(config.get('threatlevel'))
 	config_args['distribution'] = int(config.get('distribution'))
-	config_args['tlp']          = int(config.get('tlp'))
+	config_args['tlp']          = config.get('tlp')
 	
 	print >> sys.stderr, "DEBUG check config_args: %s" % config_args
 
@@ -92,7 +92,7 @@ def create_alert(config, results):
 
 		# collect attribute value and build type=value entry
 		Attribute = {}
-		Attribute['type'] = row.get('type')
+		Attribute['type']  = row.get('type')
 		Attribute['value'] = row.get('value')
 		if 'to_ids' in row:
 			if row.get('to_ids') == 'True'
