@@ -25,8 +25,17 @@ This App is designed to run on Splunk Search Head(s)
     - provide the authkey;
     - [not implemented] check the certificate of the MISP server.
 
-# Usage
+# Use Cases
 
+Here some activities you may carry out more easily with this app.
+## Hunting in Splunk logs
+fresh IOC from MISP > saved searches in Splunk > on match create an alert or a case on [TheHive](https://thehive-project.org/) or any SIR platform of your choice. There is a [specific app for it](https://splunkbase.splunk.com/app/3642/)
+
+## creating events based on automated sandboxing
+If you have output of analysis pushed to Splunk you may automate the creation of events
+Log on sandboxing output > saved search to qualify, sanitize (dedup remove top Alexa, etc.)  and prepare the table > set a splunk alert to create event(s) in MISP
+
+# Usage
 ## mispgetioc
 This custom command must be the first of a search (or a sub-search). The results are displayed in a table.
 The command syntax is as follow:
