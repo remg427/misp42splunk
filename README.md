@@ -92,4 +92,4 @@ Fill in the form to tune your alert to your needs.
 - store some saved searches and lookups as examples
 
 # Licence
-This app misp42splunk is licensed under the GNU Lesser General Public License v3.0
+This app misp42splunk is licensed under the GNU Lesser General Public License v3.0.
