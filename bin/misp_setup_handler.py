@@ -29,7 +29,7 @@ class ConfigApp(admin.MConfigHandler):
   '''
   def setup(self):
     if self.requestedAction == admin.ACTION_EDIT:
-      for arg in ['mispsrv', 'sslcheck', 'mispkey']:
+      for arg in ['mispsrv', 'sslcheck', 'mispkey', 'thehiveURL', 'thehiveKey']:
         self.supportedArgs.addOptArg(arg)
         
   '''
@@ -63,6 +63,10 @@ class ConfigApp(admin.MConfigHandler):
             val = ''
           if key in ['mispkey'] and val in [None, '']:
             val = ''
+          if key in ['thehiveURL'] and val in [None, '']:
+            val = ''
+          if key in ['theiveKey'] and val in [None, '']:
+            val = ''
           confInfo[stanza].append(key, val)
           
   '''
@@ -84,11 +88,15 @@ class ConfigApp(admin.MConfigHandler):
     if self.callerArgs.data['mispkey'][0] in [None, '']:
       self.callerArgs.data['mispkey'][0] = ''  
         
-    '''
-    Since we are using a conf file to store parameters, 
-write them to the [mispsetup] stanza
-    in app_name/local/misp.conf  
-    '''
+    if self.callerArgs.data['thehiveURL'][0] in [None, '']:
+      self.callerArgs.data['thehiveURL'][0] = ''  
+        
+    if self.callerArgs.data['thehiveKey'][0] in [None, '']:
+      self.callerArgs.data['thehiveKey'][0] = ''  
+        
+#    Since we are using a conf file to store parameters, 
+#    write them to the [mispsetup] stanza
+#    in app_name/local/misp.conf  
         
     self.writeConf('misp', 'mispsetup', self.callerArgs.data)
       

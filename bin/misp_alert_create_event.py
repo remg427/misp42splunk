@@ -10,7 +10,7 @@
 # most of the code here was based on the following example on splunk custom alert actions
 # http://docs.splunk.com/Documentation/Splunk/6.5.3/AdvancedDev/ModAlertsAdvancedExample
 
-import os, sys, subprocess, json, gzip, csv, ConfigParser
+import os, sys, subprocess, json, gzip, csv, ConfigParser, time
 
 def create_alert(config, results):
 	print >> sys.stderr, "DEBUG Creating alert with config %s" % json.dumps(config)
@@ -42,15 +42,8 @@ def create_alert(config, results):
 	
 
 	# Get string values from alert form
-	if 'unique' in config:
-		config_args['eventkey'] = config.get('unique')
-	else:
-		config_args['eventkey'] = 'oneevent'
-	if 'info' in config:
-		config_args['info']     = config.get('info')
-	else:
-		config_args['info']     = 'notable event'
-
+	config_args['eventkey'] = config.get('unique', "oneEvent")
+	config_args['info']     = config.get('info',   "notable event")
 	if 'tags' in config:
 		config_args['tags']     = config.get('tags')
 
@@ -60,7 +53,7 @@ def create_alert(config, results):
 	config_args['distribution'] = int(config.get('distribution'))
 	config_args['tlp']          = config.get('tlp')
 	
-	print >> sys.stderr, "DEBUG check config_args: %s" % config_args
+	print >> sys.stderr, "check config_args: %s" % config_args
 
 	# iterate through each row, cleaning multivalue fields and then adding the attributes under same event key
 	# this builds the dict events
@@ -71,10 +64,9 @@ def create_alert(config, results):
 		row = {key: value for key, value in row.iteritems() if not key.startswith("__mv_")}
 
 		# GEt the specific eventkey if define in Splunk search. Defaults to alert form got above
-		if 'eventkey' in row:
-			eventkey = row.pop('eventkey')
-		else:
-			eventkey = config_args['eventkey']
+		eventkey = config_args['eventkey']
+		if eventkey in row:
+			eventkey = row.pop(eventkey)
 
 		# check if building event has been initiated
 		# if yes simply add attribute entry otherwise collect other metadata
@@ -84,17 +76,16 @@ def create_alert(config, results):
 		else:
 			event = {}
 			artifacts = []
-			event['timestamp'] = row.get('_time')
+			event['timestamp'] = row.get('_time', str(int(time.time())))
 #			event['eventkey'] = eventkey
-			if 'info' in row:
-				event['info'] = row.get('info')
-			else:
-				event['info'] = config_args['info']
+			event['info'] = row.get('info',config_args['info'])
 
 		# collect attribute value and build type=value entry
 		Attribute = {}
-		Attribute['type']  = row.get('type')
-		Attribute['value'] = row.get('value')
+		if 'type' in row and 'value' in row:
+			Attribute['type']  = row.get('type')
+			Attribute['value'] = row.get('value')
+
 		if 'to_ids' in row:
 			if row.get('to_ids') == 'True':
 				Attribute['to_ids'] = True
@@ -104,8 +95,6 @@ def create_alert(config, results):
 			Attribute['to_ids'] = False
 		if 'category' in row:
 			Attribute['category'] = row.get('category')
-		else:
-			Attribute['category'] = 'None'
 
 		artifacts.append(Attribute)
 		event['attribute'] = artifacts
@@ -130,7 +119,7 @@ def create_alert(config, results):
 		FNULL = open(os.devnull, 'w')
 		# iterate in dict events to create events
 		for key, event in events.items():
-			print >> sys.stderr, 'DEBUG Calling pymisp_create_event.py for event %s' % event
+			print >> sys.stderr, 'INFO Calling pymisp_create_event.py for event %s' % event
 			# actually send the request to create the alert; fail gracefully
 			p = subprocess.Popen([ _NEW_PYTHON_PATH, my_process, str(config_args), str(event) ], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=FNULL, env=env)
 

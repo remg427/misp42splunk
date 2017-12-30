@@ -1,8 +1,11 @@
 # misp42splunk
 A Splunk app to use MISP as a backend (lookup and store events)
+If you have TheHive installed, you also may create alerts
 
 # Credits
-This app is largely inspired by https://github.com/xme/splunk/tree/master/getmispioc and the associated blog https://blog.rootshell.be/2017/10/31/splunk-custom-search-command-searching-misp-iocs/
+This app is largely inspired by https://github.com/xme/splunk/tree/master/getmispioc and the associated blog https://blog.rootshell.be/2017/10/31/splunk-custom-search-command-searching-misp-iocs/ for MISP interactions.
+The alert_action for TheHive is inpired by [this Splunk app](https://splunkbase.splunk.com/app/3642/)
+
 
 # Prerequisites
 1. Install Python 3 on the Splunk Search Head.
@@ -20,16 +23,19 @@ This App is designed to run on Splunk Search Head(s)
     * Please note that this app come with a copy of Splunk SDK under misp42splunk/bin
 2. A custom endpoint has been defined so you need to restart Splunk (for later updates, you may skip this step)
 3. At next logon, you should be invited to configure the app (if not go to Manage Apps > TA-MISP 42 Splunk > Set up) 
-
-    - provide the url to your MISP instance;
-    - provide the authkey;
-    - [not implemented] check the certificate of the MISP server.
+    - For MISP
+        - provide the url to your MISP instance;
+        - provide the authkey;
+        - check the certificate of the MISP server.
+    - For TheHive
+        - provide the url to the API of your instance;
+        - provide the authkey;
 
 # Use Cases
 
 Here some activities you may carry out more easily with this app.
 ## Hunting in Splunk logs
-fresh IOC from MISP > saved searches in Splunk > on match create an alert or a case on [TheHive](https://thehive-project.org/) or any SIR platform of your choice. There is a [specific app for it](https://splunkbase.splunk.com/app/3642/)
+fresh IOC from MISP > saved searches in Splunk > on match create an alert on [TheHive](https://thehive-project.org/) or (later) any SIR platform of your choice.
 
 ## creating events based on automated sandboxing
 If you have output of analysis pushed to Splunk you may automate the creation of events
@@ -53,18 +59,49 @@ The command syntax is as follow:
 - you may filter the results using type and category parameters
 - you may overwrite the misp server parameters for this search
 
+## Alert sent to TheHive
+When you create an alert, you may add an alert action to create alerts in TheHive
+### collect results in Splunk
+you may build a search returning some values for these fields
+
+    autonomous-system
+    domain
+    file
+    filename
+    fqdn
+    hash
+    ip
+    mail
+    mail_subject
+    other
+    regexp
+    registry
+    uri_path
+    url
+    user-agent
+
+and one field to group rows.
+For example
+
+    | eval id = md5(some common key in rows belonging to the same alert)
+    | table id, autonomous-system, domain, file, filename, fqdn, hash, ip, mail, mail_subject, other, regexp, registry, uri_path, url, user-agent
+
+Values may be empty for some fields; they will be dropped gracefully. You may add any other columns, they will be passed as elements but only fields above are imported as observables when you create/update a case.
+### create the alert action "Alert to create THEHIVE alert(s)"
+fill in fields. If value is not provided, default will be provided if needed.
+
 ## Alert to create MISP event(s)    
-When you create an alert, you may add an alert action to create events based on search results
+When you create an alert, you may add an alert action to directly create events in MISP based on search results
 
 ### collect results in Splunk
 At the moment you need to search and prepare the results as a table with the following command
     | table _time type value to_ids eventkey info category
 
 * Mandatory fields:
-    - _time: the timestamp will be converted to YYYY-MM-DD for event date
+    - _time: the timestamp will be converted to YYYY-MM-DD for event date. if not provided, set to localtime
     - type: the type of attribute. It must use MISP attribute names
     - value: the value of the attribute - you should check that the value complies with the type
-
+ 
 * Optional fields:
     - to_ids: if not defined, set to False
     - category: if not defined, set to None and populated in relation with the type of attribute

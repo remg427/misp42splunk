@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<form class="form-horizontal form-complex">
+    <div class="control-group">
+        <h4>Alert overall description</h4>
+    </div>
+    <div class="control-group">
+        <label class="control-label" for="thehive_alert_create_alert_caseTemplate">Case Template</label>
+
+        <div class="controls">
+            <input type="text" name="action.thehive_alert_create_alert.param.caseTemplate" id="thehive_alert_create_alert_caseTemplate" required />
+            <span class="help-block">
+              The case template to use for imported alerts.
+            </span>
+        </div>
+    </div>
+    <div class="control-group">
+        <label class="control-label" for="thehive_alert_create_alert_type">Type</label>
+
+        <div class="controls">
+            <input type="text" name="action.thehive_alert_create_alert.param.type" id="thehive_alert_create_alert_type" value="alert" required />
+            <span class="help-block">
+              The alert type. Defaults to "alert".
+            </span>
+        </div>
+    </div>
+    <div class="control-group">
+        <label class="control-label" for="thehive_alert_create_alert_source">Source</label>
+
+        <div class="controls">
+            <input type="text" name="action.thehive_alert_create_alert.param.source" id="thehive_alert_create_alert_source" value="splunk" required />
+            <span class="help-block">
+              The alert source. Defaults to "splunk".
+            </span>
+        </div>
+    </div>
+    <div class="control-group">
+        <label class="control-label" for="thehive_alert_create_alert_unique">Unique ID</label>
+
+        <div class="controls">
+            <input type="text" name="action.thehive_alert_create_alert.param.unique" id="thehive_alert_create_alert_unique" required />
+            <span class="help-block">
+              A field name that contains a unique identifier specific to the source event.
+            </span>
+        </div>
+    </div>
+    <div class="control-group">
+        <label class="control-label" for="thehive_alert_create_alert_title">Title</label>
+
+        <div class="controls">
+            <input type="text" name="action.thehive_alert_create_alert.param.title" id="thehive_alert_create_alert_title" value="$name$" required />
+            <span class="help-block">
+              The title to use for created alerts.
+            </span>
+        </div>
+    </div>
+    <div class="control-group">
+        <label class="control-label" for="thehive_alert_create_alert_description">Description</label>
+
+        <div class="controls">
+            <textarea name="action.thehive_alert_create_alert.param.description" id="thehive_alert_create_alert_description" required>$description$</textarea>
+            <span class="help-block">
+                The description to send with the alert.
+            </span>
+        </div>
+    </div>
+    <div class="control-group">
+        <label class="control-label" for="thehive_alert_create_alert_tags">Tags</label>
+
+        <div class="controls">
+            <input type="text" name="action.thehive_alert_create_alert.param.tags" id="thehive_alert_create_alert_tags" />
+            <span class="help-block">
+                Use single comma-separated string without quotes for multiple tags (ex. "badIP,spam").
+            </span>
+        </div>
+    </div>
+    <div class="control-group">
+        <label class="control-label" for="thehive_alert_create_alert_severity">Severity</label>
+
+        <div class="controls">
+            <select id="thehive_alert_create_alert_severity" name="action.thehive_alert_create_alert.param.severity">
+                <option value="1">Low</option>
+                <option value="2">Medium</option>
+                <option value="3">High</option>
+            </select>
+            <span class="help-block">Change the severity of the created alert.</span>
+        </div>
+    </div>
+    <div class="control-group">
+        <label class="control-label" for="thehive_alert_create_alert_tlp">TLP</label>
+
+        <div class="controls">
+            <select id="thehive_alert_create_alert_tlp" name="action.thehive_alert_create_alert.param.tlp">
+                <option value="0">TLP:WHITE</option>
+                <option value="1">TLP:GREEN</option>
+                <option value="2" selected >TLP:AMBER</option>
+                <option value="3">TLP:RED</option>
+            </select>
+            <span class="help-block">Change the TLP of the created alert. Default is TLP:AMBER</span>
+        </div>
+    </div> 
+    <div class="control-group">
+        <h4>TheHive API parameters (optional if they have been defined in general setup)</h4>
+    </div>
+    <div class="control-group">
+        <label class="control-label" for="thehive_alert_create_alert_URL">URL</label>
+
+        <div class="controls">
+            <input type="text" name="action.thehive_alert_create_alert.param.thehiveURL" id="thehive_alert_create_alert_thehiveURL" />
+            <span class="help-block">
+              The URL to submit alerts to e.g. http://hive.example.com/api/alert.
+            </span>
+        </div>
+    </div>
+    <div class="control-group">
+        <label class="control-label" for="thehive_alert_create_alert_Key">API KEY</label>
+
+        <div class="controls">
+            <input type="text" name="action.thehive_alert_create_alert.param.thehiveKey" id="thehive_alert_create_alert_thehiveKey" />
+            <span class="help-block">
+              The API KEY for authentication
+            </span>
+        </div>
+    </div>
+</form>
