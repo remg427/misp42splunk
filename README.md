@@ -62,6 +62,7 @@ The command syntax is as follow:
 ## Alert sent to TheHive
 When you create an alert, you may add an alert action to create alerts in TheHive
 ### collect results in Splunk
+#### search with a column by artifact type
 you may build a search returning some values for these fields
 
     autonomous-system
@@ -87,6 +88,15 @@ For example
     | table id, autonomous-system, domain, file, filename, fqdn, hash, ip, mail, mail_subject, other, regexp, registry, uri_path, url, user-agent
 
 Values may be empty for some fields; they will be dropped gracefully. You may add any other columns, they will be passed as elements but only fields above are imported as observables when you create/update a case.
+
+#### search with 2 columns: type & value
+You may also build a search with one artifact by row. You use field id to group several rows together
+For example:
+    |mispgetioc last=1d
+    | eval id = md5(eventid)
+    | table id, type, value
+
+
 ### create the alert action "Alert to create THEHIVE alert(s)"
 fill in fields. If value is not provided, default will be provided if needed.
 
@@ -124,8 +134,9 @@ Fill in the form to tune your alert to your needs.
 * MISP server parameters: If specified, URL and auth key will superseede the config file (misp.conf)
 
 # Todo
-- implement sslcheck boolean. Always set to False for mispgetioc (it works for alert_action)
+- implement sslcheck boolean for specific misp_alert settings.
 - implement event tagging in misp_alert_create_event
+- implement misp_alert with a column per type of attributes
 - store some saved searches and lookups as examples
 
 # Licence
