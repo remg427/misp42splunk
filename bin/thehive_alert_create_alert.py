@@ -1,4 +1,10 @@
 #!/usr/bin/env python
+# Generate TheHive alerts
+#
+# Author: Remi Seguy <remg427@gmail.com>
+#
+# Copyright: LGPLv3 (https://www.gnu.org/licenses/lgpl-3.0.txt)
+# Feel free to use the code, but please share the changes you've made
 
 # most of the code here was based on the following example on splunk custom alert actions
 # http://docs.splunk.com/Documentation/Splunk/6.5.3/AdvancedDev/ModAlertsAdvancedExample
