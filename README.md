@@ -37,12 +37,12 @@ Here some activities you may carry out more easily with this app.
 ## Hunting in Splunk logs
 Fresh IOC from MISP > saved searches in Splunk > on match create an alert on [TheHive](https://thehive-project.org/) or (later) any SIR platform of your choice.
 
-## creating events based on automated sandboxing
+## Creating events based on automated sandboxing
 If you have output of analysis pushed to Splunk you may automate the creation of events
 Log on sandboxing output > saved search to qualify, sanitize (dedup remove top Alexa, etc.)  and prepare the table > set a splunk alert to create event(s) in MISP
 
 # Usage
-## mispgetioc
+## custom command mispgetioc
 This custom command must be the first of a search (or a sub-search). The results are displayed in a table.
 The command syntax is as follow:
 
@@ -53,6 +53,7 @@ The command syntax is as follow:
                 [server=https://host:port] 
                 [authkey=misp-authorization-key]
                 [sslcheck=y|n]                  
+                
 
 - You must set either eventid or last parameters
 - last interval is a number followed by d(ays), h(ours) or m(inutes)
@@ -100,6 +101,20 @@ For example:
 
 ### create the alert action "Alert to create THEHIVE alert(s)"
 Fill in fields. If value is not provided, default will be provided if needed.
+
+* Alert overall description
+    - Case Template: The case template to use for imported alerts.
+    - Type: The alert type. Defaults to "alert".
+    - Source: The alert source. Defaults to "splunk".
+    - Unique ID: A field name that contains a unique identifier specific to the source event. You may use the field value to group artifacts under the same alert.
+    - Title: The title to use for created alerts.
+    - Description: The description to send with the alert.
+    - Tags: Use single comma-separated string without quotes for multiple tags (ex. "badIP,spam").
+    - Severity: Change the severity of the created alert.
+    - TLP: Change the TLP of the created alert. Default is TLP:AMBER
+* TheHive API parameters (optional if they have been defined in general setup)
+    - URL: The URL to submit alerts to e.g. http://hive.example.com/api/alert.
+    - API KEY: The API KEY for authentication
 
 ## Alert to create MISP event(s)    
 When you create an alert, you may add an alert action to directly create events in MISP based on search results
