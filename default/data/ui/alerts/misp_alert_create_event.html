@@ -7,7 +7,7 @@
         <label class="control-label" for="misp_alert_create_event_title">Title</label>
 
         <div class="controls">
-            <input type="text" name="action.misp_alert_create_event.param.title" id="misp_alert_create_event_title" value="$name$" required />
+            <input type="text" name="action.misp_alert_create_event.param.title" id="misp_alert_create_event_title" required />
             <span class="help-block">
               The title of this alert.
             </span>
@@ -17,7 +17,7 @@
         <label class="control-label" for="misp_alert_create_event_description">Description</label>
 
         <div class="controls">
-            <textarea name="action.misp_alert_create_event.param.description" id="misp_alert_create_event_description" required>$description$</textarea>
+            <textarea name="action.misp_alert_create_event.param.description" id="misp_alert_create_event_description" required />
             <span class="help-block">
                 The description to send with the alert.
             </span>
@@ -29,9 +29,9 @@
     <div class="control-group">
         <label class="control-label" for="misp_alert_create_event_unique">Unique ID</label>
         <div class="controls">
-            <input type="text" name="action.misp_alert_create_event.param.unique" id="misp_alert_create_event_unique" value="eventkey" required></input>
+            <input type="text" name="action.misp_alert_create_event.param.unique" id="misp_alert_create_event_unique" required></input>
             <span class="help-block">
-                This is the default eventkey value if not provided in results.
+                A field name that contains a unique identifier per event to be created.
             </span>
         </div>
     </div>
@@ -103,7 +103,7 @@
         </div>
     </div>
     <div class="control-group">
-        <h4>Specific alert parameters</h4>
+        <h4>Specific MISP instance (overwrite general settings</h4>
     </div>
     <div class="control-group">
         <label class="control-label" for="misp_alert_create_event_URL">URL</label>
@@ -125,4 +125,15 @@
             </span>
         </div>
     </div>
+    <div class="control-group">
+        <label class="control-label" for="misp_alert_create_event_sslcheck">Check SSL cert</label>
+
+        <div class="controls">
+            <input type="checkbox" name="action.misp_alert_create_event.param.sslcheck" id="misp_alert_create_event_sslcheck"/>
+            <span class="help-block">
+                Check SSL certificate of MISP server.
+            </span>
+        </div>
+    </div>
+
 </form>

@@ -27,19 +27,23 @@ def create_alert(config, results):
 
 	mispurl = config.get('URL')
 	mispkey = config.get('authkey')
-	
+
+	# If no specific MISP instances defined, get settings from misp.conf
 	if not mispurl or not mispkey:
 		config_args['mispsrv'] = mispconf.get('mispsetup','mispsrv') 
 		config_args['mispkey'] = mispconf.get('mispsetup','mispkey')
+		if mispconf.has_option('mispsetup','sslcheck'):
+			config_args['sslcheck'] = mispconf.getboolean('mispsetup','sslcheck')
+		else:
+			config_args['sslcheck'] = False
 	else:
 		config_args['mispsrv'] = mispurl 
 		config_args['mispkey'] = mispkey
-	
-	if mispconf.has_option('mispsetup','sslcheck'):
-		config_args['sslcheck'] = mispconf.getboolean('mispsetup','sslcheck')
-	else:
-		config_args['sslcheck'] = False
-	
+		sslcheck = int(config.get('sslcheck', "0"))
+		if sslcheck == 1:
+			config_args['sslcheck'] = True
+		else:
+			config_args['sslcheck'] = False
 
 	# Get string values from alert form
 	config_args['eventkey'] = config.get('unique', "oneEvent")
@@ -70,31 +74,57 @@ def create_alert(config, results):
 
 		# check if building event has been initiated
 		# if yes simply add attribute entry otherwise collect other metadata
+		# remove fields _time and info from row and keep their values if this is a new event
 		if eventkey in events:
 			event = events[eventkey]
 			artifacts = event['attribute']
+			if '_time' in row:
+				remove = str(row.pop('_time'))
+			if 'info' in row:
+				remove = row.pop('info')
 		else:
 			event = {}
 			artifacts = []
-			event['timestamp'] = row.get('_time', str(int(time.time())))
-#			event['eventkey'] = eventkey
-			event['info'] = row.get('info',config_args['info'])
+			if '_time' in row:
+				event['timestamp'] = str(row.pop('_time'))
+			else:
+				event['timestamp'] = str(int(time.time()))
+			if 'info' in row:
+				event['info'] = row.pop('info')
+			else:
+				event['info'] = config_args['info']
 
 		# collect attribute value and build type=value entry
 		Attribute = {}
-		if 'type' in row and 'value' in row:
-			Attribute['type']  = row.get('type')
-			Attribute['value'] = row.get('value')
 
 		if 'to_ids' in row:
-			if row.get('to_ids') == 'True':
+			to_ids = str(row.pop('to_ids'))
+			if  to_ids == 'True':
 				Attribute['to_ids'] = True
 			else:
 				Attribute['to_ids'] = False
 		else:
 			Attribute['to_ids'] = False
+		
 		if 'category' in row:
-			Attribute['category'] = row.get('category')
+			Attribute['category'] = str(row.pop('category'))
+		else:
+			Attribute['category'] = None
+
+		if 'type' in row and 'value' in row:
+			Attribute['type']  = str(row.pop('type'))
+			Attribute['value'] = str(row.pop('value'))
+		elif 'type' in row or 'value' in row:
+			print >> sys.stderr, "FATAL fields type and value MUST be present together"
+			sys.exit(4)
+		else:
+		# now we take remaining KV pairs to add to dict 
+			for key, value in row.iteritems():
+				if value != "":
+					print >> sys.stderr, "DEBUG key %s value %s" % (key, value) 
+					Attribute['type'] = str(key).replace('_','-')
+					Attribute['value']= str(value)
+
 
 		artifacts.append(Attribute)
 		event['attribute'] = artifacts

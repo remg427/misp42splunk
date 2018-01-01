@@ -41,8 +41,7 @@ class ConfigApp(admin.MConfigHandler):
 
   If app has been set up, looks at 
       .../local/misp.conf first, then looks at 
-  .../default/misp.conf only if there is no value for a field in
-      .../local/misp.conf
+      .../default/misp.conf only if there is no value for a field in .../local/misp.conf
 
   For boolean fields, may need to switch the true/false setting.
 
