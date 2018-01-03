@@ -1,6 +1,16 @@
 # misp42splunk
 A Splunk app to use MISP as a backend (lookup and store events)
-If you have TheHive installed, you also may create alerts
+If you have TheHive installed, you also may create alerts.
+
+in short, you can:
+1. easily configure the app from Splunk GUI; no need to edit files via the console
+2. get ioc from MISP instance: |mispgetioc
+3. send alerts to TheHive:
+    - results may have one column per artifacts or,
+    - results must have at least 2 columns named **type** (of artifacts) and **value**
+4. create events in MISP
+    - results must have at least 2 columns named **type** (of attributes) and **value**
+    - results may have one column per artifacts;  in this case use **_** instead of **-** as Splunk does not like fields such as ip-src. the script will replace _ by -.
 
 # Credits
 This app is largely inspired by https://github.com/xme/splunk/tree/master/getmispioc and the associated blog https://blog.rootshell.be/2017/10/31/splunk-custom-search-command-searching-misp-iocs/ for MISP interactions.
@@ -63,7 +73,7 @@ The command syntax is as follow:
 ## Alert sent to TheHive
 When you create a Splunk alert, you may add an alert action to create alerts in TheHive
 ### collect results in Splunk
-#### search with a column by artifact type
+#### search results with a column by artifact type
 you may build a search returning some values for these fields
 
     autonomous-system
@@ -90,8 +100,8 @@ For example
 
 Values may be empty for some fields; they will be dropped gracefully. You may add any other columns, they will be passed as elements but only fields above are imported as observables when you create/update a case.
 
-#### search with 2 columns: type & value
-You may also build a search with one artifact by row. You use field id to group several rows together    
+#### search results with 2 columns: type & value
+You may also build a search with one artifact by row. You may use field id to group several rows together    
 For example: 
 
     | mispgetioc last=1d
@@ -120,7 +130,8 @@ Fill in fields. If value is not provided, default will be provided if needed.
 When you create an alert, you may add an alert action to directly create events in MISP based on search results
 
 ### collect results in Splunk
-At the moment you need to search and prepare the results as a table with the following command
+#### search results with columns type and value
+You may search and prepare the results as a table with the following command
     | table _time type value to_ids eventkey info category
 
 * Mandatory fields:
@@ -134,10 +145,13 @@ At the moment you need to search and prepare the results as a table with the fol
     - eventkey: This string/id is used to group several rows of the results belonging to the same event (e.g. attributes of type email-src, email-subject). The actual value is not pushed to MISP. If not specified by row, this value might be overall defined for the alert - see below
     - info: This string will be set in the Info field of MISP event. This value might be overall defined for the alert - see below
 
+#### search results with one column per type
+You mays search and build a table with several column, one for each type of attributes.
+CAUTION: Splunk syntax does not like field names like ip-src, email-subject. You simply create fields using _ such as ip_src and the script will format the attribute names before pushing to MISP
+
 ### create the alert and add alert_action to create events
 Save your search as alert. Select "Alert to create MISP event(s)" as action
 Fill in the form to tune your alert to your needs.
-
 
 Global event parameters
 Info
@@ -163,9 +177,7 @@ Using those fields you may search in one MISP instance and create events in anot
     - Auth Key: The Authkey to submit alerts to (leave blank to use default settings).
 
 # Todo
-- implement sslcheck boolean for specific misp_alert settings.
 - implement event tagging in misp_alert_create_event
-- implement misp_alert with a column per type of attributes
 - store some saved searches and lookups as examples
 
 # Licence
