@@ -90,7 +90,7 @@ def create_alert(config, results):
 		
 		# if there is one column per type in results
 		else:
-			# now we take those KV pairs to add to dict 
+		# now we take those KV pairs to add to dict 
 			for key, value in row.iteritems():
 				if value != "":
 					print >> sys.stderr, "DEBUG key %s value %s" % (key, value) 
