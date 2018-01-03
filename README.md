@@ -179,6 +179,7 @@ Using those fields you may search in one MISP instance and create events in anot
 # Todo
 - implement event tagging in misp_alert_create_event
 - store some saved searches and lookups as examples
+- implement custom command to update sighting in MISP
 
 # Licence
 This app misp42splunk is licensed under the GNU Lesser General Public License v3.0.
