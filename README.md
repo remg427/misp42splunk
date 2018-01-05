@@ -5,12 +5,13 @@ If you have TheHive installed, you also may create alerts.
 in short, you can:
 1. easily configure the app from Splunk GUI; no need to edit files via the console
 2. get ioc from MISP instance: |mispgetioc
-3. send alerts to TheHive:
+3. alert action to send alerts to TheHive:
     - results may have one column per artifacts or,
     - results must have at least 2 columns named **type** (of artifacts) and **value**
-4. create events in MISP
+4. alert action to create events in MISP
     - results must have at least 2 columns named **type** (of attributes) and **value**
     - results may have one column per artifacts;  in this case use **_** instead of **-** as Splunk does not like fields such as ip-src. the script will replace _ by -.
+5. alert action to increment attributes sighting
 
 # Credits
 This app is largely inspired by https://github.com/xme/splunk/tree/master/getmispioc and the associated blog https://blog.rootshell.be/2017/10/31/splunk-custom-search-command-searching-misp-iocs/ for MISP interactions.
@@ -153,13 +154,6 @@ CAUTION: Splunk syntax does not like field names like ip-src, email-subject. You
 Save your search as alert. Select "Alert to create MISP event(s)" as action
 Fill in the form to tune your alert to your needs.
 
-Global event parameters
-Info
-$description$ The default Info field for the MISP events if not provided in results.
-Tags
-Use single comma-separated string without quotes for multiple tags (ex. "badIP,spam").
-
-
 * Alert overall description: this section is for Splunk documentation
     - Title: The title of this alert.
     - Description: The description to send with the alert.
@@ -176,10 +170,24 @@ Using those fields you may search in one MISP instance and create events in anot
     - URL: MISP URL (leave blank to use default settings).
     - Auth Key: The Authkey to submit alerts to (leave blank to use default settings).
 
+## Alert for sighting
+### search results with one field for timestamp (recommended)
+Build your search with as many fields as you want. One field should contain a valid timestamp
+
+### create the alert and add alert_action for sighting
+Save your search as alert. Select "Alert for sighting MISP attribute(s)" as action
+Fill in the form to tune your alert to your needs.
+
+* Global event parameters: the parameters will apply for all events created by this alert unless overwritten (see above)
+    - Unique ID: indicate the field containing timestamps. If not defined, defaults is now()
+* Specific alert parameters for MISP serve: If specified, URL and auth key will superseede the config file (misp.conf)
+Using those fields you may search in one MISP instance and create events in another one.
+    - URL: MISP URL (leave blank to use default settings).
+    - Auth Key: The Authkey to submit alerts to (leave blank to use default settings).
+
 # Todo
 - implement event tagging in misp_alert_create_event
 - store some saved searches and lookups as examples
-- implement custom command to update sighting in MISP
 
 # Licence
 This app misp42splunk is licensed under the GNU Lesser General Public License v3.0.

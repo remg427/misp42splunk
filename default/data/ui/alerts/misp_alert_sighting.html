@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<form class="form-horizontal form-complex">
+    <div class="control-group">
+        <h4>Alert overall description</h4>
+    </div>
+    <div class="control-group">
+        <label class="control-label" for="misp_alert_sighting_title">Title</label>
+
+        <div class="controls">
+            <input type="text" name="action.misp_alert_sighting.param.title" id="misp_alert_sighting_title" required />
+            <span class="help-block">
+              The title of this alert.
+            </span>
+        </div>
+    </div>
+    <div class="control-group">
+        <label class="control-label" for="misp_alert_sighting_description">Description</label>
+
+        <div class="controls">
+            <textarea name="action.misp_alert_sighting.param.description" id="misp_alert_sighting_description" required />
+            <span class="help-block">
+                The description to send with the alert.
+            </span>
+        </div>
+    </div>
+    <div class="control-group">
+        <h4>Global event parameters</h4>
+    </div>
+    <div class="control-group">
+        <label class="control-label" for="misp_alert_sighting_unique">Unique ID</label>
+        <div class="controls">
+            <input type="text" name="action.misp_alert_sighting.param.unique" id="misp_alert_sighting_unique" required></input>
+            <span class="help-block">
+                A field name that contains timestamps ( _time, etc.). if not defined or not present, default to now()
+            </span>
+        </div>
+    </div>
+    <div class="control-group">
+        <h4>Specific MISP instance (overwrite general settings</h4>
+    </div>
+    <div class="control-group">
+        <label class="control-label" for="misp_alert_sighting_URL">URL</label>
+
+        <div class="controls">
+            <input type="text" name="action.misp_alert_sighting.param.URL" id="misp_alert_sighting_URL"/>
+            <span class="help-block">
+                MISP URL (leave blank to use default settings).
+            </span>
+        </div>
+    </div>
+    <div class="control-group">
+        <label class="control-label" for="misp_alert_sighting_authkey">Auth Key</label>
+
+        <div class="controls">
+            <input type="text" name="action.misp_alert_sighting.param.authkey" id="misp_alert_sighting_authkey"/>
+            <span class="help-block">
+                The Authkey to submit alerts to (leave blank to use default settings).
+            </span>
+        </div>
+    </div>
+    <div class="control-group">
+        <label class="control-label" for="misp_alert_sighting_sslcheck">Check SSL cert</label>
+
+        <div class="controls">
+            <input type="checkbox" name="action.misp_alert_sighting.param.sslcheck" id="misp_alert_sighting_sslcheck"/>
+            <span class="help-block">
+                Check SSL certificate of MISP server.
+            </span>
+        </div>
+    </div>
+</form>
