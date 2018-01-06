@@ -22,6 +22,8 @@ class mispgetioc(ReportingCommand):
         eventid         = Option(require=False, validate=validators.Match("eventid",    r"^[0-9]+$"))
         last            = Option(require=False, validate=validators.Match("last",       r"^[0-9]+[hdwm]$"))
         onlyids         = Option(require=False, validate=validators.Match("onlyids",    r"^[yYnN01]+$"))
+        getuuid         = Option(require=False, validate=validators.Match("getuuid",    r"^[yYnN01]+$"))
+        getorg          = Option(require=False, validate=validators.Match("getuuid",    r"^[yYnN01]+$"))
         category        = Option(require=False)
         type            = Option(require=False)
 
@@ -62,9 +64,20 @@ class mispgetioc(ReportingCommand):
                 else:
                         onlyids = False
 
+                if self.getuuid == 'Y' or self.getuuid == 'y' or self.getuuid == '1':
+                        getuuid = True
+                else:
+                        getuuid = False
+
+                if self.getorg == 'Y' or self.getorg == 'y' or self.getorg == '1':
+                        my_args['getorg'] = True
+                else:
+                        my_args['getorg'] = False
+
+
                 if self.eventid and self.last:
                         print('DEBUG Options "eventid" and "last" are mutually exclusive')
-                        exit(1)
+                        exit(2)
 
                 if self.eventid:
                        my_args['eventid'] = self.eventid
@@ -99,7 +112,11 @@ class mispgetioc(ReportingCommand):
                                         continue
                                 if self.type != None and self.type != v['type']:
                                         continue
-                                results['uuid']         = v['uuid']
+                                if getuuid == True:
+                                        results['uuid'] = v['uuid']
+                                if my_args['getorg'] == True:
+                                        results['orgc'] = v['orgc']
+
                                 results['eventid']      = v['event_id']
                                 results['value']        = v['value']
                                 results['category']     = v['category']

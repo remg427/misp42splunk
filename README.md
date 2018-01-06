@@ -61,6 +61,8 @@ The command syntax is as follow:
                 [onlyids=y|n]
                 [category=string]
                 [type=string]
+                [getuuid=y|n]
+                [getorg=y|n]
                 [server=https://host:port] 
                 [authkey=misp-authorization-key]
                 [sslcheck=y|n]                  
@@ -69,6 +71,7 @@ The command syntax is as follow:
 - You must set either eventid or last parameters
 - last interval is a number followed by d(ays), h(ours) or m(inutes)
 - you may filter the results using type and category parameters
+- you may include attribute uuids (getuuid=Y) or source organisation name in results (getorg=Y)
 - you may overwrite the misp server parameters for this search
 
 ## Alert sent to TheHive
