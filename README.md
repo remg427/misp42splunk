@@ -61,8 +61,8 @@ The command syntax is as follow:
                 [onlyids=y|n]
                 [category=string]
                 [type=string]
-                [getuuid=y|n]
-                [getorg=y|n]
+                **[getuuid=y|n|Y|N|0|1]**
+                **[getorg=y|n|Y|N|0|1]**
                 [server=https://host:port] 
                 [authkey=misp-authorization-key]
                 [sslcheck=y|n]                  
