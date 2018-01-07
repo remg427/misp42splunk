@@ -19,36 +19,41 @@ def init(url, key, ssl):
     return PyMISP(url, key, ssl, 'json')
 
 def get_event(m, e):
-        result = m.get_event(e)
-        return result['Event']['Attribute']
+    data = []
+    result = m.get_event(e)
+    for a in result['Event']['Attribute']:
+        a['orgc'] = result['Event']['Orgc']['name']
+        data.append(a)
+    return data
 
 def get_last(m, l):
-        result = m.download_last(l)
-        data = []
-        for r in result['response']:
-                for a in r['Event']['Attribute']:
-                        data.append(a)
-        return data
+    result = m.download_last(l)
+    data = []
+    for r in result['response']:
+        for a in r['Event']['Attribute']:
+            a['orgc'] = r['Event']['Orgc']['name']
+            data.append(a)
+    return data
 
 try:
-        dict = eval(sys.argv[1])
+    dict = eval(sys.argv[1])
 except:
-        pass
+    pass
 
 mispsrv = dict['mispsrv']
 mispkey = dict['mispkey']
 sslcheck = dict['sslcheck']
 
 try:
-        misp = init(mispsrv, mispkey, False)
+    misp = init(mispsrv, mispkey, False)
 except:
-        exit(1)
+    exit(1)
 
 if 'eventid' in dict:
-        print(str(get_event(misp, dict['eventid'])))
+    print(str(get_event(misp, dict['eventid'])))
 elif 'last' in dict:
-        print(str(get_last(misp, dict['last'])))
+    print(str(get_last(misp, dict['last'])))
 else:
-        exit(1)
+    exit(1)
 
 exit(0)
