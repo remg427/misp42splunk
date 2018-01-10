@@ -36,24 +36,28 @@ def get_last(m, l):
     return data
 
 try:
-    dict = eval(sys.argv[1])
-except:
-    pass
+    config = eval(sys.argv[1])
 
-mispsrv = dict['mispsrv']
-mispkey = dict['mispkey']
-sslcheck = dict['sslcheck']
+    if 'mispsrv' in config:
+        mispsrv = config['mispsrv']
+    if 'mispkey' in config:
+        mispkey = config['mispkey']
+    if 'sslcheck' in config:
+        sslcheck = config['sslcheck']
 
-try:
-    misp = init(mispsrv, mispkey, False)
+    misp = init(mispsrv, mispkey, sslcheck)
+
+    if 'eventid' in config:
+        print(str(get_event(misp, config['eventid'])))
+    elif 'last' in config:
+        print(str(get_last(misp, config['last'])))
+    else:
+        print("Error in pymisp_getioc.py - eventid nor last are defined")
+        exit(1)
+#    exit(0)
+    
 except:
+    print("Error in test.py")
     exit(1)
 
-if 'eventid' in dict:
-    print(str(get_event(misp, dict['eventid'])))
-elif 'last' in dict:
-    print(str(get_last(misp, dict['last'])))
-else:
-    exit(1)
 
-exit(0)

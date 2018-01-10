@@ -25,7 +25,7 @@ class mispgetioc(ReportingCommand):
         getuuid         = Option(require=False, validate=validators.Match("getuuid",    r"^[yYnN01]+$"))
         getorg          = Option(require=False, validate=validators.Match("getuuid",    r"^[yYnN01]+$"))
         category        = Option(require=False)
-        type            = Option(require=False)
+        type       = Option(require=False)
 
         @Configuration()
 
@@ -55,7 +55,10 @@ class mispgetioc(ReportingCommand):
                 else:
                         my_args['mispkey'] = config.get('mispsetup','mispkey')
                 if self.sslcheck:
-                        my_args['sslcheck'] = self.sslcheck
+                    if self.sslcheck == 'Y' or self.sslcheck == 'y' or self.sslcheck == '1':
+                        my_args['sslcheck'] = True
+                    else:
+                        my_args['sslcheck'] = False                        
                 else:
                         my_args['sslcheck'] = config.getboolean('mispsetup','sslcheck')
 
@@ -70,9 +73,9 @@ class mispgetioc(ReportingCommand):
                         getuuid = False
 
                 if self.getorg == 'Y' or self.getorg == 'y' or self.getorg == '1':
-                        my_args['getorg'] = True
+                        getorg = True
                 else:
-                        my_args['getorg'] = False
+                        getorg = False
 
 
                 if self.eventid and self.last:
@@ -114,7 +117,7 @@ class mispgetioc(ReportingCommand):
                                         continue
                                 if getuuid == True:
                                         results['uuid'] = v['uuid']
-                                if my_args['getorg'] == True:
+                                if getorg == True:
                                         results['orgc'] = v['orgc']
 
                                 results['eventid']      = v['event_id']
