@@ -25,8 +25,8 @@ class mispgetioc(ReportingCommand):
         getuuid         = Option(require=False, validate=validators.Match("getuuid",    r"^[yYnN01]+$"))
         getorg          = Option(require=False, validate=validators.Match("getuuid",    r"^[yYnN01]+$"))
         category        = Option(require=False)
-        type       = Option(require=False)
-
+        type            = Option(require=False)
+ 
         @Configuration()
 
         def map(self, records):

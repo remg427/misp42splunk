@@ -57,7 +57,7 @@ try:
 #    exit(0)
     
 except:
-    print("Error in test.py")
+    print("Error in pymisp_getioc.py")
     exit(1)
 
 
