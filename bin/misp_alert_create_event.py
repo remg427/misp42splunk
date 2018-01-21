@@ -12,6 +12,14 @@
 
 import os, sys, subprocess, json, gzip, csv, ConfigParser, time
 
+def store_attribute(t,v,to_ids=False,category=None):
+	Attribute = {}
+	Attribute['type']     = t
+	Attribute['value']    = v
+	Attribute['to_ids']   = to_ids
+	Attribute['category'] = category
+	return Attribute
+
 def create_alert(config, results):
 	print >> sys.stderr, "DEBUG Creating alert with config %s" % json.dumps(config)
 
@@ -95,25 +103,21 @@ def create_alert(config, results):
 				event['info'] = config_args['info']
 
 		# collect attribute value and build type=value entry
-		Attribute = {}
-
 		if 'to_ids' in row:
-			to_ids = str(row.pop('to_ids'))
-			if  to_ids == 'True':
-				Attribute['to_ids'] = True
+			if str(row.pop('to_ids')) == 'True':
+				to_ids == True
 			else:
-				Attribute['to_ids'] = False
+				to_ids = False
 		else:
-			Attribute['to_ids'] = False
+			to_ids = False
 		
 		if 'category' in row:
-			Attribute['category'] = str(row.pop('category'))
+			category = str(row.pop('category'))
 		else:
-			Attribute['category'] = None
+			category = None
 
 		if 'type' in row and 'value' in row:
-			Attribute['type']  = str(row.pop('type'))
-			Attribute['value'] = str(row.pop('value'))
+			artifacts.append(store_attribute(str(row.pop('type')),str(row.pop('value')),to_ids,category))
 		elif 'type' in row or 'value' in row:
 			print >> sys.stderr, "FATAL fields type and value MUST be present together"
 			sys.exit(4)
@@ -121,12 +125,9 @@ def create_alert(config, results):
 		# now we take remaining KV pairs to add to dict 
 			for key, value in row.iteritems():
 				if value != "":
-					print >> sys.stderr, "DEBUG key %s value %s" % (key, value) 
-					Attribute['type'] = str(key).replace('_','-')
-					Attribute['value']= str(value)
+					print >> sys.stderr, "INFO key %s value %s" % (key, value)
+					artifacts.append(store_attribute(str(key).replace('_','-'),str(value),to_ids,category))
 
-
-		artifacts.append(Attribute)
 		event['attribute'] = artifacts
 		
 		events[eventkey] = event
