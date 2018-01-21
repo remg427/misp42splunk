@@ -56,16 +56,16 @@ def create_alert(config, results):
 	# Get string values from alert form
 	config_args['eventkey'] = config.get('unique', "oneEvent")
 	config_args['info']     = config.get('info',   "notable event")
+	config_args['tlp']      = config.get('tlp')
 	if 'tags' in config:
-		config_args['tags']     = config.get('tags')
-
+		config_args['tags'] = config.get('tags')
+	
 	# Get numeric values from alert form
 	config_args['analysis']     = int(config.get('analysis'))
 	config_args['threatlevel']  = int(config.get('threatlevel'))
 	config_args['distribution'] = int(config.get('distribution'))
-	config_args['tlp']          = config.get('tlp')
 	
-	print >> sys.stderr, "check config_args: %s" % config_args
+	print >> sys.stderr, "DEBUG check config_args: %s" % config_args
 
 	# iterate through each row, cleaning multivalue fields and then adding the attributes under same event key
 	# this builds the dict events
@@ -125,7 +125,7 @@ def create_alert(config, results):
 		# now we take remaining KV pairs to add to dict 
 			for key, value in row.iteritems():
 				if value != "":
-					print >> sys.stderr, "INFO key %s value %s" % (key, value)
+					print >> sys.stderr, "DEBUG key %s value %s" % (key, value)
 					artifacts.append(store_attribute(str(key).replace('_','-'),str(value),to_ids,category))
 
 		event['attribute'] = artifacts
@@ -150,7 +150,7 @@ def create_alert(config, results):
 		FNULL = open(os.devnull, 'w')
 		# iterate in dict events to create events
 		for key, event in events.items():
-			print >> sys.stderr, 'INFO Calling pymisp_create_event.py for event %s' % event
+			print >> sys.stderr, 'DEBUG Calling pymisp_create_event.py for event %s' % event
 			# actually send the request to create the alert; fail gracefully
 			p = subprocess.Popen([ _NEW_PYTHON_PATH, my_process, str(config_args), str(event) ], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=FNULL, env=env)
 
