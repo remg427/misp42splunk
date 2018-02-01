@@ -31,10 +31,22 @@
         <div class="controls">
             <input type="text" name="action.misp_alert_sighting.param.unique" id="misp_alert_sighting_unique" required></input>
             <span class="help-block">
-                A field name that contains timestamps ( _time, etc.). if not defined or not present, default to now()
+                A field name that contains timestamps ( _time, strptime() etc.). if not defined or not present, default to now()
             </span>
         </div>
     </div>
+    <div class="control-group">
+        <label class="control-label" for="misp_alert_sighting_mode">Mode</label>
+
+        <div class="controls">
+            <select id="misp_alert_sighting_mode" name="action.misp_alert_sighting.param.mode" required>
+                <option value="byvalue" selected>Sighting for matching values</option>
+                <option value="byuuid">Sighting for matching attributes UUID</option>
+            </select>
+            <span class="help-block">Set mode for sighting. Default to "matching values"</span>
+        </div>
+    </div>
+
     <div class="control-group">
         <h4>Specific MISP instance (overwrite general settings</h4>
     </div>

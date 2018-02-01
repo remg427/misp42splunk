@@ -38,6 +38,7 @@ try:
     mispsrv  = config['mispsrv']
     mispkey  = config['mispkey']
     sslcheck = config['sslcheck']
+    mode     = config['mode']
 
     # connect to misp instance using url, authkey and boolean sslcheck
     misp = init(mispsrv, mispkey, sslcheck)
@@ -45,9 +46,13 @@ try:
 
     timestamp = sighting['timestamp']
     values    = sighting['values']
-    for value in values:
-#        print(value)
-        uuids = search_uuid(misp, value)
+    
+    if mode == 'byvalue':
+        for value in values:
+    #        print(value)
+            uuids = search_uuid(misp, value)
+    else:
+        uuids = values
     
     for uuid in uuids:
 #        print(uuid)
@@ -55,5 +60,5 @@ try:
 #        print(out)
 
 except:
-    print("Error in test_sighting.py")
+    print("Error in pymisp_sighting.py")
     exit(1)
