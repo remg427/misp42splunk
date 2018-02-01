@@ -46,12 +46,18 @@ def create_alert(config, results):
 			config_args['sslcheck'] = False
 
 	# Get field name containing values for sighting - defined in alert
-	config_args['timestamp'] = config.get('unique', str(int(time.time())))
+	defaulttimestamp = str(int(time.time()))
+	config_args['timestamp'] = config.get('unique', defaulttimestamp)
+
+	# Get mode set in alert settings; either byvalue or byuuid
+	config_args['mode'] = config.get('mode', 'byvalue')
 	
 	print >> sys.stderr, "check config_args: %s" % config_args
 
-	# iterate through each row, cleaning multivalue fields and then adding the attributes under same event key
-	# this builds the dict events
+	# iterate through each row, cleaning multivalue fields and then 
+	#	mode byvalue: adding the values under same timestamp
+	#	mode byuuid:  adding attribute uuid(s) under same timestamp
+	# this builds the dict sightings
 	sightings = {}
 	for row in results:
 	
@@ -62,6 +68,8 @@ def create_alert(config, results):
 		timestamp = config_args['timestamp']
 		if timestamp in row:
 			timestamp = str(row.pop(timestamp))
+		else:
+			timestamp = defaulttimestamp
 
 		# check if building sighting has been initiated
 		# if yes simply add attribute entry otherwise collect other metadata
@@ -71,10 +79,16 @@ def create_alert(config, results):
 			values = []
 
 		# now we take remaining KV pairs on the line to add values to list 
-		for key, value in row.iteritems():
-			if value != "":
-				print >> sys.stderr, "DEBUG key %s value %s" % (key, value) 
-				values.append(str(value))
+		if config_args['mode'] == 'byvalue': 
+			for key, value in row.iteritems():
+				if value != "":
+					print >> sys.stderr, "DEBUG key %s value %s" % (key, value) 
+					values.append(str(value))
+		else:
+			if 'uuid' in row:
+				value = row['uuid']
+				if value != "":
+					values.append(str(value))
 
 		sightings[timestamp] = values
 
@@ -99,7 +113,7 @@ def create_alert(config, results):
 				timestamp = int(timestamp),
 				values    = values
 			))
-			print >> sys.stderr, 'INFO Calling pymisp_sighting.py for sighting %s' % (sighting)
+			print >> sys.stderr, 'Calling pymisp_sighting.py for sighting %s' % (sighting)
 			# actually send the request to create the alert; fail gracefully
 			p = subprocess.Popen([ _NEW_PYTHON_PATH, my_process, str(config_args), str(sighting) ], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=FNULL, env=env)
 			output = p.communicate()[0]

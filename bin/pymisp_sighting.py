@@ -17,16 +17,8 @@ from pymisp import PyMISP, MISPEvent
 def init(url, key, ssl):
     return PyMISP(url, key, ssl, 'json')
 
-def search_uuid(m,v):
-    kwargs = {}
-    kwargs['values'] = v
-    result = m.search('attributes', **kwargs)
-    attributes = result['response']['Attribute']
-    uuids = []
-    for result in attributes:
-        uuids.append(result['uuid'])
-#    print(json.dumps(uuids, indent=2, separators=(',', ': ') ))
-    return uuids
+def set_sighting(m,s):
+    return m.set_sightings(s)
 
 def sighting_uuid(m,uuid):
     return m.sighting_per_uuid(uuid)
@@ -38,22 +30,20 @@ try:
     mispsrv  = config['mispsrv']
     mispkey  = config['mispkey']
     sslcheck = config['sslcheck']
+    mode     = config['mode']
 
     # connect to misp instance using url, authkey and boolean sslcheck
     misp = init(mispsrv, mispkey, sslcheck)
-#    print(misp)
 
-    timestamp = sighting['timestamp']
-    values    = sighting['values']
-    for value in values:
-#        print(value)
-        uuids = search_uuid(misp, value)
-    
-    for uuid in uuids:
-#        print(uuid)
-        out = sighting_uuid(misp,uuid)
-#        print(out)
+    # byvalue: sighting contains {"timestamp": timestamp, "values":["value1", "value2,etc. "]}
+    if mode == 'byvalue':
+        set_sighting(misp,sighting)
+    # byuuid: sighting contains {"timestamp": timestamp, "values":["uuid"]}
+    else:
+        uuids = sighting['values']
+        for uuid in uuids:
+            out = sighting_uuid(misp,uuid)
 
 except:
-    print("Error in test_sighting.py")
+    print("Error in pymisp_sighting.py")
     exit(1)
