@@ -15,7 +15,7 @@ In short, you can:
     - or results may have one column per artifact type folowing MISP attribute names; in this case you can use **_** instead of **-** as Splunk does not like so much field name with a -; for example use **ip_src**, the script will replace it by **ip-src**.
     
 5. alert action to increment attributes sighting in MISP:
-    - likewise you may select in alert settings  if sighting is by value or by uuid
+    - likewise you may select in alert settings if sighting is by value or by uuid; please note that timestamps are used only in "byvalue" mode
 
 # Credits
 This app is largely inspired by https://github.com/xme/splunk/tree/master/getmispioc and the associated blog https://blog.rootshell.be/2017/10/31/splunk-custom-search-command-searching-misp-iocs/ for MISP interactions.
