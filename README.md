@@ -29,7 +29,7 @@ The alert_action for TheHive is inpired by [this Splunk app](https://splunkbase.
     + if not, you may create a symbolic link to the python3.x binary.
     + alternatively you may edit misp42splunk/bin/misp-get-ioc.py and adjust the path to your environment.
 
-3. Install PyMISP (see https://github.com/CIRCL/PyMISP).
+3. Install PyMISP (see https://github.com/MISP/PyMISP).
 4. Check that your Splunk SH can connect to the MISP instance. 
 
 # Installation
