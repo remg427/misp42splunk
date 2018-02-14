@@ -15,12 +15,7 @@ In short, you can:
     - or results may have one column per artifact type folowing MISP attribute names; in this case you can use **_** instead of **-** as Splunk does not like so much field name with a -; for example use **ip_src**, the script will replace it by **ip-src**.
     
 5. alert action to increment attributes sighting in MISP:
-    - likewise you may select in alert settings if sighting is by value or by uuid; please note that timestamps are used only in "byvalue" mode
-
-# Credits
-This app is largely inspired by https://github.com/xme/splunk/tree/master/getmispioc and the associated blog https://blog.rootshell.be/2017/10/31/splunk-custom-search-command-searching-misp-iocs/ for MISP interactions.
-
-The alert_action for TheHive is inpired by [this Splunk app](https://splunkbase.splunk.com/app/3642/)
+    - likewise you may select in alert settings if sighting is by value or by uuid; both modes work with timestamps.
 
 # Prerequisites
 1. Install Python 3 on the Splunk Search Head.
@@ -196,6 +191,11 @@ Using those fields you may search in one MISP instance and create events in anot
 # Todo
 - implement event tagging in misp_alert_create_event
 - store some saved searches and lookups as examples
+
+# Credits
+This app is largely inspired by https://github.com/xme/splunk/tree/master/getmispioc and the associated blog https://blog.rootshell.be/2017/10/31/splunk-custom-search-command-searching-misp-iocs/ for MISP interactions.
+
+The alert_action for TheHive is inpired by [this Splunk app](https://splunkbase.splunk.com/app/3642/)
 
 # Licence
 This app misp42splunk is licensed under the GNU Lesser General Public License v3.0.

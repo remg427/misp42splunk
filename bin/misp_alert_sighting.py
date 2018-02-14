@@ -12,6 +12,39 @@
 
 import os, sys, subprocess, json, gzip, csv, ConfigParser, time
 
+def group_values(r,tslabel,ds):
+	# mode byvalue:
+	# iterate through each row, cleaning multivalue fields and then 
+	# adding the values under same timestamp; this builds the dict sightings
+	sightings = {}
+	for row in r:
+	
+		# Splunk makes a bunch of dumb empty multivalue fields - we filter those out here 
+		row = {key: value for key, value in row.iteritems() if not key.startswith("__mv_")}
+
+		# Get the timestamp as string to group values and remove from row
+		if tslabel in row:
+			timestamp = str(row.pop(tslabel))
+		else:
+			timestamp = ds
+
+		# check if building sighting has been initiated
+		# if yes simply add attribute entry otherwise collect other metadata
+		if timestamp in sightings:
+			data = sightings[timestamp]
+		else:
+			data = []
+
+		# now we take remaining KV pairs on the line to add data to list 
+		for key, value in row.iteritems():
+			if value != "":
+				print >> sys.stderr, "DEBUG key %s value %s" % (key, value) 
+				data.append(str(value))
+
+		sightings[timestamp] = data
+
+	return sightings
+
 def create_alert(config, results):
 	print >> sys.stderr, "DEBUG Creating alert with config %s" % json.dumps(config)
 
@@ -45,12 +78,9 @@ def create_alert(config, results):
 		else:
 			config_args['sslcheck'] = False
 
-	# Get field name containing values for sighting - defined in alert
-	defaulttimestamp = str(int(time.time()))
-	config_args['timestamp'] = config.get('unique', defaulttimestamp)
 
 	# Get mode set in alert settings; either byvalue or byuuid
-	config_args['mode'] = config.get('mode', 'byvalue')
+	mode = config.get('mode', 'byvalue')
 	
 	print >> sys.stderr, "check config_args: %s" % config_args
 
@@ -58,39 +88,26 @@ def create_alert(config, results):
 	#	mode byvalue: adding the values under same timestamp
 	#	mode byuuid:  adding attribute uuid(s) under same timestamp
 	# this builds the dict sightings
-	sightings = {}
-	for row in results:
-	
-		# Splunk makes a bunch of dumb empty multivalue fields - we filter those out here 
-		row = {key: value for key, value in row.iteritems() if not key.startswith("__mv_")}
+	# Get field name containing timestamps for sighting - defined in alert
 
+	defaulttimestamp = str(int(time.time()))
+	tslabel = config.get('unique', defaulttimestamp)
+
+	if mode == 'byvalue': 
+		sightings = group_values(results,tslabel,defaulttimestamp)
+	else:
 		# Get the timestamp as string to group values and remove from row
-		timestamp = config_args['timestamp']
-		if timestamp in row:
-			timestamp = str(row.pop(timestamp))
-		else:
-			timestamp = defaulttimestamp
+		sightings = {}
+		for row in results:
+			if tslabel in row:
+				timestamp = str(row.pop(tslabel))
+			else:
+				timestamp = defaulttimestamp
 
-		# check if building sighting has been initiated
-		# if yes simply add attribute entry otherwise collect other metadata
-		if timestamp in sightings:
-			values = sightings[timestamp]
-		else:
-			values = []
-
-		# now we take remaining KV pairs on the line to add values to list 
-		if config_args['mode'] == 'byvalue': 
-			for key, value in row.iteritems():
-				if value != "":
-					print >> sys.stderr, "DEBUG key %s value %s" % (key, value) 
-					values.append(str(value))
-		else:
 			if 'uuid' in row:
 				value = row['uuid']
 				if value != "":
-					values.append(str(value))
-
-		sightings[timestamp] = values
+					sightings[value] = timestamp
 
 	try:
 
@@ -108,11 +125,17 @@ def create_alert(config, results):
 
 		FNULL = open(os.devnull, 'w')
 		# iterate in dict events to create events
-		for timestamp, values in sightings.items():
-			sighting = json.dumps(dict(
-				timestamp = int(timestamp),
-				values    = values
-			))
+		for key, data in sightings.items():
+			if mode == 'byvalue': 
+				sighting = json.dumps(dict(
+					timestamp = int(key),
+					values    = data
+				))
+			else:
+				sighting = json.dumps(dict(
+					timestamp = int(data),
+					uuid      = key
+				))
 			print >> sys.stderr, 'Calling pymisp_sighting.py for sighting %s' % (sighting)
 			# actually send the request to create the alert; fail gracefully
 			p = subprocess.Popen([ _NEW_PYTHON_PATH, my_process, str(config_args), str(sighting) ], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=FNULL, env=env)
