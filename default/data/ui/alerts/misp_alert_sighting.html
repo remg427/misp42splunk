@@ -46,6 +46,18 @@
             <span class="help-block">Set mode for sighting. Default to "matching values"</span>
         </div>
     </div>
+    <div class="control-group">
+        <label class="control-label" for="misp_alert_sighting_type">Type</label>
+
+        <div class="controls">
+            <select id="misp_alert_sighting_type" name="action.misp_alert_sighting.param.s_type" required>
+                <option value="0" selected>Sighting type 0 (default STIX interpretation of a sighting).</option>
+                <option value="1">Sighting type 1 - this sighting has been interpreted as a false-positive by the organisation.</option>
+                <option value="2">Sighting type 2, expiration sighting which defines when the sighted attributes is to be expired.</option>
+            </select>
+            <span class="help-block">Set type of sighting</span>
+        </div>
+    </div>
 
     <div class="control-group">
         <h4>Specific MISP instance (overwrite general settings</h4>

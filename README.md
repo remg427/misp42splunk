@@ -28,15 +28,17 @@ In short, you can:
 4. Check that your Splunk SH can connect to the MISP instance. 
 
 # Installation
-This App is designed to run on Splunk Search Head(s)
-1. Download the ZIP file and install the app on your Splunk Search Head(s) (you may remove -master from file name)
+This App is designed to run on Splunk Search Head(s) on Linux plateforms
+1. Download the ZIP file and remove -master from folder name in the ZIP file
+    * Python scripts in folder bin expect the app to be installed at /opt/splunk/etc/misp42splunk. If your environment adapt accordingly either your path or the python scripts
     * Please note that this app come with a copy of Splunk SDK under misp42splunk/bin
+2. Install the app on your Splunk Search Head(s)
 2. A custom endpoint has been defined so you need to restart Splunk (for later updates, you may skip this step)
-3. At next logon, you should be invited to configure the app (if not go to Manage Apps > TA-MISP 42 Splunk > Set up) 
+3. At next logon, you should be invited to configure the app (if not go to Manage Apps > App-MISP42 > Set up) 
     - For MISP
         - provide the url to your MISP instance;
         - provide the authkey;
-        - check the certificate of the MISP server.
+        - check (or not) the certificate of the MISP server.
     - For TheHive
         - provide the url to the API of your instance;
         - provide the authkey.
@@ -50,6 +52,9 @@ Fresh IOC from MISP > saved searches in Splunk > on match create an alert on [Th
 ## Creating events based on automated sandboxing
 If you have output of analysis pushed to Splunk you may automate the creation of events
 Log on sandboxing output > saved search to qualify, sanitize (dedup remove top Alexa, etc.)  and prepare the table > set a splunk alert to create event(s) in MISP
+
+## Sighting in MISP based on Splunk alerts
+Search for attributes values/uuids in Splunk > alert to increment sighting counters (standard,false positive,expiration) in MISP for those values/uuids 
 
 # Usage
 ## custom command mispgetioc
@@ -171,6 +176,7 @@ Fill in the form to tune your alert to your needs.
 Using those fields you may search in one MISP instance and create events in another one.
     - URL: MISP URL (leave blank to use default settings).
     - Auth Key: The Authkey to submit alerts to (leave blank to use default settings).
+    - sslcheck boolean
 
 ## Alert for sighting
 ### search results with one field for timestamp (recommended)
@@ -183,10 +189,16 @@ Fill in the form to tune your alert to your needs.
 * Global event parameters: the parameters will apply for all events created by this alert unless overwritten (see above)
     - Unique ID: indicate the field containing timestamps. If not defined, defaults is now()
     - mode; indicate if sighting is by __value__ or __by attribute uuid__
+    - type; indicate if sighting type is
+        * Sighting type 0, the default sighting type using the default STIX interpretation of a sighting.
+        * Sighting type 1, a false-positive sighting which means this sighting has been interpreted as a false-positive by the organisation.
+        * Sighting type 2, an expiration sighting which defines when the sighted attributes is to be expired.
+
 * Specific alert parameters for MISP serve: If specified, URL and auth key will superseede the config file (misp.conf)
 Using those fields you may search in one MISP instance and create events in another one.
     - URL: MISP URL (leave blank to use default settings).
     - Auth Key: The Authkey to submit alerts to (leave blank to use default settings).
+    - sslcheck boolean
 
 # Todo
 - implement event tagging in misp_alert_create_event
