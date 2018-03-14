@@ -81,6 +81,8 @@ def create_alert(config, results):
 
 	# Get mode set in alert settings; either byvalue or byuuid
 	mode = config.get('mode', 'byvalue')
+	# Get type set in alert settings; either 0, 1 or 2
+	sighting_type = int(config.get('s_type', '0'))
 	
 	print >> sys.stderr, "check config_args: %s" % config_args
 
@@ -91,7 +93,7 @@ def create_alert(config, results):
 	# Get field name containing timestamps for sighting - defined in alert
 
 	defaulttimestamp = str(int(time.time()))
-	tslabel = config.get('unique', defaulttimestamp)
+	tslabel          = config.get('unique', defaulttimestamp)
 
 	if mode == 'byvalue': 
 		sightings = group_values(results,tslabel,defaulttimestamp)
@@ -129,12 +131,14 @@ def create_alert(config, results):
 			if mode == 'byvalue': 
 				sighting = json.dumps(dict(
 					timestamp = int(key),
-					values    = data
+					values    = data,
+					type      = sighting_type
 				))
 			else:
 				sighting = json.dumps(dict(
 					timestamp = int(data),
-					uuid      = key
+					uuid      = key,
+					type      = sighting_type
 				))
 			print >> sys.stderr, 'Calling pymisp_sighting.py for sighting %s' % (sighting)
 			# actually send the request to create the alert; fail gracefully
