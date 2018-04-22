@@ -26,8 +26,8 @@ This App is designed to run on Splunk Search Head(s) on Linux plateforms
     * Python scripts in folder bin expect the app to be installed at /opt/splunk/etc/misp42splunk. If your environment is different adapt accordingly either your path or the python scripts
     * Please note that this app come with a copy of Splunk SDK 1.6.3 under misp42splunk/bin
 2. Install the app on your Splunk Search Head(s)
-2. A custom endpoint has been defined so you need to restart Splunk (for later updates, you may skip this step)
-3. At next logon, you should be invited to configure the app (if not go to Manage Apps > App-MISP42 > Set up) 
+3. A custom endpoint has been defined so you need to restart Splunk (for later updates, you may skip this step)
+4. At next logon, you should be invited to configure the app (if not go to Manage Apps > App-MISP42 > Set up) 
     - For MISP
         - provide the url to your MISP instance;
         - provide the authkey;
