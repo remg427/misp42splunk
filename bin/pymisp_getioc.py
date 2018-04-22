@@ -10,6 +10,7 @@
 #
 import sys
 import os
+import pickle
 import json
 import urllib3
 from pymisp import PyMISP
@@ -36,7 +37,8 @@ def get_last(m, l):
     return data
 
 try:
-    config = eval(sys.argv[1])
+    swap_file = sys.argv[1]
+    config = pickle.load(open(swap_file, "rb"))
 
     if 'mispsrv' in config:
         mispsrv = config['mispsrv']
@@ -48,11 +50,11 @@ try:
     misp = init(mispsrv, mispkey, sslcheck)
 
     if 'eventid' in config:
-        print(str(get_event(misp, config['eventid'])))
-    elif 'last' in config:
-        print(str(get_last(misp, config['last'])))
+        pickle.dump(get_event(misp, config['eventid']), open(swap_file, "wb"), protocol=2)
+    elif 'last'  in config:
+        pickle.dump(get_last(misp, config['last']), open(swap_file, "wb"), protocol=2)
     else:
-        print("Error in pymisp_getioc.py - eventid nor last are defined")
+        print("Error in pymisp_getioc.py - neither eventid nor last are defined")
         exit(1)
 #    exit(0)
     
