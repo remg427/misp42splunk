@@ -10,7 +10,7 @@
 #
 
 from __future__ import absolute_import, division, print_function, unicode_literals
-import os, sys, subprocess, ConfigParser
+import os, sys, subprocess, ConfigParser, pickle
 from splunklib.searchcommands import dispatch, ReportingCommand, Configuration, Option, validators
 
 @Configuration(requires_preop=False)
@@ -89,7 +89,6 @@ class mispgetioc(ReportingCommand):
                 else:
                         print('DEBUG Missing "eventid" or "last" argument')
                         exit(1)
-
                 _SPLUNK_PATH = '/opt/splunk'
                 _NEW_PYTHON_PATH = '/usr/bin/python3'
                 _SPLUNK_PYTHON_PATH = os.environ['PYTHONPATH']
@@ -101,11 +100,23 @@ class mispgetioc(ReportingCommand):
                 del env['LD_LIBRARY_PATH']
 
                 FNULL = open(os.devnull, 'w')
-                p = subprocess.Popen([ _NEW_PYTHON_PATH, my_process, str(my_args) ],
-                        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=FNULL, env=env)
-                output = p.communicate()[0]
+
+#use pickle
+                _TMP_PATH = "/tmp"
+                swap_file = _TMP_PATH + '/temp_mispgetioc'
+                pickle.dump(my_args, open(swap_file, "wb"), protocol=2)
+
+                p = subprocess.Popen([ _NEW_PYTHON_PATH, my_process, swap_file], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
+                stdout, stderr  = p.communicate()
+
+                if stderr:
+                        print('DEBUG error in pymisp_getioc.py')
+                        exit(1)                    
+
                 results = {}
-                for v in eval(output):
+                output = pickle.load(open(swap_file, "rb"))
+
+                for v in output:
                         # Do not display deleted attributes
                         if v['deleted'] == False:
                                 # If specified, do not display attributes with the non-ids flag set to False
@@ -125,6 +136,7 @@ class mispgetioc(ReportingCommand):
                                 results['category']     = v['category']
                                 results['type']         = v['type']
                                 results['to_ids']       = str(v['to_ids'])
-                                yield results
+                                yield results                              
+
 if __name__ == "__main__":
     dispatch(mispgetioc, sys.argv, sys.stdin, sys.stdout, __name__)

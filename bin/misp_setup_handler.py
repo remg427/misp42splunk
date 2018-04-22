@@ -29,7 +29,7 @@ class ConfigApp(admin.MConfigHandler):
   '''
   def setup(self):
     if self.requestedAction == admin.ACTION_EDIT:
-      for arg in ['mispsrv', 'sslcheck', 'mispkey', 'thehiveURL', 'thehiveKey']:
+      for arg in ['mispsrv', 'sslcheck', 'mispkey', 'thehiveURL', 'thehiveKey', 'SPLUNK_HOME', 'P3_PATH', 'TMP_PATH']:
         self.supportedArgs.addOptArg(arg)
         
   '''
@@ -66,6 +66,12 @@ class ConfigApp(admin.MConfigHandler):
             val = ''
           if key in ['theiveKey'] and val in [None, '']:
             val = ''
+          if key in ['SPLUNK_HOME'] and val in [None, '']:
+            val = ''
+          if key in ['P3_PATH'] and val in [None, '']:
+            val = ''
+          if key in ['TMP_PATH'] and val in [None, '']:
+            val = ''
           confInfo[stanza].append(key, val)
           
   '''
@@ -93,6 +99,15 @@ class ConfigApp(admin.MConfigHandler):
     if self.callerArgs.data['thehiveKey'][0] in [None, '']:
       self.callerArgs.data['thehiveKey'][0] = ''  
         
+    if self.callerArgs.data['SPLUNK_HOME'][0] in [None, '']:
+      self.callerArgs.data['SPLUNK_HOME'][0] = ''  
+
+    if self.callerArgs.data['P3_PATH'][0] in [None, '']:
+      self.callerArgs.data['P3_PATH'][0] = ''  
+      
+    if self.callerArgs.data['TMP_PATH'][0] in [None, '']:
+      self.callerArgs.data['TMP_PATH'][0] = ''  
+
 #    Since we are using a conf file to store parameters, 
 #    write them to the [mispsetup] stanza
 #    in app_name/local/misp.conf  

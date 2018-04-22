@@ -4,16 +4,13 @@ If you have TheHive installed, you also may create alerts.
 
 In short, you can:
 1. easily configure the app from Splunk GUI; no need to edit files via the console.
-2. get ioc from MISP instance in search command line: __| mispgetioc__
-
+2. get IOC from MISP instance in search command line: __| mispgetioc__
 3. alert action to send alerts to TheHive:
     - results may have one column per artifact type or,
     - results must have at least 2 columns named **type** (of artifacts) and **value**
-
 4. **alert action to create events in MISP**
     - results must have at least 2 columns named **type** (of attributes) and **value**
-    - or results may have one column per artifact type folowing MISP attribute names; in this case you can use **_** instead of **-** as Splunk does not like so much field name with a -; for example use **ip_src**, the script will replace it by **ip-src**.
-    
+    - or results may have one column per artifact type folowing MISP attribute names; in this case you can use **_** instead of **-** as Splunk does not like so much field name with a -; for example use **ip_src**, the script will replace it by **ip-src**.    
 5. alert action to increment attributes sighting in MISP:
     - likewise you may select in alert settings if sighting is by value or by uuid; both modes work with timestamps.
 
@@ -57,148 +54,11 @@ Log on sandboxing output > saved search to qualify, sanitize (dedup remove top A
 Search for attributes values/uuids in Splunk > alert to increment sighting counters (standard,false positive,expiration) in MISP for those values/uuids 
 
 # Usage
-## custom command mispgetioc
-This custom command must be the first of a search (or a sub-search). The results are displayed in a table.
-The command syntax is as follow:
-
-    |mispgetioc ( [eventid=id] | [last=interval] )
-                [onlyids=y|n]
-                [category=string]
-                [type=string]
-                **[getuuid=y|n|Y|N|0|1]**
-                **[getorg=y|n|Y|N|0|1]**
-                [server=https://host:port] 
-                [authkey=misp-authorization-key]
-                [sslcheck=y|n]                  
-                
-
-- You must set either eventid or last parameters
-- last interval is a number followed by d(ays), h(ours) or m(inutes)
-- you may filter the results using type and category parameters
-- you may include attribute uuids (getuuid=Y) or source organisation name in results (getorg=Y)
-- you may overwrite the misp server parameters for this search
-
-## Alert sent to TheHive
-When you create a Splunk alert, you may add an alert action to create alerts in TheHive
-### collect results in Splunk
-#### search results with a column by artifact type
-you may build a search returning some values for these fields
-
-    autonomous-system
-    domain
-    file
-    filename
-    fqdn
-    hash
-    ip
-    mail
-    mail_subject
-    other
-    regexp
-    registry
-    uri_path
-    url
-    user-agent
-
-and one field to group rows.
-For example
-
-    | eval id = md5(some common key in rows belonging to the same alert)
-    | table id, autonomous-system, domain, file, filename, fqdn, hash, ip, mail, mail_subject, other, regexp, registry, uri_path, url, user-agent
-
-Values may be empty for some fields; they will be dropped gracefully. You may add any other columns, they will be passed as elements but only fields above are imported as observables when you create/update a case.
-
-#### search results with 2 columns: type & value
-You may also build a search with one artifact by row. You may use field id to group several rows together    
-For example: 
-
-    | mispgetioc last=1d
-    | eval id = md5(eventid)
-    | table id, type, value
-
-
-### create the alert action "Alert to create THEHIVE alert(s)"
-Fill in fields. If value is not provided, default will be provided if needed.
-
-* Alert overall description
-    - Case Template: The case template to use for imported alerts.
-    - Type: The alert type. Defaults to "alert".
-    - Source: The alert source. Defaults to "splunk".
-    - Unique ID: A field name that contains a unique identifier specific to the source event. You may use the field value to group artifacts under the same alert.
-    - Title: The title to use for created alerts.
-    - Description: The description to send with the alert.
-    - Tags: Use single comma-separated string without quotes for multiple tags (ex. "badIP,spam").
-    - Severity: Change the severity of the created alert.
-    - TLP: Change the TLP of the created alert. Default is TLP:AMBER
-* TheHive API parameters (optional if they have been defined in general setup)
-    - URL: The URL to submit alerts to e.g. http://hive.example.com/api/alert.
-    - API KEY: The API KEY for authentication
-
-## Alert to create MISP event(s)    
-When you create an alert, you may add an alert action to directly create events in MISP based on search results
-
-### collect results in Splunk
-#### search results with columns type and value
-You may search and prepare the results as a table with the following command
-    | table _time type value to_ids eventkey info category
-
-* Mandatory fields:
-    - type: the type of attribute. It must use MISP attribute names
-    - value: the value of the attribute - you should check that the value complies with the type
- 
-* Optional fields:
-    - _time: the timestamp will be converted to YYYY-MM-DD for event date. if not provided, set to localtime
-    - to_ids: if not defined, set to False
-    - category: if not defined, set to None and populated in relation with the type of attribute
-    - eventkey: This string/id is used to group several rows of the results belonging to the same event (e.g. attributes of type email-src, email-subject). The actual value is not pushed to MISP. If not specified by row, this value might be overall defined for the alert - see below
-    - info: This string will be set in the Info field of MISP event. This value might be overall defined for the alert - see below
-
-#### search results with one column per type
-You mays search and build a table with several column, one for each type of attributes.
-CAUTION: Splunk syntax does not like field names like ip-src, email-subject. You simply create fields using _ such as ip_src and the script will format the attribute names before pushing to MISP
-
-### create the alert and add alert_action to create events
-Save your search as alert. Select "Alert to create MISP event(s)" as action
-Fill in the form to tune your alert to your needs.
-
-* Alert overall description: this section is for Splunk documentation
-    - Title: The title of this alert.
-    - Description: The description to send with the alert.
-* Global event parameters: the parameters will apply for all events created by this alert unless overwritten (see above)
-    - Unique ID: indicate the field containing the unique id to group several rows under a single event. If not defined an default eventkey will be generated and all results will be added to the same event.
-    - Info: This string will be set in the Info field of MISP event. If not defined, the Info field will contain 'malspam'. By default, it takes a copy of the description (token $description$)
-    - Distribution: Change the Distribution. Defaults to Your organisation only
-    - Threat Level: Change the Threat Level. Defaults to Undefined
-    - Analysis: Change Analysis status. Default to Initial
-    - TLP: Change the TLP of the created alert. Defaults to TLP-Amber
-    - tags: comma-separated list of tags (not implemented yet)
-* Specific alert parameters for MISP serve: If specified, URL and auth key will superseede the config file (misp.conf)
-Using those fields you may search in one MISP instance and create events in another one.
-    - URL: MISP URL (leave blank to use default settings).
-    - Auth Key: The Authkey to submit alerts to (leave blank to use default settings).
-    - sslcheck boolean
-
-## Alert for sighting
-### search results with one field for timestamp (recommended)
-Build your search with as many fields as you want. One field should contain a valid timestamp.
-
-### create the alert and add alert_action for sighting
-Save your search as alert. Select "Alert for sighting MISP attribute(s)" as action
-Fill in the form to tune your alert to your needs.
-
-* Global event parameters: the parameters will apply for all events created by this alert unless overwritten (see above)
-    - Unique ID: indicate the field containing timestamps. If not defined, defaults is now()
-    - mode; indicate if sighting is by __value__ or __by attribute uuid__
-    - type; indicate if sighting type is
-        * Sighting type 0, the default sighting type using the default STIX interpretation of a sighting.
-        * Sighting type 1, a false-positive sighting which means this sighting has been interpreted as a false-positive by the organisation.
-        * Sighting type 2, an expiration sighting which defines when the sighted attributes is to be expired.
-
-* Specific alert parameters for MISP serve: If specified, URL and auth key will superseede the config file (misp.conf)
-Using those fields you may search in one MISP instance and create events in another one.
-    - URL: MISP URL (leave blank to use default settings).
-    - Auth Key: The Authkey to submit alerts to (leave blank to use default settings).
-    - sslcheck boolean
+## custom command [mispgetioc](https://github.com/remg427/misp42splunk/docs/mispgetioc.md)
+## Alerts to [create TheHive alerts](https://github.com/remg427/misp42splunk/docs/thehivealerts.md)
+## Alert to [update MISP](https://github.com/remg427/misp42splunk/docs/mispalerts.md)
+### Alert to create MISP event(s)
+### Alert for attribute sighting in MISP
 
 # Todo
 - implement event tagging in misp_alert_create_event

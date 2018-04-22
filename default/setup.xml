@@ -10,13 +10,30 @@
       <label>Set the MISP auth key</label>
       <type>text</type>
     </input>
-  </block>
 
-  <block title="SSL check" endpoint="misp/customendpoint" entity="mispsetup">
-    <input field="sslcheck">
+    <input field="sslcheck" endpoint="misp/customendpoint" entity="mispsetup">
       <label>Check SSL certificate of MISP server</label>
       <type>bool</type>
     </input>
+  </block>
+
+  <block title="(Optional) system path for SPLUNK and Python3" endpoint="misp/customendpoint" entity="mispsetup">
+
+    <input field="SPLUNK_HOME">
+      <label>Splunk home folder (default: /opt/splunk)</label>
+      <type>text</type>
+    </input>
+
+    <input field="P3_PATH" endpoint="misp/customendpoint" entity="mispsetup">
+      <label>Python3 binary path (default: /usr/bin/python3)</label>
+      <type>text</type>
+    </input>
+    
+    <input field="TMP_PATH" endpoint="misp/customendpoint" entity="mispsetup">
+      <label>temporary folder path (default: /tmp); if changed give rights accordingly</label>
+      <type>text</type>
+    </input>
+
   </block>
 
   <block title="(Optional) Define TheHive server parameters" endpoint="misp/customendpoint" entity="mispsetup">
