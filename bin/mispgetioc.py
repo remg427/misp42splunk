@@ -10,133 +10,134 @@
 #
 
 from __future__ import absolute_import, division, print_function, unicode_literals
-import os, sys, subprocess, ConfigParser, pickle
+import os, sys, subprocess, ConfigParser
+import cPickle as pickle
 from splunklib.searchcommands import dispatch, ReportingCommand, Configuration, Option, validators
 
 @Configuration(requires_preop=False)
 
 class mispgetioc(ReportingCommand):
-        mispsrv         = Option(require=False, validate=validators.Match("mispsrv",    r"^https?:\/\/[0-9a-zA-Z\.]+(?:\:\d+)?$"))
-        mispkey         = Option(require=False, validate=validators.Match("mispkey",    r"^[0-9a-zA-Z]{40}$"))
-        sslcheck        = Option(require=False, validate=validators.Match("sslcheck",   r"^[yYnN01]$"))
-        eventid         = Option(require=False, validate=validators.Match("eventid",    r"^[0-9]+$"))
-        last            = Option(require=False, validate=validators.Match("last",       r"^[0-9]+[hdwm]$"))
-        onlyids         = Option(require=False, validate=validators.Match("onlyids",    r"^[yYnN01]+$"))
-        getuuid         = Option(require=False, validate=validators.Match("getuuid",    r"^[yYnN01]+$"))
-        getorg          = Option(require=False, validate=validators.Match("getuuid",    r"^[yYnN01]+$"))
-        category        = Option(require=False)
-        type            = Option(require=False)
- 
-        @Configuration()
+    mispsrv         = Option(require=False, validate=validators.Match("mispsrv",     r"^https?:\/\/[0-9a-zA-Z\.]+(?:\:\d+)?$"))
+    mispkey         = Option(require=False, validate=validators.Match("mispkey",     r"^[0-9a-zA-Z]{40}$"))
+    sslcheck        = Option(require=False, validate=validators.Match("sslcheck",    r"^[yYnN01]$"))
+    eventid         = Option(require=False, validate=validators.Match("eventid",     r"^[0-9]+$"))
+    last            = Option(require=False, validate=validators.Match("last",        r"^[0-9]+[hdwm]$"))
+    onlyids         = Option(require=False, validate=validators.Match("onlyids",     r"^[yYnN01]+$"))
+    getuuid         = Option(require=False, validate=validators.Match("getuuid",     r"^[yYnN01]+$"))
+    getorg          = Option(require=False, validate=validators.Match("getorg",      r"^[yYnN01]+$"))
+    category        = Option(require=False)
+    type            = Option(require=False)
 
-        def map(self, records):
-                self.logger.debug('mispgetioc.map')
-                yield {}
-                return
+    @Configuration()
 
-        def reduce(self, records):
-                self.logger.debug('mispgetioc.reduce')
-                if self.sslcheck == None:
-                        self.sslcheck = 'n'
+    def map(self, records):
+        self.logger.debug('mispgetioc.map')
+        yield {}
+        return
 
-                # open misp.conf
-                config_file = '/opt/splunk/etc/apps/misp42splunk/local/misp.conf'
-                config = ConfigParser.RawConfigParser()
-                config.read(config_file)
+    def reduce(self, records):
+        self.logger.debug('mispgetioc.reduce')
+        if self.sslcheck == None:
+            self.sslcheck = 'n'
 
-                # Generate args
-                my_args = {}
-                if self.mispsrv:
-                        my_args['mispsrv'] = self.mispsrv
-                else:
-                        my_args['mispsrv'] = config.get('mispsetup','mispsrv')
-                if self.mispkey:
-                        my_args['mispkey'] = self.mispkey
-                else:
-                        my_args['mispkey'] = config.get('mispsetup','mispkey')
-                if self.sslcheck:
-                    if self.sslcheck == 'Y' or self.sslcheck == 'y' or self.sslcheck == '1':
-                        my_args['sslcheck'] = True
-                    else:
-                        my_args['sslcheck'] = False                        
-                else:
-                        my_args['sslcheck'] = config.getboolean('mispsetup','sslcheck')
+        # open misp.conf
+        config_file = '/opt/splunk/etc/apps/misp42splunk/local/misp.conf'
+        config = ConfigParser.RawConfigParser()
+        config.read(config_file)
 
-                if self.onlyids == 'Y' or self.onlyids == 'y' or self.onlyids == '1':
-                        onlyids = True
-                else:
-                        onlyids = False
+        # Generate args
+        my_args = {}
+#MISP instance parameters        
+        if self.mispsrv:
+            my_args['mispsrv'] = self.mispsrv
+        else:
+            my_args['mispsrv'] = config.get('mispsetup','mispsrv')
+        if self.mispkey:
+            my_args['mispkey'] = self.mispkey
+        else:
+            my_args['mispkey'] = config.get('mispsetup','mispkey')
+        if self.sslcheck:
+            if self.sslcheck == 'Y' or self.sslcheck == 'y' or self.sslcheck == '1':
+                my_args['sslcheck'] = True
+            else:
+                my_args['sslcheck'] = False                        
+        else:
+            my_args['sslcheck'] = config.getboolean('mispsetup','sslcheck')
 
-                if self.getuuid == 'Y' or self.getuuid == 'y' or self.getuuid == '1':
-                        getuuid = True
-                else:
-                        getuuid = False
+#Search parameters: boolean and filter
+        if self.onlyids == 'Y' or self.onlyids == 'y' or self.onlyids == '1':
+            my_args['onlyids'] = True
+        else:
+            my_args['onlyids'] = False
+        if self.getuuid == 'Y' or self.getuuid == 'y' or self.getuuid == '1':
+            my_args['getuuid'] = True
+        else:
+            my_args['getuuid'] = False
+        if self.getorg == 'Y' or self.getorg == 'y' or self.getorg == '1':
+            my_args['getorg'] = True
+        else:
+            my_args['getorg'] = False
+        if self.category != None:
+            my_args['category'] = self.category
+        else:
+            my_args['category'] = None
+        if self.type != None:
+            my_args['type'] = self.type
+        else:
+            my_args['type'] = None
 
-                if self.getorg == 'Y' or self.getorg == 'y' or self.getorg == '1':
-                        getorg = True
-                else:
-                        getorg = False
+#check that ONE of mandatory fields is present
+        if self.eventid and self.last:
+            print('DEBUG Options "eventid" and "last" are mutually exclusive')
+            exit(2)
+        elif self.eventid:
+            my_args['eventid'] = self.eventid
+        elif self.last:
+            my_args['last'] = self.last
+        else:
+            print('DEBUG Missing "eventid" or "last" argument')
+            exit(1)
 
+#path to main components either use default values or set ones
+        if config.has_option('mispsetup','SPLUNK_HOME'):
+            _SPLUNK_PATH = config.get('mispsetup','SPLUNK_HOME')
+        else:
+            _SPLUNK_PATH = '/opt/splunk'
+        if config.has_option('mispsetup','P3_PATH'):
+            _NEW_PYTHON_PATH = config.get('mispsetup','P3_PATH')
+        else:
+            _NEW_PYTHON_PATH = '/usr/bin/python3'
+        if config.has_option('mispsetup','TMPTH'):
+            _TMP_PATH = config.get('mispsetup','TMP_PATH')
+        else:
+            _TMP_PATH = '/tmp'
+            
+        _SPLUNK_PYTHON_PATH = os.environ['PYTHONPATH']
+        os.environ['PYTHONPATH'] = _NEW_PYTHON_PATH
+        my_process = _SPLUNK_PATH + '/etc/apps/misp42splunk/bin/pymisp_getioc.py'
 
-                if self.eventid and self.last:
-                        print('DEBUG Options "eventid" and "last" are mutually exclusive')
-                        exit(2)
+        # Remove LD_LIBRARY_PATH from the environment (otherwise, we will face some SSL issues
+        env = dict(os.environ)
+        del env['LD_LIBRARY_PATH']
 
-                if self.eventid:
-                       my_args['eventid'] = self.eventid
-                elif self.last:
-                        my_args['last'] = self.last
-                else:
-                        print('DEBUG Missing "eventid" or "last" argument')
-                        exit(1)
-                _SPLUNK_PATH = '/opt/splunk'
-                _NEW_PYTHON_PATH = '/usr/bin/python3'
-                _SPLUNK_PYTHON_PATH = os.environ['PYTHONPATH']
-                os.environ['PYTHONPATH'] = _NEW_PYTHON_PATH
-                my_process = _SPLUNK_PATH + '/etc/apps/misp42splunk/bin/pymisp_getioc.py'
-
-                # Remove LD_LIBRARY_PATH from the environment (otherwise, we will face some SSL issues
-                env = dict(os.environ)
-                del env['LD_LIBRARY_PATH']
-
-                FNULL = open(os.devnull, 'w')
+        FNULL = open(os.devnull, 'w')
 
 #use pickle
-                _TMP_PATH = "/tmp"
-                swap_file = _TMP_PATH + '/temp_mispgetioc'
-                pickle.dump(my_args, open(swap_file, "wb"), protocol=2)
+        swap_file = _TMP_PATH + '/mispgetioc_config'
+        pickle.dump(my_args, open(swap_file, "wb"), protocol=2)
 
-                p = subprocess.Popen([ _NEW_PYTHON_PATH, my_process, swap_file], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
-                stdout, stderr  = p.communicate()
+        p = subprocess.Popen([ _NEW_PYTHON_PATH, my_process, swap_file], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
+        stdout, stderr  = p.communicate()
 
-                if stderr:
-                        print('DEBUG error in pymisp_getioc.py')
-                        exit(1)                    
+        if stderr:
+            print('DEBUG error in pymisp_getioc.py')
+            exit(1)                    
 
-                results = {}
-                output = pickle.load(open(swap_file, "rb"))
+        results = {}
+        output = pickle.load(open(swap_file, "rb"))
 
-                for v in output:
-                        # Do not display deleted attributes
-                        if v['deleted'] == False:
-                                # If specified, do not display attributes with the non-ids flag set to False
-                                if onlyids == True and v['to_ids'] == False:
-                                        continue
-                                if self.category != None and self.category != v['category']:
-                                        continue
-                                if self.type != None and self.type != v['type']:
-                                        continue
-                                if getuuid == True:
-                                        results['uuid'] = v['uuid']
-                                if getorg == True:
-                                        results['orgc'] = v['orgc']
-
-                                results['eventid']      = v['event_id']
-                                results['value']        = v['value']
-                                results['category']     = v['category']
-                                results['type']         = v['type']
-                                results['to_ids']       = str(v['to_ids'])
-                                yield results                              
+        for v in output:
+            yield v                              
 
 if __name__ == "__main__":
     dispatch(mispgetioc, sys.argv, sys.stdin, sys.stdout, __name__)

@@ -16,19 +16,15 @@ In short, you can:
 
 # Prerequisites
 1. Install Python 3 on the Splunk Search Head.
-2. Check that python3 is at /usr/bin/python3.
-
-    + if not, you may create a symbolic link to the python3.x binary.
-    + alternatively you may edit misp42splunk/bin/misp-get-ioc.py and adjust the path to your environment.
-
-3. Install PyMISP (see https://github.com/CIRCL/PyMISP).
-4. Check that your Splunk SH can connect to the MISP instance. 
+2. Install PyMISP (see https://github.com/CIRCL/PyMISP).
+3. Check that your Splunk SH can connect to the MISP instance. 
+4. In App setup screen, you can adapt pathes to SPLUNK home folder, python3 binary and temp folder
 
 # Installation
 This App is designed to run on Splunk Search Head(s) on Linux plateforms
 1. Download the ZIP file and remove -master from folder name in the ZIP file
-    * Python scripts in folder bin expect the app to be installed at /opt/splunk/etc/misp42splunk. If your environment adapt accordingly either your path or the python scripts
-    * Please note that this app come with a copy of Splunk SDK under misp42splunk/bin
+    * Python scripts in folder bin expect the app to be installed at /opt/splunk/etc/misp42splunk. If your environment is different adapt accordingly either your path or the python scripts
+    * Please note that this app come with a copy of Splunk SDK 1.6.3 under misp42splunk/bin
 2. Install the app on your Splunk Search Head(s)
 2. A custom endpoint has been defined so you need to restart Splunk (for later updates, you may skip this step)
 3. At next logon, you should be invited to configure the app (if not go to Manage Apps > App-MISP42 > Set up) 
@@ -39,6 +35,7 @@ This App is designed to run on Splunk Search Head(s) on Linux plateforms
     - For TheHive
         - provide the url to the API of your instance;
         - provide the authkey.
+    - Pathes to SPLUNK home folder, python3 binary and temp folder
 
 # Use Cases
 
