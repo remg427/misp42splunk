@@ -1,12 +1,18 @@
 
-## custom command mispgetioc
-This custom command must be the first of a search (or a sub-search). The results are displayed in a table.
+## custom command mispgetioc version 2.0
+This custom command must be the first of a search (or a sub-search). The results are displayed in a table that contains:
+
+    + always following fields = ['event_id','timestamp', 'type', 'category', 'to_ids', 'value']
+    + and a column by types either with a value or empty
+
+So the output can be immediately reused in a search without complex transforms
+
 The command syntax is as follow:
 
     |mispgetioc ( [eventid=id] | [last=interval] )
                 [onlyids=y|n]
-                [category=string]
-                [type=string]
+                [category=CSV_string]
+                [type=CSV_string]
                 **[getuuid=y|n|Y|N|0|1]**
                 **[getorg=y|n|Y|N|0|1]**
                 [server=https://host:port] 
@@ -18,8 +24,14 @@ The command syntax is as follow:
     + eventid is the numeric value on the instance. (if you think uuid should be an option intoduce an issue or pull request)
     + last interval is a number followed by a letter d(ays), h(ours) or m(inutes)
 
+IMPORTANT: on big result sets, you may get an error "EOFError at "/opt/splunk/etc/apps/misp42splunk/bin/mispgetioc.py", line 137 : ". The module pickle is overloaded. try with smaller period or with filters.
+
 - The other parameters are optional
-    + you may filter the results using onlyids (boolean), [type](https://www.circl.lu/doc/misp/categories-and-types/#types) and [category](https://www.circl.lu/doc/misp/categories-and-types/#categories) parameters
+    + you may filter the results using
+        - onlyids (boolean),
+        - [type](https://www.circl.lu/doc/misp/categories-and-types/#types). Use a CSV string to list the types; for example type="domain" or type="domain,hostname,ip-dst"
+        - [category](https://www.circl.lu/doc/misp/categories-and-types/#categories) Use a CSV string to list the categories; for example category="Payload delivery" or category="Payload delivery,Network activity,External analysis"
+
     + you may set getuuid=Y to get the event uuid in the results 
     + likewise set getorg=Y to list the originating organisation
 
