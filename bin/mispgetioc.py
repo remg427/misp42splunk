@@ -40,29 +40,31 @@ class mispgetioc(ReportingCommand):
         if self.sslcheck == None:
             self.sslcheck = 'n'
 
+        _SPLUNK_PATH = os.environ['SPLUNK_HOME']
+
         # open misp.conf
-        config_file = '/opt/splunk/etc/apps/misp42splunk/local/misp.conf'
-        config = ConfigParser.RawConfigParser()
-        config.read(config_file)
+        config_file = _SPLUNK_PATH + '/etc/apps/misp42splunk/local/misp.conf'
+        mispconf = ConfigParser.RawConfigParser()
+        mispconf.read(config_file)
 
         # Generate args
         my_args = {}
-#MISP instance parameters        
+        #MISP instance parameters        
         if self.mispsrv:
             my_args['mispsrv'] = self.mispsrv
         else:
-            my_args['mispsrv'] = config.get('mispsetup','mispsrv')
+            my_args['mispsrv'] = mispconf.get('mispsetup','mispsrv')
         if self.mispkey:
             my_args['mispkey'] = self.mispkey
         else:
-            my_args['mispkey'] = config.get('mispsetup','mispkey')
+            my_args['mispkey'] = mispconf.get('mispsetup','mispkey')
         if self.sslcheck:
             if self.sslcheck == 'Y' or self.sslcheck == 'y' or self.sslcheck == '1':
                 my_args['sslcheck'] = True
             else:
                 my_args['sslcheck'] = False                        
         else:
-            my_args['sslcheck'] = config.getboolean('mispsetup','sslcheck')
+            my_args['sslcheck'] = mispconf.getboolean('mispsetup','sslcheck')
 
 #Search parameters: boolean and filter
         if self.onlyids == 'Y' or self.onlyids == 'y' or self.onlyids == '1':
@@ -99,16 +101,12 @@ class mispgetioc(ReportingCommand):
             exit(1)
 
 #path to main components either use default values or set ones
-        if config.has_option('mispsetup','SPLUNK_HOME'):
-            _SPLUNK_PATH = config.get('mispsetup','SPLUNK_HOME')
-        else:
-            _SPLUNK_PATH = '/opt/splunk'
-        if config.has_option('mispsetup','P3_PATH'):
-            _NEW_PYTHON_PATH = config.get('mispsetup','P3_PATH')
+        if mispconf.has_option('mispsetup','P3_PATH'):
+            _NEW_PYTHON_PATH = mispconf.get('mispsetup','P3_PATH')
         else:
             _NEW_PYTHON_PATH = '/usr/bin/python3'
-        if config.has_option('mispsetup','TMPTH'):
-            _TMP_PATH = config.get('mispsetup','TMP_PATH')
+        if mispconf.has_option('mispsetup','TMP_PATH'):
+            _TMP_PATH = mispconf.get('mispsetup','TMP_PATH')
         else:
             _TMP_PATH = '/tmp'
             
