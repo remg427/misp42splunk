@@ -17,12 +17,7 @@
     </input>
   </block>
 
-  <block title="(Optional) system path for SPLUNK and Python3" endpoint="misp/customendpoint" entity="mispsetup">
-
-    <input field="SPLUNK_HOME">
-      <label>Splunk home folder (default: /opt/splunk)</label>
-      <type>text</type>
-    </input>
+  <block title="(Optional) system path for Python3 and temp folder" endpoint="misp/customendpoint" entity="mispsetup">
 
     <input field="P3_PATH" endpoint="misp/customendpoint" entity="mispsetup">
       <label>Python3 binary path (default: /usr/bin/python3)</label>

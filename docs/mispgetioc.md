@@ -24,6 +24,18 @@ The command syntax is as follow:
     + eventid is the numeric value on the instance. (if you think uuid should be an option intoduce an issue or pull request)
     + last interval is a number followed by a letter d(ays), h(ours) or m(inutes)
 
+one example:
+
+    |mispgetioc eventid=477 category="Payload delivery,Network activity,External analysis" type="sha256,domain,ip-dst,text" getuuid=Y getorg=Y
+
+will return the following columns
+
+    | _time | category | event_id | ip-dst | misp_domain | misp_sha256 | orgc | text | to_ids | type | uuid | value
+
+another example:
+
+    |mispgetioc last=7d type="sha256,domain,ip-dst,text" onlyids=Y getuuid=Y getorg=Y
+
 IMPORTANT: on big result sets, you may get an error "EOFError at "/opt/splunk/etc/apps/misp42splunk/bin/mispgetioc.py", line 137 : ". The module pickle is overloaded. try with smaller period or with filters.
 
 - The other parameters are optional
