@@ -10,6 +10,8 @@
 import sys, os, json, urllib3, datetime, time, gzip, csv
 import pickle
 from pymisp import PyMISP
+from pymisp.tools import GenericObjectGenerator
+
 
 def init(url, key, ssl):
     return PyMISP(url, key, ssl, 'json')
@@ -23,11 +25,6 @@ def add_attribute(m,e,t,v,c,to_ids):
     result = m.add_named_attribute(e,t,v,c,to_ids,distribution=5)
     return result
 
-def get_event(m, e):
-    result = m.get_event(e)
-    return result['Event']['Attribute']
-
-
 def store_attribute(t,v,to_ids=False,category=None):
     Attribute = {}
     Attribute['type']     = t
@@ -36,11 +33,17 @@ def store_attribute(t,v,to_ids=False,category=None):
     Attribute['category'] = category
     return Attribute
 
+def store_object_attribute(t,v):
+    Attribute = {}
+    Attribute[t] = v
+    return Attribute
+
 def create_misp_events(config,results):
     # print(config)
     # iterate through each row, cleaning multivalue fields and then adding the attributes under same event key
     # this builds the dict events
     events = {}
+    
     for row in results:
         # Splunk makes a bunch of dumb empty multivalue fields - we filter those out here 
         row = {key: value for key, value in row.items() if not key.startswith("__mv_")}
@@ -62,6 +65,9 @@ def create_misp_events(config,results):
                 remove = row.pop('info')
         else:
             event = {}
+            event['eo_count'] = 0
+            event['fo_count'] = 0
+            event['no_count'] = 0
             artifacts = []
             if '_time' in row:
                 event['timestamp'] = str(row.pop('_time'))
@@ -75,7 +81,7 @@ def create_misp_events(config,results):
         # collect attribute value and build type=value entry
         if 'to_ids' in row:
             if str(row.pop('to_ids')) == 'True':
-                to_ids == True
+                to_ids = True
             else:
                 to_ids = False
         else:
@@ -86,14 +92,52 @@ def create_misp_events(config,results):
         else:
             category = None
 
-        # now we take remaining KV pairs starting by misp_ to add to dict 
+        # now we take KV pairs starting by misp_ to add to event as single attribute(s)
         for key, value in row.items():
             if key.startswith("misp_") and value != "":
                 misp_key = str(key).replace('misp_','').replace('_','-')
                 artifacts.append(store_attribute(misp_key,str(value),to_ids,category))
 
         event['attribute'] = artifacts
-        
+
+        # now we look for attribute belonging to a file object i.e. on the same row, field(s) start(s) with fo_  
+        fo_list = []
+        for key, value in row.items():
+            if key.startswith("fo_") and value != "":
+                fo_key = str(key).replace('fo_','').replace('_','-')
+                fo_list.append(store_object_attribute(fo_key,str(value)))
+
+        if fo_list:
+            event['fo_count'] = event['fo_count'] + 1
+            my_key = 'fo_' + str(event['fo_count'])
+            event[my_key] = fo_list
+
+        # then we look for attribute belonging to an email object i.e. on the same row, field(s) start(s) with eo_  
+        eo_list = []
+        for key, value in row.items():
+            if key.startswith("eo_") and value != "":
+                eo_key = str(key).replace('eo_','').replace('_','-')
+                eo_list.append(store_object_attribute(eo_key,str(value)))
+
+        if eo_list:
+            event['eo_count'] = event['eo_count'] + 1
+            my_key = 'eo_' + str(event['eo_count'])
+            event[my_key] = eo_list
+
+        # finally we look if there is a domain-ip object i.e. on the same row, 2 fields no_domain and no_ip  
+        no_list = []
+        if 'no_domain' in row and 'no_ip' in row:
+            domain = str(row.pop('no_domain'))
+            ip     = str(row.pop('no_ip'))
+            if domain != "" and ip != "":
+                no_list.append(store_object_attribute('domain',str(domain)))
+                no_list.append(store_object_attribute('ip',str(ip)))
+
+        if no_list:
+            event['no_count'] = event['no_count'] + 1
+            my_key = 'no_' + str(event['no_count'])
+            event[my_key] = no_list
+
         events[eventkey] = event
 
     # events are prepared; now create them in MISP
@@ -104,7 +148,7 @@ def create_misp_events(config,results):
     sslcheck = config['sslcheck']
 
     # connect to misp instance using url, authkey and boolean sslcheck
-    misp = init(mispsrv, mispkey, sslcheck)
+    pymisp = init(mispsrv, mispkey, sslcheck)
 
     # extract from config and event the values to create events
     analysis = config['analysis']
@@ -118,13 +162,13 @@ def create_misp_events(config,results):
         info     = event['info']
 
         # creqte the event in misp instqnce
-        my_event=create_event(misp,distrib,threat,analysis,info,date)
+        my_event=create_event(pymisp,distrib,threat,analysis,info,date)
 
         # tag the event with TLP level
         tlp  = config['tlp']
         # get UUID from new event - required for tag()
         uuid = my_event['Event']['uuid']
-        misp.tag(uuid,tlp)
+        pymisp.tag(uuid,tlp)
 
         # add atrributes to event
         # get ID from new event
@@ -132,7 +176,55 @@ def create_misp_events(config,results):
         # loop for attribute entries
         # please note that distribution will be force to 5 = inherit - if not provided default to your organisation
         for a in event['attribute']:
-            updated = add_attribute(misp,eid,a['type'],a['value'],a['category'],a['to_ids'])
+            updated = add_attribute(pymisp,eid,a['type'],a['value'],a['category'],a['to_ids'])
+        
+        #loop for file object entry
+        if event['fo_count'] > 0:
+            try:
+                template_id = [x['ObjectTemplate']['id'] for x in pymisp.get_object_templates_list() if x['ObjectTemplate']['name'] == 'file'][0]
+                fo_record = event['fo_count']
+                while fo_record > 0:
+                    misp_object = GenericObjectGenerator('file')
+                    my_key = 'fo_' + str(fo_record)
+                    misp_object.generate_attributes(event[my_key])
+                    r = pymisp.add_object(eid, template_id, misp_object)
+                    fo_record = fo_record - 1
+
+            except IndexError:
+                valid_types = ", ".join([x['ObjectTemplate']['name'] for x in pymisp.get_object_templates_list()])
+                print ("Template for type %s not found! Valid types are: %s" % ('file', valid_types))
+
+
+        #loop for email object entry
+        if event['eo_count'] > 0:
+            try:
+                template_id = [x['ObjectTemplate']['id'] for x in pymisp.get_object_templates_list() if x['ObjectTemplate']['name'] == 'email'][0]
+                eo_record = event['eo_count']
+                while eo_record > 0:
+                    misp_object = GenericObjectGenerator('email')
+                    my_key = 'eo_' + str(eo_record)
+                    misp_object.generate_attributes(event[my_key])
+                    r = pymisp.add_object(eid, template_id, misp_object)
+                    eo_record = eo_record - 1
+            except IndexError:
+                valid_types = ", ".join([x['ObjectTemplate']['name'] for x in pymisp.get_object_templates_list()])
+                print ("Template for type %s not found! Valid types are: %s" % ('file', valid_types))
+
+        #loop for domain-ip object entry
+        if event['no_count'] > 0:
+            try:
+                template_id = [x['ObjectTemplate']['id'] for x in pymisp.get_object_templates_list() if x['ObjectTemplate']['name'] == 'domain-ip'][0]
+                no_record = event['no_count']
+                while no_record > 0:
+                    misp_object = GenericObjectGenerator('domain-ip')
+                    my_key = 'no_' + str(no_record)
+                    misp_object.generate_attributes(event[my_key])
+                    r = pymisp.add_object(eid, template_id, misp_object)
+                    no_record = no_record - 1
+            except IndexError:
+                valid_types = ", ".join([x['ObjectTemplate']['name'] for x in pymisp.get_object_templates_list()])
+                print ("Template for type %s not found! Valid types are: %s" % ('file', valid_types))
+
         eventlist['eid'] = uuid
 
     return eventlist

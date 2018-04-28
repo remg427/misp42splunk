@@ -91,7 +91,7 @@ def create_alert(config, filename):
 		swap_file = _TMP_PATH + '/misp42_alert_create'
 		pickle.dump(config_args , open(swap_file, "wb"), protocol=2)
 
-		print >> sys.stderr, "env: %s" % env
+		print >> sys.stderr, "DEBUG env: %s" % env
 		p = subprocess.Popen([ _NEW_PYTHON_PATH, my_process, swap_file], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
 		stdpout, stdperr  = p.communicate()
 
