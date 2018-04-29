@@ -18,7 +18,7 @@ In short, you can:
 1. Install Python 3 on the Splunk Search Head.
 2. Install PyMISP (see https://github.com/CIRCL/PyMISP).
 3. Check that your Splunk SH can connect to the MISP instance. 
-4. In App setup screen, you can adapt pathes to SPLUNK home folder, python3 binary and temp folder
+4. In App setup screen, you can adapt pathes to python3 binary and temp folder
 
 # Installation
 This App is designed to run on Splunk Search Head(s) on Linux plateforms
@@ -35,7 +35,7 @@ This App is designed to run on Splunk Search Head(s) on Linux plateforms
     - For TheHive
         - provide the url to the API of your instance;
         - provide the authkey.
-    - Pathes to SPLUNK home folder, python3 binary and temp folder
+    - Pathes to python3 binary and temp folder
 
 # Use Cases
 
@@ -58,8 +58,8 @@ Search for attributes values/uuids in Splunk > alert to increment sighting count
 ### Alert for attribute sighting in MISP
 
 # Todo
-- implement event tagging in misp_alert_create_event
-- store some saved searches and lookups as examples
+[] implement event tagging in misp_alert_create_event
+[] store some saved searches and lookups as examples
 
 # Credits
 This app is largely inspired by https://github.com/xme/splunk/tree/master/getmispioc and the associated blog https://blog.rootshell.be/2017/10/31/splunk-custom-search-command-searching-misp-iocs/ for MISP interactions.
