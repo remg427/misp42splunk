@@ -80,6 +80,11 @@ def transpose_attributes(d, onlyids, getuuid, getorg, acategory=None, atype=None
 def get_event(m, e):
     data = []
     result = m.get_event(e)
+    if 'Object' in result['Event']:
+        for obj in result['Event']['Object']:
+            for a in obj['Attribute']:
+                result['Event']['Attribute'].append(a)
+
     for a in result['Event']['Attribute']:
         a['orgc'] = result['Event']['Orgc']['name']
         data.append(a)
@@ -89,6 +94,11 @@ def get_last(m, l):
     result = m.download_last(l)
     data = []
     for r in result['response']:
+        if 'Object' in r['Event']:
+            for obj in r['Event']['Object']:
+                for a in obj['Attribute']:
+                    r['Event']['Attribute'].append(a)
+
         for a in r['Event']['Attribute']:
             a['orgc'] = r['Event']['Orgc']['name']
             data.append(a)
