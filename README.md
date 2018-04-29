@@ -62,7 +62,7 @@ Search for attributes values/uuids in Splunk > alert to increment sighting count
 - [ ] store some saved searches and lookups as examples
 
 # Credits
-This app is largely inspired by https://github.com/xme/splunk/tree/master/getmispioc and the associated blog https://blog.rootshell.be/2017/10/31/splunk-custom-search-command-searching-misp-iocs/ for MISP interactions.
+The creation of this app started from work done by https://github.com/xme/splunk/tree/master/getmispioc and the associated blog https://blog.rootshell.be/2017/10/31/splunk-custom-search-command-searching-misp-iocs/ for MISP interactions.
 
 The alert_action for TheHive is inpired by [this Splunk app](https://splunkbase.splunk.com/app/3642/)
 
