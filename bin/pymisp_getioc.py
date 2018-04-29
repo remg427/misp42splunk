@@ -26,7 +26,7 @@ def transpose_attributes(d, onlyids, getuuid, getorg, acategory=None, atype=None
 # getorg: boolean
 # category: string
 # type: string
-    fields = ['event_id','timestamp', 'type', 'category', 'to_ids', 'value']
+    fields = ['event_id','timestamp', 'type', 'category', 'to_ids', 'value', 'object_id']
     if atype != None:
         typelist = atype.split(",")
     else:
