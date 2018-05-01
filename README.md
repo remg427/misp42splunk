@@ -51,18 +51,18 @@ Log on sandboxing output > saved search to qualify, sanitize (dedup remove top A
 Search for attributes values/uuids in Splunk > alert to increment sighting counters (standard,false positive,expiration) in MISP for those values/uuids 
 
 # Usage
-## custom command [mispgetioc](https://github.com/remg427/misp42splunk/docs/mispgetioc.md)
-## Alerts to [create TheHive alerts](https://github.com/remg427/misp42splunk/docs/thehivealerts.md)
-## Alert to [update MISP](https://github.com/remg427/misp42splunk/docs/mispalerts.md)
+## custom command [mispgetioc](docs/mispgetioc.md)
+## Alerts to [create TheHive alerts](docs/thehivealerts.md)
+## Alert to [update MISP](docs/mispalerts.md)
 ### Alert to create MISP event(s)
 ### Alert for attribute sighting in MISP
 
 # Todo
-[] implement event tagging in misp_alert_create_event
-[] store some saved searches and lookups as examples
+- [ ] implement event tagging in misp_alert_create_event
+- [ ] store some saved searches and lookups as examples
 
 # Credits
-This app is largely inspired by https://github.com/xme/splunk/tree/master/getmispioc and the associated blog https://blog.rootshell.be/2017/10/31/splunk-custom-search-command-searching-misp-iocs/ for MISP interactions.
+The creation of this app started from work done by https://github.com/xme/splunk/tree/master/getmispioc and the associated blog https://blog.rootshell.be/2017/10/31/splunk-custom-search-command-searching-misp-iocs/ for MISP interactions.
 
 The alert_action for TheHive is inpired by [this Splunk app](https://splunkbase.splunk.com/app/3642/)
 

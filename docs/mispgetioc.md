@@ -2,7 +2,7 @@
 ## custom command mispgetioc version 2.0
 This custom command must be the first of a search (or a sub-search). The results are displayed in a table that contains:
 
-    + always following fields = ['event_id','timestamp', 'type', 'category', 'to_ids', 'value']
+    + always following fields = ['event_id','timestamp', 'type', 'category', 'to_ids', 'value', 'object_id']
     + and a column by types either with a value or empty
 
 So the output can be immediately reused in a search without complex transforms
