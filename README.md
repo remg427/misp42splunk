@@ -16,7 +16,7 @@ In short, you can:
 
 # Prerequisites
 1. Install Python 3 on the Splunk Search Head.
-2. Install PyMISP (see https://github.com/CIRCL/PyMISP).
+2. Install PyMISP (see https://github.com/MISP/PyMISP).
 3. Check that your Splunk SH can connect to the MISP instance. 
 4. In App setup screen, you can adapt pathes to python3 binary and temp folder
 
