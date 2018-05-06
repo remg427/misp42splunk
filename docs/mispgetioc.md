@@ -2,8 +2,8 @@
 ## custom command mispgetioc version 2.0
 This custom command must be the first of a search (or a sub-search). The results are displayed in a table that contains:
 
-    + always following fields = ['event_id','timestamp', 'type', 'category', 'to_ids', 'value', 'object_id']
-    + and a column by types either with a value or empty
+    + always following fields = ['event_id','timestamp', 'type', 'category', 'to_ids', 'value', 'object_id', 'event_tag', 'tags']
+    + and a column by type either with a value or empty
 
 So the output can be immediately reused in a search without complex transforms
 
@@ -15,13 +15,15 @@ The command syntax is as follow:
                 [type=CSV_string]
                 **[getuuid=y|n|Y|N|0|1]**
                 **[getorg=y|n|Y|N|0|1]**
+                **[tags=CSV_string]**
+                **[not_tags=CSV_strings]
                 [server=https://host:port] 
                 [authkey=misp-authorization-key]
-                [sslcheck=y|n]                  
+                [sslcheck=y|n]                 
                 
 
 - You must set either parameter 'eventid' or 'last'
-    + eventid is the numeric value on the instance. (if you think uuid should be an option intoduce an issue or pull request)
+    + eventid is the numeric value on the instance. (if you think uuid should be an option introduce an issue or pull request)
     + last interval is a number followed by a letter d(ays), h(ours) or m(inutes)
 
 one example:
@@ -43,6 +45,8 @@ IMPORTANT: on big result sets, you may get an error "EOFError at "/opt/splunk/et
         - onlyids (boolean),
         - [type](https://www.circl.lu/doc/misp/categories-and-types/#types). Use a CSV string to list the types; for example type="domain" or type="domain,hostname,ip-dst"
         - [category](https://www.circl.lu/doc/misp/categories-and-types/#categories) Use a CSV string to list the categories; for example category="Payload delivery" or category="Payload delivery,Network activity,External analysis"
+        - tags. Use a CSV string to search for events with these tags
+        - not_tags. Use a CSV string to search for events which have not these tags
 
     + you may set getuuid=Y to get the event uuid in the results 
     + likewise set getorg=Y to list the originating organisation

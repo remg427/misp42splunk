@@ -19,6 +19,14 @@ from pymisp import PyMISP
 def init(url, key, ssl):
     return PyMISP(url, key, ssl, 'json')
 
+def list_tags(tag):
+    tag_str = ''
+    delims = ''
+    for t in tag:
+        tag_str = tag_str + delims + t['name']
+        delims = ','
+    return tag_str
+
 def transpose_attributes(d, onlyids, getuuid, getorg, acategory=None, atype=None):
 #Search parameters: boolean and filter
 # onlyids: boolean
@@ -26,7 +34,7 @@ def transpose_attributes(d, onlyids, getuuid, getorg, acategory=None, atype=None
 # getorg: boolean
 # category: string
 # type: string
-    fields = ['event_id','timestamp', 'type', 'category', 'to_ids', 'value', 'object_id']
+    fields = ['event_id', 'timestamp', 'type', 'category', 'to_ids', 'value', 'object_id', 'event_tag']
     if atype != None:
         typelist = atype.split(",")
     else:
@@ -60,6 +68,11 @@ def transpose_attributes(d, onlyids, getuuid, getorg, acategory=None, atype=None
             for f in fields:
                 r[f] = a[f]
 
+            # if attribute has tags list them in CSV string
+            r['tags'] = ''
+            if 'Tag' in a:
+                r['tags'] = list_tags(a['Tag'])
+
             # if specified copy _attribute_ uuid
             if getuuid == True:
                 r['uuid'] = a['uuid']
@@ -87,11 +100,23 @@ def get_event(m, e):
 
     for a in result['Event']['Attribute']:
         a['orgc'] = result['Event']['Orgc']['name']
+        if 'Tag' in result['Event']:
+            a['event_tag'] = list_tags(result['Event']['Tag'])
+        else:
+            a['event_tag'] = ''
         data.append(a)
     return data
 
-def get_last(m, l):
-    result = m.download_last(l)
+def get_last(m, l, has_tags, has_not_tags):
+    if has_tags != None and has_not_tags != None:
+        result = m.search(last=l, tags=has_tags, not_tags=has_not_tags)
+    elif has_tags != None:
+        result = m.search(last=l, tags=has_tags)
+    elif has_not_tags != None:
+        result = m.search(last=l, not_tags=has_not_tags)
+    else:
+        result = m.search(last=l)
+
     data = []
     for r in result['response']:
         if 'Object' in r['Event']:
@@ -101,6 +126,9 @@ def get_last(m, l):
 
         for a in r['Event']['Attribute']:
             a['orgc'] = r['Event']['Orgc']['name']
+            a['event_tag'] = ''
+            if 'Tag' in r['Event']:
+                a['event_tag'] = list_tags(r['Event']['Tag'])
             data.append(a)
     return data
 
@@ -120,8 +148,10 @@ try:
         extract = get_event(misp, config['eventid'])
         result  = transpose_attributes(extract,config['onlyids'],config['getuuid'],config['getorg'],config['category'],config['type'])
         pickle.dump(result, open(swap_file, "wb"), protocol=2)
-    elif 'last'  in config:
-        extract = get_last(misp, config['last'])
+    elif 'last' in config:
+        extract = get_last(misp, config['last'], config['tags'], config['not_tags'])
+#            print(json.dumps(extract,indent=4))
+        
         result  = transpose_attributes(extract,config['onlyids'],config['getuuid'],config['getorg'],config['category'],config['type'])
         pickle.dump(result, open(swap_file, "wb"), protocol=2)
     else:
