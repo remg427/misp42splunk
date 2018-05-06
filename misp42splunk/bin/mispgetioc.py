@@ -27,6 +27,8 @@ class mispgetioc(ReportingCommand):
     getorg          = Option(require=False, validate=validators.Match("getorg",      r"^[yYnN01]+$"))
     category        = Option(require=False)
     type            = Option(require=False)
+    tags            = Option(require=False)
+    not_tags            = Option(require=False)
 
     @Configuration()
 
@@ -87,6 +89,15 @@ class mispgetioc(ReportingCommand):
             my_args['type'] = self.type
         else:
             my_args['type'] = None
+        if self.tags != None:
+            my_args['tags'] = self.tags
+        else:
+            my_args['tags'] = None
+        if self.not_tags != None:
+            my_args['not_tags'] = self.not_tags
+        else:
+            my_args['not_tags'] = None
+
 
 #check that ONE of mandatory fields is present
         if self.eventid and self.last:
