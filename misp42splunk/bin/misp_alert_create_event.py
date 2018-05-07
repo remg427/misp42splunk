@@ -56,6 +56,8 @@ def create_alert(config, filename):
 	config_args['tlp']      = config.get('tlp')
 	if 'tags' in config:
 		config_args['tags'] = config.get('tags')
+	else:
+		config_args['tags'] = None
 	
 	# Get numeric values from alert form
 	config_args['analysis']     = int(config.get('analysis'))

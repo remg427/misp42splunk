@@ -45,7 +45,7 @@ Fresh IOC from MISP > saved searches in Splunk > on match create an alert on [Th
 
 ## Creating events based on automated sandboxing
 If you have output of analysis pushed to Splunk you may automate the creation of events
-Log on sandboxing output > saved search to qualify, sanitize (dedup remove top Alexa, etc.)  and prepare the table > set a splunk alert to create event(s) in MISP
+Log on sandboxing output > saved search to qualify, sanitize (dedup remove top Alexa, etc.)  and prepare the table (misp_*, fo_*, etc.) > set a splunk alert to create event(s) in MISP
 
 ## Sighting in MISP based on Splunk alerts
 Search for attributes values/uuids in Splunk > alert to increment sighting counters (standard,false positive,expiration) in MISP for those values/uuids 
@@ -58,7 +58,7 @@ Search for attributes values/uuids in Splunk > alert to increment sighting count
 ### Alert for attribute sighting in MISP
 
 # Todo
-- [ ] implement event tagging in misp_alert_create_event
+- [X] implement event tagging in misp_alert_create_event
 - [ ] store some saved searches and lookups as examples
 
 # Credits

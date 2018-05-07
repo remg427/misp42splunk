@@ -170,6 +170,11 @@ def create_misp_events(config,results):
         uuid = my_event['Event']['uuid']
         pymisp.tag(uuid,tlp)
 
+        if config['tags'] != None:
+            tag_list = config['tags'].split(',')
+            for tag in tag_list:
+                pymisp.tag(uuid,tag)
+
         # add atrributes to event
         # get ID from new event
         eid = int(my_event['Event']['id'])
