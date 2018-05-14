@@ -138,9 +138,9 @@ class mispgetioc(ReportingCommand):
         p = subprocess.Popen([ _NEW_PYTHON_PATH, my_process, swap_file], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
         stdout, stderr  = p.communicate()
 
-        if stderr:
-            print('DEBUG error in pymisp_getioc.py')
-            exit(1)                    
+#        if stderr:
+#            print('DEBUG error in pymisp_getioc.py')
+#            exit(1)                    
 
         results = {}
         output = pickle.load(open(swap_file, "rb"))

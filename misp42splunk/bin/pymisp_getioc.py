@@ -10,7 +10,7 @@
 #
 import sys
 import os
-import pickle
+import cPickle as pickle
 import json
 import urllib3
 from pymisp import PyMISP
