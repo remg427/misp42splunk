@@ -135,6 +135,7 @@ def get_last(m, l, has_tags, has_not_tags):
 try:
     swap_file = sys.argv[1]
     config = pickle.load(open(swap_file, "rb"))
+
     if 'mispsrv' in config:
         mispsrv = config['mispsrv']
     if 'mispkey' in config:
@@ -146,12 +147,12 @@ try:
     
     if 'eventid' in config:
         extract = get_event(misp, config['eventid'])
+#        print(json.dumps(extract,indent=4))
         result  = transpose_attributes(extract,config['onlyids'],config['getuuid'],config['getorg'],config['category'],config['type'])
         pickle.dump(result, open(swap_file, "wb"), protocol=2)
     elif 'last' in config:
         extract = get_last(misp, config['last'], config['tags'], config['not_tags'])
-#            print(json.dumps(extract,indent=4))
-        
+#        print(json.dumps(extract,indent=4))
         result  = transpose_attributes(extract,config['onlyids'],config['getuuid'],config['getorg'],config['category'],config['type'])
         pickle.dump(result, open(swap_file, "wb"), protocol=2)
     else:

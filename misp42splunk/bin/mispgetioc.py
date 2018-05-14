@@ -28,7 +28,7 @@ class mispgetioc(ReportingCommand):
     category        = Option(require=False)
     type            = Option(require=False)
     tags            = Option(require=False)
-    not_tags            = Option(require=False)
+    not_tags        = Option(require=False)
 
     @Configuration()
 
@@ -134,6 +134,8 @@ class mispgetioc(ReportingCommand):
 #use pickle
         swap_file = _TMP_PATH + '/mispgetioc_config'
         pickle.dump(my_args, open(swap_file, "wb"), protocol=2)
+        env_file = _TMP_PATH + '/mispgetioc_env'
+        pickle.dump(env, open(env_file, "wb"), protocol=2)
 
         p = subprocess.Popen([ _NEW_PYTHON_PATH, my_process, swap_file], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
         stdout, stderr  = p.communicate()
@@ -142,11 +144,12 @@ class mispgetioc(ReportingCommand):
 #            print('DEBUG error in pymisp_getioc.py')
 #            exit(1)                    
 
-        results = {}
+        output = {}
         output = pickle.load(open(swap_file, "rb"))
 
-        for v in output:
-            yield v                              
+        if output:
+            for v in output:
+                yield v                              
 
 if __name__ == "__main__":
     dispatch(mispgetioc, sys.argv, sys.stdin, sys.stdout, __name__)
