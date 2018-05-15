@@ -21,13 +21,15 @@ In short, you can:
 4. In App setup screen, you can adapt pathes to python3 binary and temp folder
 
 # Installation
-This App is designed to run on Splunk Search Head(s) on Linux plateforms
-1. Download the ZIP file and remove -master from folder name in the ZIP file
-    * Python scripts in folder bin expect the app to be installed at /opt/splunk/etc/misp42splunk. If your environment is different adapt accordingly either your path or the python scripts
-    * Please note that this app come with a copy of Splunk SDK 1.6.3 under misp42splunk/bin
-2. Install the app on your Splunk Search Head(s)
-3. A custom endpoint has been defined so you need to restart Splunk (for later updates, you may skip this step)
-4. At next logon, you should be invited to configure the app (if not go to Manage Apps > App-MISP42 > Set up) 
+This app is designed to run on Splunk Search Head(s) on Linux plateforms
+1. Download and uncompress the ZIP file on your local drive.
+2. Open the directory misp42splunk-master and create a ZIP archive containing the sub-directory misp42splunk (which is the Splunk app):
+    * unzip misp42splunk-master.zip
+    * cd misp42splunk-master
+    * zip -r misp42splunk.zip misp42splunk
+3. Install the app on your Splunk Search Head(s): "Manage Apps" -> "Install app from file"
+4. A custom endpoint has been defined so you need to restart Splunk (for later updates, you may skip this step)
+5. At next logon, you should be invited to configure the app (if not go to Manage Apps > App-MISP42 > Set up) 
     - For MISP
         - provide the url to your MISP instance;
         - provide the authkey;
