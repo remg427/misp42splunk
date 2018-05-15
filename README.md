@@ -22,11 +22,7 @@ In short, you can:
 
 # Installation
 This app is designed to run on Splunk Search Head(s) on Linux plateforms
-1. Download and uncompress the ZIP file on your local drive.
-2. Open the directory misp42splunk-master and create a ZIP archive containing the sub-directory misp42splunk (which is the Splunk app):
-    * unzip misp42splunk-master.zip
-    * cd misp42splunk-master
-    * zip -r misp42splunk.zip misp42splunk
+1. Download this [file](mispgetioc.tar.gz) which is the Splunk app ( it is an archive containing the sub-directory misp42splunk)
 3. Install the app on your Splunk Search Head(s): "Manage Apps" -> "Install app from file"
 4. A custom endpoint has been defined so you need to restart Splunk (for later updates, you may skip this step)
 5. At next logon, you should be invited to configure the app (if not go to Manage Apps > App-MISP42 > Set up) 
