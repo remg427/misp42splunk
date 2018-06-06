@@ -17,7 +17,7 @@ from splunklib.searchcommands import dispatch, ReportingCommand, Configuration, 
 @Configuration(requires_preop=False)
 
 class mispgetioc(ReportingCommand):
-    mispsrv         = Option(require=False, validate=validators.Match("mispsrv",     r"^https?:\/\/[0-9a-zA-Z\.]+(?:\:\d+)?$"))
+    mispsrv         = Option(require=False, validate=validators.Match("mispsrv",     r"^https?:\/\/[0-9a-zA-Z\-\.]+(?:\:\d+)?$"))
     mispkey         = Option(require=False, validate=validators.Match("mispkey",     r"^[0-9a-zA-Z]{40}$"))
     sslcheck        = Option(require=False, validate=validators.Match("sslcheck",    r"^[yYnN01]$"))
     eventid         = Option(require=False, validate=validators.Match("eventid",     r"^[0-9]+$"))

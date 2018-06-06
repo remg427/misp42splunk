@@ -17,8 +17,8 @@ The command syntax is as follow:
                 **[getorg=y|n|Y|N|0|1]**
                 **[tags=CSV_string]**
                 **[not_tags=CSV_strings]
-                [server=https://host:port] 
-                [authkey=misp-authorization-key]
+                [mispsrv=https://host:port] 
+                [mispkey=misp-authorization-key]
                 [sslcheck=y|n]                 
                 
 
@@ -52,6 +52,6 @@ IMPORTANT: on big result sets, you may get an error "EOFError at "/opt/splunk/et
     + likewise set getorg=Y to list the originating organisation
 
 - If you need to fecth from another MISP instance different from the default one defined in the setup of the app, you may overwrite the misp server parameters for this search by setting
-    + server: set the url to the MISP instance
-    + authkey: misp-authorization-key for this instance
+    + mispsrv: set the url to the MISP instance
+    + mispkey: misp-authorization-key for this instance
     + sslcheck: you may check ssl certificate (default no)  

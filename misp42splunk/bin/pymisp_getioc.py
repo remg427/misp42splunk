@@ -23,6 +23,7 @@ def list_tags(tag):
     tag_str = ''
     delims = ''
     for t in tag:
+        print(t, "\n")
         tag_str = tag_str + delims + t['name']
         delims = ','
     return tag_str
@@ -42,6 +43,7 @@ def transpose_attributes(d, onlyids, getuuid, getorg, acategory=None, atype=None
         for a in d:
             if a['type'] not in typelist:
                 typelist.append(a['type'])
+
 
     if acategory != None:
         selected_categories = acategory.split(",")
@@ -66,7 +68,10 @@ def transpose_attributes(d, onlyids, getuuid, getorg, acategory=None, atype=None
                 continue
             # copy minimum set of fields
             for f in fields:
-                r[f] = a[f]
+                if f in a:
+                    r[f] = a[f]
+                else:
+                    r[f] = ''
 
             # if attribute has tags list them in CSV string
             r['tags'] = ''
@@ -81,6 +86,7 @@ def transpose_attributes(d, onlyids, getuuid, getorg, acategory=None, atype=None
                 r['orgc'] = a['orgc']
             
             #finally add columns for each type in data set                
+#            print(typelist)
             for t in typelist:
                 if a['type'] == t:
                     r[t] = a['value']
@@ -144,7 +150,7 @@ try:
         sslcheck = config['sslcheck']
 
     misp = init(mispsrv, mispkey, sslcheck)
-    
+
     if 'eventid' in config:
         extract = get_event(misp, config['eventid'])
 #        print(json.dumps(extract,indent=4))
@@ -152,7 +158,7 @@ try:
         pickle.dump(result, open(swap_file, "wb"), protocol=2)
     elif 'last' in config:
         extract = get_last(misp, config['last'], config['tags'], config['not_tags'])
-#        print(json.dumps(extract,indent=4))
+#       print(json.dumps(extract,indent=4))
         result  = transpose_attributes(extract,config['onlyids'],config['getuuid'],config['getorg'],config['category'],config['type'])
         pickle.dump(result, open(swap_file, "wb"), protocol=2)
     else:
