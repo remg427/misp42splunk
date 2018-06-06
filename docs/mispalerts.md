@@ -1,17 +1,19 @@
 
 # Alerts to interact with MISP
 ## Create MISP event(s)    
-When you create an alert, you may add an alert action to directly create events in MISP based on search results
+When you create an alert, you may add an alert action to directly create events in MISP based on search results.
+This version of the app supports MISP objects; upgrade MISP and PyMISP accordingly
 
 ### collect results in Splunk
-#### search results with columns type and value
 You may search and prepare the results as a table with the following command
-    | table _time type value to_ids eventkey info category
+    | rename field1 AS misp_attribute_name (prefix misp_ is removed & '-'' are replaced by '_' )
+    | rename field2 AS fo_object_attribute_name (to use file objects)
+    | rename field3 AS eo_object_attribute_name (for email objects)
+    | rename field4 AS no_object_attribute_name (for network connection objects)
+    | table _time to_ids eventkey info category misp_* fo_* eo_* no_* (etc.)
 
-* Mandatory fields:
-    - type: the type of attribute. It must use MISP attribute names
-    - value: the value of the attribute - you should check that the value complies with the type
- 
+Do not forget to check the [object attribute names](https://github.com/MISP/misp-objects/)
+
 * Optional fields:
     - _time: the timestamp will be converted to YYYY-MM-DD for event date. if not provided, set to localtime
     - to_ids: if not defined, set to False
@@ -20,9 +22,7 @@ You may search and prepare the results as a table with the following command
     - info: This string will be set in the Info field of MISP event. This value might be overall defined for the alert - see below
 
 
-#### search results with one column per type
-You mays search and build a table with several column, one for each type of attributes.
-CAUTION: Splunk syntax does not like field names like ip-src, email-subject. You simply create fields using _ such as ip_src and the script will format the attribute names before pushing to MISP
+CAUTION: Splunk syntax does not like field names like ip-src, email-subject. You simply create fields using _ such as ip_src and the script will format the attribute names before pushing to MISP.
 
 ### create the alert and add alert_action to create events
 Save your search as alert. Select "Alert to create MISP event(s)" as action

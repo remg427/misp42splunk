@@ -43,7 +43,10 @@ Fresh IOC from MISP > saved searches in Splunk > on match create an alert on [Th
 
 ## Creating events based on automated sandboxing
 If you have output of analysis pushed to Splunk you may automate the creation of events
-Log on sandboxing output > saved search to qualify, sanitize (dedup remove top Alexa, etc.)  and prepare the table (misp_*, fo_*, etc.) > set a splunk alert to create event(s) in MISP
+Log on sandboxing output > saved search to qualify, sanitize (dedup remove top Alexa, etc.) and prepare the table (misp_*, fo_*, eo_* etc.) > set a splunk alert to create event(s) in MISP
+* Only fields prefixed with misp_ (or fo_ for file objects, eo_ for email objects) are imported
+* if you use MISP objects, please upgrade PyMISP and MISP accordingly
+* Advise: for objects verify the name of the fields to be created; for example see [Email Object definition](https://github.com/MISP/misp-objects/blob/a5c331038edcbb86557396cf39508f0e3e35a33b/objects/email/definition.json)
 
 ## Sighting in MISP based on Splunk alerts
 Search for attributes values/uuids in Splunk > alert to increment sighting counters (standard,false positive,expiration) in MISP for those values/uuids 
