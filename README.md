@@ -45,11 +45,11 @@ Log on sandboxing output > saved search to qualify, sanitize (dedup remove top A
 Search for attributes values/uuids in Splunk > alert to increment sighting counters (standard,false positive,expiration) in MISP for those values/uuids 
 
 # Usage
-## custom command [mispgetioc](docs/mispgetioc.md)
-## Alerts to [create TheHive alerts](docs/thehivealerts.md)
-## Alert to [update MISP](docs/mispalerts.md)
-### Alert to create MISP event(s)
-### Alert for attribute sighting in MISP
+#### custom command [mispgetioc](docs/mispgetioc.md)
+#### Splunk alert actions to [update MISP](docs/mispalerts.md)
+##### -- Alert to create MISP event(s)
+##### -- Alert for attribute sighting in MISP
+## Splunk alerts to [create TheHive alerts](docs/thehivealerts.md)
 
 # Todo
 - [X] implement event tagging in misp_alert_create_event
