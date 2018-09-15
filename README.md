@@ -49,7 +49,7 @@ Search for attributes values/uuids in Splunk > alert to increment sighting count
 #### Splunk alert actions to [update MISP](docs/mispalerts.md)
 ##### -- Alert to create MISP event(s)
 ##### -- Alert for attribute sighting in MISP
-## Splunk alerts to [create TheHive alerts](docs/thehivealerts.md)
+#### Splunk alerts to [create TheHive alerts](docs/thehivealerts.md)
 
 # Todo
 - [X] implement event tagging in misp_alert_create_event
