@@ -1,18 +1,11 @@
 # misp42splunk
-**A Splunk app to use MISP as a backend (lookup, alerts to create or update events)**
-If you have TheHive installed, you also may create alerts.
+misp42splunk app connects [MISP](http://www.misp-project.org/) and [Splunk](www.splunk.com). The app is designed to be easy to install, set up and maintain using the Splunk GUI without editing directly files. You can use **as many MISP instances as you like;** one being defined at setup time to be the default instance.
 
-In short, you can:
-1. easily configure the app from Splunk GUI; no need to edit files via the console.
-2. get IOC from MISP instance in search command line: __| mispgetioc__
-3. alert action to send alerts to TheHive:
-    - results may have one column per artifact type or,
-    - results must have at least 2 columns named **type** (of artifacts) and **value**
-4. **alert action to create events in MISP**
-    - results must have at least 2 columns named **type** (of attributes) and **value**
-    - or results may have one column per artifact type folowing MISP attribute names; in this case you can use **_** instead of **-** as Splunk does not like so much field name with a -; for example use **ip_src**, the script will replace it by **ip-src**.    
-5. alert action to increment attributes sighting in MISP:
-    - likewise you may select in alert settings if sighting is by value or by uuid; both modes work with timestamps.
+The main use cases are:
+1. MISP to  SPLUNK: get MISP event attributes into Splunk search pipeline: **| mispgetioc _params_ | ...**. see 
+2. MISP for SPLUNK: 2 Splunk alert actions are available to directly create events or increment attribute sighting in a MISP instance. 
+
+BONUS: You can also create Splunk alert action to create [The Hive](https://thehive-project.org/) alerts
 
 # Prerequisites
 1. Install Python 3 on the Splunk Search Head.
