@@ -8,35 +8,45 @@
 # Copyright: LGPLv3 (https://www.gnu.org/licenses/lgpl-3.0.txt)
 # Feel free to use the code, but please share the changes you've made
 #
+
 import sys
-import os
 import pickle
-import json
-import urllib3
+# import json
 from pymisp import PyMISP
+
+__author__     = "Remi Seguy"
+__license__    = "LGPLv3"
+__version__    = "3.0.0"
+__maintainer__ = "Remi Seguy"
+__email__      = "remg427@gmail.com"
 
 
 def init(url, key, ssl):
     return PyMISP(url, key, ssl, 'json')
 
+
 def list_tags(tag):
     tag_str = ''
     delims = ''
     for t in tag:
-        print(t, "\n")
+        # print(t, "\n")
         tag_str = tag_str + delims + t['name']
         delims = ','
     return tag_str
 
-def transpose_attributes(d, onlyids, getuuid, getorg, acategory=None, atype=None):
-#Search parameters: boolean and filter
-# onlyids: boolean
-# getuuid: boolean
-# getorg: boolean
-# category: string
-# type: string
-    fields = ['event_id', 'timestamp', 'type', 'category', 'to_ids', 'value', 'object_id', 'event_tag']
-    if atype != None:
+
+def transpose_attributes(d, onlyids, getuuid, getorg,
+                         acategory=None, atype=None):
+    # Search parameters: boolean and filter
+    # onlyids: boolean
+    # getuuid: boolean
+    # getorg: boolean
+    # category: string
+    # type: string
+
+    fields = ['event_id', 'timestamp', 'type', 'category', 'to_ids',
+              'value', 'object_id', 'event_tag']
+    if atype is not None:
         typelist = atype.split(",")
     else:
         typelist = []
@@ -44,27 +54,26 @@ def transpose_attributes(d, onlyids, getuuid, getorg, acategory=None, atype=None
             if a['type'] not in typelist:
                 typelist.append(a['type'])
 
-
-    if acategory != None:
+    if acategory is not None:
         selected_categories = acategory.split(",")
     else:
         selected_categories = []
 
     transpose = []
-   
+
     for a in d:
         r = {}
         # Do not process deleted attributes
-        if a['deleted'] == False:
+        if not a['deleted']:
             # Filters
-            # If specified, only display attributes with the to-ids flag set to True
-            if onlyids == True and a['to_ids'] == False:
+            # If specified, only display attributes with the to-ids flag set
+            if onlyids and not a['to_ids']:
                 continue
             # If specified, only display attributes from this category
-            if acategory != None and a['category'] not in selected_categories:
+            if acategory is not None and a['category'] not in selected_categories:
                 continue
             # If specified, only display attributes of one of listed types
-            if atype != None and a['type'] not in typelist:
+            if atype is not None and a['type'] not in typelist:
                 continue
             # copy minimum set of fields
             for f in fields:
@@ -79,14 +88,14 @@ def transpose_attributes(d, onlyids, getuuid, getorg, acategory=None, atype=None
                 r['tags'] = list_tags(a['Tag'])
 
             # if specified copy _attribute_ uuid
-            if getuuid == True:
+            if getuuid:
                 r['uuid'] = a['uuid']
             # if specified copy _event_ ORG
-            if getorg == True:
+            if getorg:
                 r['orgc'] = a['orgc']
-            
-            #finally add columns for each type in data set                
-#            print(typelist)
+
+            # finally add columns for each type in data set
+            # print(typelist)
             for t in typelist:
                 if a['type'] == t:
                     r[t] = a['value']
@@ -96,29 +105,33 @@ def transpose_attributes(d, onlyids, getuuid, getorg, acategory=None, atype=None
 
     return transpose
 
+
 def get_event(m, e):
     data = []
     result = m.get_event(e)
-    if 'Object' in result['Event']:
-        for obj in result['Event']['Object']:
-            for a in obj['Attribute']:
-                result['Event']['Attribute'].append(a)
+    if 'Event' in result:
+        if 'Object' in result['Event']:
+            for obj in result['Event']['Object']:
+                for a in obj['Attribute']:
+                    result['Event']['Attribute'].append(a)
 
-    for a in result['Event']['Attribute']:
-        a['orgc'] = result['Event']['Orgc']['name']
-        if 'Tag' in result['Event']:
-            a['event_tag'] = list_tags(result['Event']['Tag'])
-        else:
-            a['event_tag'] = ''
-        data.append(a)
+        for a in result['Event']['Attribute']:
+            a['orgc'] = result['Event']['Orgc']['name']
+            if 'Tag' in result['Event']:
+                a['event_tag'] = list_tags(result['Event']['Tag'])
+            else:
+                a['event_tag'] = ''
+            data.append(a)
+
     return data
 
+
 def get_last(m, l, has_tags, has_not_tags):
-    if has_tags != None and has_not_tags != None:
+    if has_tags is not None and has_not_tags is not None:
         result = m.search(last=l, tags=has_tags, not_tags=has_not_tags)
-    elif has_tags != None:
+    elif has_tags is not None:
         result = m.search(last=l, tags=has_tags)
-    elif has_not_tags != None:
+    elif has_not_tags is not None:
         result = m.search(last=l, not_tags=has_not_tags)
     else:
         result = m.search(last=l)
@@ -138,36 +151,66 @@ def get_last(m, l, has_tags, has_not_tags):
             data.append(a)
     return data
 
+
+# -------main-----------
+
 try:
-    swap_file = sys.argv[1]
-    config = pickle.load(open(swap_file, "rb"))
+    config_file = sys.argv[1]
+    config = pickle.load(open(config_file, "rb"))
+    result_file = sys.argv[2]
 
     if 'mispsrv' in config:
         mispsrv = config['mispsrv']
-    if 'mispkey' in config:
+    if  'mispkey' in config:
         mispkey = config['mispkey']
-    if 'sslcheck' in config:
+    if  'sslcheck' in config:
         sslcheck = config['sslcheck']
 
-    misp = init(mispsrv, mispkey, sslcheck)
-
-    if 'eventid' in config:
-        extract = get_event(misp, config['eventid'])
-#        print(json.dumps(extract,indent=4))
-        result  = transpose_attributes(extract,config['onlyids'],config['getuuid'],config['getorg'],config['category'],config['type'])
-        pickle.dump(result, open(swap_file, "wb"), protocol=2)
-    elif 'last' in config:
-        extract = get_last(misp, config['last'], config['tags'], config['not_tags'])
-#       print(json.dumps(extract,indent=4))
-        result  = transpose_attributes(extract,config['onlyids'],config['getuuid'],config['getorg'],config['category'],config['type'])
-        pickle.dump(result, open(swap_file, "wb"), protocol=2)
-    else:
-        print("Error in pymisp_getioc.py - neither eventid nor last are defined")
-        exit(1)
-#    exit(0)
-    
-except:
-    print("Error in pymisp_getioc.py")
+except Exception:
+    result = [{"type": "error", "value": "pymisp_getioc: bad arguments or config_file does not exist"}]
+    pickle.dump(result, open(result_file, "wb"), protocol=2)
     exit(1)
 
+try:
+    misp = init(mispsrv, mispkey, sslcheck)
+    version = misp.get_version()['version']
+    minorversion = version.split(".")[-1]
+    if int(minorversion) >= 95:
+        if 'eventid' in config or 'last' in config:
+            # search for matching events
+            extract = []
+            if 'eventid' in config:
+                extract = get_event(misp, config['eventid'])
+            # print(json.dumps(extract,indent=4))
+            elif 'last' in config:
+                extract = get_last(misp, config['last'],
+                                   config['tags'], config['not_tags'])
+                # print(json.dumps(extract,indent=4))
+                # if matching events, transpose table
+                # types:values to columns(type):values
 
+            if extract:
+                result = transpose_attributes(extract, config['onlyids'],
+                                              config['getuuid'], config['getorg'],
+                                              config['category'], config['type'])
+                pickle.dump(result, open(result_file, "wb"), protocol=2)
+            else:
+                result = [{"type": "error", "value": "Nothing found - check your parameters"}]
+                pickle.dump(result, open(result_file, "wb"), protocol=2)
+                exit(1)
+        else:
+            result = [{"type": "error", "value": "neither eventid nor last are defined"}]
+            pickle.dump(result, open(result_file, "wb"), protocol=2)
+            exit(1)
+    else:
+        print(version)
+        result = [{"type": "error", "value": "MISP version is: " + version +
+                  "; it should be >= 2.4.95, please upgrade."}]
+        pickle.dump(result, open(result_file, "wb"), protocol=2)
+        exit(1)
+
+
+except Exception:
+    result = [{"type": "error", "value": "pymisp_getioc: cannot connect to misp instance"}]
+    pickle.dump(result, open(result_file, "wb"), protocol=2)
+    exit(1)
