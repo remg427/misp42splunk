@@ -204,5 +204,5 @@ class mispgetioc(ReportingCommand):
 if __name__ == "__main__":
     # set up logging suitable for splunkd consumption
     logging.root
-    logging.root.setLevel(logging.INFO)
+    logging.root.setLevel(logging.DEBUG)
     dispatch(mispgetioc, sys.argv, sys.stdin, sys.stdout, __name__)
