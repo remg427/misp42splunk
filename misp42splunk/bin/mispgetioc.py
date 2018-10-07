@@ -13,6 +13,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 import os
 import sys
+import tempfile
 from subprocess import Popen, PIPE
 import ConfigParser
 import cPickle as pickle
@@ -158,10 +159,6 @@ class mispgetioc(ReportingCommand):
             _NEW_PYTHON_PATH = mispconf.get('mispsetup', 'P3_PATH')
         else:
             _NEW_PYTHON_PATH = '/usr/bin/python3'
-        if mispconf.has_option('mispsetup', 'TMP_PATH'):
-            _TMP_PATH = mispconf.get('mispsetup', 'TMP_PATH')
-        else:
-            _TMP_PATH = '/tmp'
 
         os.environ['PYTHONPATH'] = _NEW_PYTHON_PATH
         my_process = _SPLUNK_PATH + '/etc/apps/misp42splunk/bin/pymisp_getioc.py'
@@ -171,6 +168,8 @@ class mispgetioc(ReportingCommand):
         del env['LD_LIBRARY_PATH']
 
 # use pickle
+        _TMP_PATH = tempfile.mkdtemp()
+        logging.error(_TMP_PATH)        
         config_file = _TMP_PATH + '/mispgetioc_config'
         pickle.dump(my_args, open(config_file, "wb"), protocol=2)
         result_file = _TMP_PATH + '/mispgetioc_result'
@@ -194,7 +193,6 @@ class mispgetioc(ReportingCommand):
         if output:
             for v in output:
                 if 'type' in v:
-                    logging.info('output item %s', str(v))
                     yield v
                 else:
                     logging.error('pymisp_getioc returned code %s but no details in mispgetioc_result', str(rc))
@@ -204,5 +202,5 @@ class mispgetioc(ReportingCommand):
 if __name__ == "__main__":
     # set up logging suitable for splunkd consumption
     logging.root
-    logging.root.setLevel(logging.DEBUG)
+    logging.root.setLevel(logging.ERROR)
     dispatch(mispgetioc, sys.argv, sys.stdin, sys.stdout, __name__)
