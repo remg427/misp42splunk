@@ -9,16 +9,22 @@
 # Feel free to use the code, but please share the changes you've made
 #
 
-import sys
-import pickle
-# import json
-from pymisp import PyMISP
-
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
 __version__    = "3.0.0"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
+
+import sys
+import pickle
+# import time
+
+try:
+    from pymisp import PyMISP
+except Exception:
+    result = [{"type": "error", "value": "import PyMISP failed. Please install pymisp for splunk user"}]
+    pickle.dump(result, open(result_file, "wb"), protocol=2)
+    exit(1)
 
 
 def init(url, key, ssl):
@@ -177,6 +183,8 @@ try:
     minorversion = version.split(".")[-1]
     if int(minorversion) >= 95:
         if 'eventid' in config or 'last' in config:
+            # search_start = time.time()
+            # print("start search at ", search_start)
             # search for matching events
             extract = []
             if 'eventid' in config:
@@ -188,12 +196,15 @@ try:
                 # print(json.dumps(extract,indent=4))
                 # if matching events, transpose table
                 # types:values to columns(type):values
-
+            # search_end = time.time()
+            # print("search ends at ", search_end, "and was done in ", search_end - search_start, " seconds")
             if extract:
                 result = transpose_attributes(extract, config['onlyids'],
                                               config['getuuid'], config['getorg'],
                                               config['category'], config['type'])
                 pickle.dump(result, open(result_file, "wb"), protocol=2)
+                # transpose_end = time.time()
+                # print("transpose ends at ", transpose_end, "and was done in ", transpose_end - search_end, " seconds")
             else:
                 result = [{"type": "error", "value": "Nothing found - check your parameters"}]
                 pickle.dump(result, open(result_file, "wb"), protocol=2)
@@ -208,7 +219,6 @@ try:
                   "; it should be >= 2.4.95, please upgrade."}]
         pickle.dump(result, open(result_file, "wb"), protocol=2)
         exit(1)
-
 
 except Exception:
     result = [{"type": "error", "value": "pymisp_getioc: cannot connect to misp instance"}]

@@ -13,7 +13,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 import os
 import sys
-import subprocess
+from subprocess import Popen, PIPE
 import ConfigParser
 import cPickle as pickle
 from splunklib.searchcommands import dispatch, ReportingCommand, Configuration, Option, validators
@@ -175,19 +175,34 @@ class mispgetioc(ReportingCommand):
         pickle.dump(my_args, open(config_file, "wb"), protocol=2)
         result_file = _TMP_PATH + '/mispgetioc_result'
 
-        p = subprocess.Popen([_NEW_PYTHON_PATH, my_process, config_file, result_file], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
-        (output, stderr) = p.communicate()
+        try:
+            p = Popen([_NEW_PYTHON_PATH, my_process, config_file, result_file], stdin=PIPE, stdout=PIPE, stderr=PIPE, env=env)
+            output, err = p.communicate()
+            rc = p.returncode
+            logging.info('Return code %s', str(rc))
+        except Exception:
+            logging.error('Subprocess failed')
+            raise
 
-        output = {}
-        output = pickle.load(open(result_file, "rb"))
+        try:
+            output = {}
+            output = pickle.load(open(result_file, "rb"))
+        except Exception:
+            logging.error('File mispgetioc_result missing or wrong permissions')
+            raise
 
         if output:
             for v in output:
-                yield v
+                if 'type' in v:
+                    logging.info('output item %s', str(v))
+                    yield v
+                else:
+                    logging.error('pymisp_getioc returned code %s but no details in mispgetioc_result', str(rc))
+                    raise Exception("pymisp_getioc returned code " + str(rc) + " but no details in mispgetioc_result")
 
 
 if __name__ == "__main__":
     # set up logging suitable for splunkd consumption
     logging.root
-    logging.root.setLevel(logging.DEBUG)
+    logging.root.setLevel(logging.INFO)
     dispatch(mispgetioc, sys.argv, sys.stdin, sys.stdout, __name__)
