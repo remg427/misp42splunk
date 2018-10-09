@@ -179,6 +179,8 @@ class mispgetioc(ReportingCommand):
             output, err = p.communicate()
             rc = p.returncode
             logging.info('Return code %s', str(rc))
+            if rc == 2:
+                raise Exception("pymisp_getioc: bad arguments or config_file does not exist")
         except Exception:
             logging.error('Subprocess failed')
             raise

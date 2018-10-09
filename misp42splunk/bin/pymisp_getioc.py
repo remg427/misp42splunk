@@ -9,22 +9,15 @@
 # Feel free to use the code, but please share the changes you've made
 #
 
-__author__     = "Remi Seguy"
-__license__    = "LGPLv3"
-__version__    = "3.0.0"
+__author__ = "Remi Seguy"
+__license__ = "LGPLv3"
+__version__ = "3.0.4"
 __maintainer__ = "Remi Seguy"
-__email__      = "remg427@gmail.com"
+__email__ = "remg427@gmail.com"
 
 import sys
 import pickle
 # import time
-
-try:
-    from pymisp import PyMISP
-except Exception:
-    result = [{"type": "error", "value": "import PyMISP failed. Please install pymisp for splunk user"}]
-    pickle.dump(result, open(result_file, "wb"), protocol=2)
-    exit(1)
 
 
 def init(url, key, ssl):
@@ -167,13 +160,18 @@ try:
 
     if 'mispsrv' in config:
         mispsrv = config['mispsrv']
-    if  'mispkey' in config:
+    if 'mispkey' in config:
         mispkey = config['mispkey']
-    if  'sslcheck' in config:
+    if 'sslcheck' in config:
         sslcheck = config['sslcheck']
 
 except Exception:
-    result = [{"type": "error", "value": "pymisp_getioc: bad arguments or config_file does not exist"}]
+    exit(2)
+
+try:
+    from pymisp import PyMISP
+except Exception:
+    result = [{"type": "error", "value": "import PyMISP failed. Please install pymisp for splunk user"}]
     pickle.dump(result, open(result_file, "wb"), protocol=2)
     exit(1)
 
@@ -215,8 +213,8 @@ try:
             exit(1)
     else:
         print(version)
-        result = [{"type": "error", "value": "MISP version is: " + version +
-                  "; it should be >= 2.4.95, please upgrade."}]
+        result = [{"type": "error", "value": "MISP version is: " + version
+                  + "; it should be >= 2.4.95, please upgrade."}]
         pickle.dump(result, open(result_file, "wb"), protocol=2)
         exit(1)
 

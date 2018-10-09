@@ -15,8 +15,11 @@ import time
 import gzip
 import csv
 import pickle
-from pymisp import PyMISP
-from pymisp.tools import GenericObjectGenerator
+try:
+    from pymisp import PyMISP
+    from pymisp.tools import GenericObjectGenerator
+except:
+    exit(10)
 
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"

@@ -12,6 +12,7 @@
 
 import os
 import sys
+import tempfile
 import subprocess
 import json
 import gzip

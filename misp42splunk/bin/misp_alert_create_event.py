@@ -14,6 +14,7 @@ import os
 import sys
 import subprocess
 import json
+import tempfile
 import ConfigParser
 import time
 import pickle
@@ -86,10 +87,6 @@ def create_alert(config, filename):
             _NEW_PYTHON_PATH = mispconf.get('mispsetup', 'P3_PATH')
         else:
             _NEW_PYTHON_PATH = '/usr/bin/python3'
-        if mispconf.has_option('mispsetup', 'TMP_PATH'):
-            _TMP_PATH = mispconf.get('mispsetup', 'TMP_PATH')
-        else:
-            _TMP_PATH = '/tmp'
 
         os.environ['PYTHONPATH'] = _NEW_PYTHON_PATH
 
@@ -100,17 +97,21 @@ def create_alert(config, filename):
         # Remove LD_LIBRARY_PATH from the environment (otherwise, we will face some SSL issues
 
         # use pickle
+        _TMP_PATH = tempfile.mkdtemp()
         config_file = _TMP_PATH + '/misp42_alert_create'
         pickle.dump(config_args, open(config_file, "wb"), protocol=2)
 
         print >> sys.stderr, "DEBUG env: %s" % env
-        p = subprocess.Popen([_NEW_PYTHON_PATH, my_process, config_file],
+        try:
+            p = subprocess.Popen([_NEW_PYTHON_PATH, my_process, config_file],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
-        stdpout, stdperr = p.communicate()
-
-        if stdperr:
-            print >> sys.stderr, "error in pymisp_create_event.py: %s" % stdperr
-
+            output, err = p.communicate()
+            rc = p.returncode
+            print >> sys.stderr, "INFO returncode %s" % str(rc)
+            if rc != 0:
+                print >> sys.stderr, "error in pymisp_create_event.py. error_code %s" % str(rc)
+        except Exception:
+            print >> sys.stderr, "subprocess failed"
     # somehow we got a bad response code from thehive
     # some other request error occurred
     except IOError as e:

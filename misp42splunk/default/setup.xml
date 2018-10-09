@@ -17,18 +17,13 @@
     </input>
   </block>
 
-  <block title="(Optional) system path for Python3 and temp folder" endpoint="misp/customendpoint" entity="mispsetup">
+  <block title="(Optional) system path for Python3" endpoint="misp/customendpoint" entity="mispsetup">
 
     <input field="P3_PATH" endpoint="misp/customendpoint" entity="mispsetup">
       <label>Python3 binary path (default: /usr/bin/python3)</label>
       <type>text</type>
     </input>
     
-    <input field="TMP_PATH" endpoint="misp/customendpoint" entity="mispsetup">
-      <label>temporary folder path (default: /tmp); if changed give rights accordingly</label>
-      <type>text</type>
-    </input>
-
   </block>
 
   <block title="(Optional) Define TheHive server parameters" endpoint="misp/customendpoint" entity="mispsetup">
