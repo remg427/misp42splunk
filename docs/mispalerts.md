@@ -8,12 +8,12 @@ This version of the app supports MISP objects. Upgrade MISP and PyMISP according
 You may search and prepare the results as a table with the following command
 ```
 | rename field1 AS misp_attribute_name (prefix misp_ is removed & '_' are replaced by '-' )
-| rename field2 AS fo_object_attribute_name (to use file objects)
+| rename field2 AS fo_object_attribute_name (for file objects)
 | rename field3 AS eo_object_attribute_name (for email objects)
 | rename field4 AS no_object_attribute_name (for network connection objects)
 | table _time to_ids eventkey info category misp\_* fo\_* eo\_* no\_* (etc.)
 ```
-
+CAUTION: Splunk syntax does not like field names containing '-'.
 Do not forget to check the [object attribute names](https://github.com/MISP/misp-objects/)
 
 * Optional fields:
@@ -24,7 +24,7 @@ Do not forget to check the [object attribute names](https://github.com/MISP/misp
     - info: This string will be set in the Info field of MISP event. This value might be overall defined for the alert - see below
 
 
-CAUTION: Splunk syntax does not like field names like ip-src, email-subject. You simply create fields using _ such as ip_src and the script will format the attribute names before pushing to MISP.
+like ip-src, email-subject. You simply create fields using _ such as ip_src and the script will format the attribute names before pushing to MISP.
 
 ### create the alert and add alert_action to create events
 Save your search as alert. Select "Alert to create MISP event(s)" as action
