@@ -11,7 +11,7 @@ You may search and prepare the results as a table with the following command
 | rename field2 AS fo_object_attribute_name (for file objects)
 | rename field3 AS eo_object_attribute_name (for email objects)
 | rename field4 AS no_object_attribute_name (for network connection objects)
-| table _time to_ids eventkey info category misp\_* fo\_* eo\_* no\_* (etc.)
+| table _time to_ids eventkey info category misp_* fo_* eo_* no_* (etc.)
 ```
 CAUTION: Splunk syntax does not like field names containing '-'.
 
