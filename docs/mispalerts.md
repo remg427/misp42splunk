@@ -13,9 +13,9 @@ You may search and prepare the results as a table with the following command
 | rename field4 AS no_object_attribute_name (for network connection objects)
 | table _time to_ids eventkey info category misp\_* fo\_* eo\_* no\_* (etc.)
 ```
-CAUTION:
-- Splunk syntax does not like field names containing '-'.
--  Do not forget to check the [object attribute names](https://github.com/MISP/misp-objects/)
+CAUTION: Splunk syntax does not like field names containing '-'.
+
+Do not forget to check the [object attribute names](https://github.com/MISP/misp-objects/)
 
 * Optional fields:
     - _time: the timestamp will be converted to YYYY-MM-DD for event date. if not provided, set to localtime
@@ -45,7 +45,7 @@ Fill in the form to tune your alert to your needs.
 Using those fields you may search in one MISP instance and create events in another one.
     - URL: MISP URL (leave blank to use default settings).
     - Auth Key: The Authkey to submit alerts to (leave blank to use default settings).
-    - sslcheck boolean
+    - sslcheck: boolean
 
 ## Alert for sighting
 
