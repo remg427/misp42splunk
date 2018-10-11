@@ -6,11 +6,11 @@ This version of the app supports MISP objects; upgrade MISP and PyMISP according
 
 ### collect results in Splunk
 You may search and prepare the results as a table with the following command
-    | rename field1 AS misp_attribute_name (prefix misp_ is removed & '-'' are replaced by '_' )
-    | rename field2 AS fo_object_attribute_name (to use file objects)
-    | rename field3 AS eo_object_attribute_name (for email objects)
-    | rename field4 AS no_object_attribute_name (for network connection objects)
-    | table _time to_ids eventkey info category misp_* fo_* eo_* no_* (etc.)
+```| rename field1 AS misp_attribute_name (prefix misp_ is removed & '-'' are replaced by '\_' )
+| rename field2 AS fo_object_attribute_name (to use file objects)
+| rename field3 AS eo_object_attribute_name (for email objects)
+| rename field4 AS no_object_attribute_name (for network connection objects)
+| table _time to_ids eventkey info category misp\_* fo\_* eo\_* no\_* (etc.)```
 
 Do not forget to check the [object attribute names](https://github.com/MISP/misp-objects/)
 

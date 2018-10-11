@@ -11,12 +11,12 @@ The command syntax is as follow:
 
     |mispgetioc ( [eventid=id] | [last=interval] )
                 [onlyids=y|n]
-                [category=CSV_string]
-                [type=CSV_string]
+                [category="CSV_string"]
+                [type="CSV_string"]
                 **[getuuid=y|n|Y|N|0|1]**
                 **[getorg=y|n|Y|N|0|1]**
-                **[tags=CSV_string]**
-                **[not_tags=CSV_strings]
+                **[tags="CSV_string"]**
+                **[not_tags="CSV_string"]
                 [mispsrv=https://host:port] 
                 [mispkey=misp-authorization-key]
                 [sslcheck=y|n]                 
