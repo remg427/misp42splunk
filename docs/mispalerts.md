@@ -14,10 +14,10 @@ You may search and prepare the results as a table with the following command
 | table _time to_ids eventkey info category misp\_* fo\_* eo\_* no\_* (etc.)
 ```
 CAUTION:
-* Splunk syntax does not like field names containing '-'.
-* Do not forget to check the [object attribute names](https://github.com/MISP/misp-objects/)
+- Splunk syntax does not like field names containing '-'.
+-  Do not forget to check the [object attribute names](https://github.com/MISP/misp-objects/)
 
-Optional fields:
+* Optional fields:
     - _time: the timestamp will be converted to YYYY-MM-DD for event date. if not provided, set to localtime
     - to_ids: if not defined, set to False
     - category: if not defined, set to None and populated in relation with the type of attribute
