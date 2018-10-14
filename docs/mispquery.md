@@ -4,11 +4,6 @@ This custom command is a streaming command that applies to each event.
 It searches for the value of the field selected in the command.
 If there are matches, additional fields are added to the dataset (starting by misp_) with a CSV string.
 
-    + always following fields = ['event_id','timestamp', 'type', 'category', 'to_ids', 'value', 'object_id', 'event_tag', 'tags']
-    + and a column by type either with a value or empty
-
-So the output can be immediately reused in a search without complex transforms
-
 The command syntax is as follow:
 
     search something... | mispquery field=<field_containing_value_to_search_for> 
