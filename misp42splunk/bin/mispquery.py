@@ -171,7 +171,7 @@ class MispQueryCommand(StreamingCommand):
                     delimns = ''
                     tag_delimns = ''
                     # search 
-                    r = requests.post(my_args['mispsrv'], headers=headers, data=body, verify=False)
+                    r = requests.post(my_args['mispsrv'], headers=headers, data=body, verify=my_args['verify_cert'])
                     # check if status is anything other than 200; throw an exception if it is
                     r.raise_for_status()
                     # response is 200 by this point or we would have thrown an exception
