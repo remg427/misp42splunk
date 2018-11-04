@@ -149,12 +149,10 @@ def create_misp_events(config, results):
         # finally we look if there is a domain-ip object
         # i.e. on the same row, 2 fields no_domain and no_ip
         no_list = []
-        if 'no_domain' in row and 'no_ip' in row:
-            domain = str(row.pop('no_domain'))
-            ip     = str(row.pop('no_ip'))
-            if domain != "" and ip != "":
-                no_list.append(store_object_attribute('domain', str(domain)))
-                no_list.append(store_object_attribute('ip', str(ip)))
+        for key, value in row.items():
+            if key.startswith("no_") and value != "":
+                no_key = str(key).replace('no_', '').replace('_', '-')
+                no_list.append(store_object_attribute(no_key, str(value)))
 
         if no_list:
             event['no_count'] = event['no_count'] + 1

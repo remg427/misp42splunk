@@ -14,7 +14,6 @@ import sys
 import ConfigParser
 import requests
 import json
-from requests.auth import HTTPBasicAuth
 from splunklib.searchcommands import dispatch, StreamingCommand, Configuration, Option, validators
 
 __author__     = "Remi Seguy"
@@ -26,11 +25,11 @@ __email__      = "remg427@gmail.com"
 @Configuration(local=True)
 
 class MispQueryCommand(StreamingCommand):
-    """ search in MISP for attributes matching the value of fieldd
+    """ search in MISP for attributes matching the value of field.
 
     ##Syntax
 
-    .. code-block::
+        code-block::
         mispquery field=<field> onlyids=y|n
 
     ##Description
@@ -61,7 +60,7 @@ class MispQueryCommand(StreamingCommand):
 
     Search in MISP for value of fieldname r_ip (remote IP in proxy logs).
 
-    .. code-block::
+        code-block::
          * | mispquery fieldname=r_ip
 
     """
@@ -78,11 +77,11 @@ class MispQueryCommand(StreamingCommand):
         **Description:** Boolean to search only attributes with to_ids set''',
         require=False, validate=validators.Match("onlyids", r"^[yYnN01]+$"))
 
-    comment = Option(
+    gettag = Option(
         doc='''
-        **Syntax:** **comment=***<y|n>*
-        **Description:** Boolean to return comments''',
-        require=False, validate=validators.Match("onlyids", r"^[yYnN01]+$"))
+        **Syntax:** **gettag=***<y|n>*
+        **Description:** Boolean to return attribute tags''',
+        require=False, validate=validators.Match("gettag", r"^[yYnN01]+$"))
 
 # Superseede MISP instance for this search
     mispsrv = Option(
@@ -146,10 +145,10 @@ class MispQueryCommand(StreamingCommand):
             to_ids = True
         else:
             to_ids = False
-        if self.comment == 'Y' or self.comment == 'y' or self.comment == '1':
-            get_comment = True
+        if self.gettag == 'Y' or self.gettag == 'y' or self.gettag == '1':
+            get_tag = True
         else:
-            get_comment = False
+            get_tag = False
 
         for record in records:
             if fieldname in record:
@@ -162,15 +161,16 @@ class MispQueryCommand(StreamingCommand):
                         body_dict['to_ids'] = "True"
                     
                     body = json.dumps(body_dict)
+                    misp_category = ''
+                    misp_event_id = ''
+                    misp_to_ids = ''
+                    misp_tag = ''
                     misp_type = ''
                     misp_value = ''
-                    misp_to_ids = ''
-                    misp_category = ''
                     misp_uuid = ''
-                    misp_event_id = ''
-                    misp_comment = ''
                     delimns = ''
-                    # post alert
+                    tag_delimns = ''
+                    # search 
                     r = requests.post(my_args['mispsrv'], headers=headers, data=body, verify=False)
                     # check if status is anything other than 200; throw an exception if it is
                     r.raise_for_status()
@@ -187,8 +187,10 @@ class MispQueryCommand(StreamingCommand):
                                 misp_category = misp_category + delimns + str(a['category'])
                                 misp_uuid = misp_uuid + delimns + str(a['uuid'])
                                 misp_event_id = misp_event_id + delimns + str(a['event_id'])
-                                if get_comment:
-                                    misp_comment = misp_comment + delimns + str(a['comment'])
+                                if get_tag and 'Tag' in a:
+                                    for tag in a['Tag']:
+                                        misp_tag = misp_tag + tag_delimns + str(tag['name'])
+                                        tag_delimns = ','
                                 delimns = ','
                             record['misp_type'] = misp_type
                             record['misp_value'] = misp_value
@@ -196,8 +198,8 @@ class MispQueryCommand(StreamingCommand):
                             record['misp_category'] = misp_category
                             record['misp_uuid'] = misp_uuid
                             record['misp_event_id'] = misp_event_id
-                            if get_comment:
-                                record['misp_comment'] = misp_comment
+                            if get_tag:
+                                record['misp_tag'] = misp_tag
 
             yield record
 
