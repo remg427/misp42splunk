@@ -164,12 +164,12 @@ def create_misp_events(config, results):
     # events are prepared; now create them in MISP
     # print(events)
 
-    mispsrv = config['mispsrv']
-    mispkey = config['mispkey']
-    sslcheck = config['sslcheck']
+    misp_url = config['misp_url']
+    misp_key = config['misp_key']
+    misp_verifycert = config['misp_verifycert']
 
-    # connect to misp instance using url, authkey and boolean sslcheck
-    pymisp = init(mispsrv, mispkey, sslcheck)
+    # connect to misp instance using misp_url, misp_key and boolean misp_verifycert
+    pymisp = init(misp_url, misp_key, misp_verifycert)
 
     # extract from config and event the values to create events
     analysis = config['analysis']

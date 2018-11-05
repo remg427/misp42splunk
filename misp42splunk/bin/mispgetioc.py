@@ -41,26 +41,26 @@ class mispgetioc(ReportingCommand):
         | mispgetioc event=<id1>(,<id2>,...)
     ##Description
     """
-# Superseede MISP instance for this search
-    mispsrv = Option(
+    # Superseede MISP instance for this search
+    misp_url = Option(
         doc='''
-        **Syntax:** **mispsrv=***<MISP URL>*
+        **Syntax:** **misp_url=***<MISP URL>*
         **Description:**URL of MISP instance.''',
-        require=False, validate=validators.Match("mispsrv", r"^https?:\/\/[0-9a-zA-Z\-\.]+(?:\:\d+)?$"))
+        require=False, validate=validators.Match("misp_url", r"^https?:\/\/[0-9a-zA-Z\-\.]+(?:\:\d+)?$"))
 
-    mispkey = Option(
+    misp_key = Option(
         doc='''
-        **Syntax:** **mispkey=***<AUTH_KEY>*
+        **Syntax:** **misp_key=***<AUTH_KEY>*
         **Description:**MISP API AUTH KEY.''',
-        require=False, validate=validators.Match("mispkey", r"^[0-9a-zA-Z]{40}$"))
+        require=False, validate=validators.Match("misp_key", r"^[0-9a-zA-Z]{40}$"))
 
-    verify_cert = Option(
+    misp_verifycert = Option(
         doc = '''
-        **Syntax:** **verify_cert=***<y|n>*
+        **Syntax:** **misp_verifycert=***<y|n>*
         **Description:**Verify or not MISP certificate.''',
-        require=False, validate=validators.Match("verify_cert", r"^[yYnN01]$"))
+        require=False, validate=validators.Match("misp_verifycert", r"^[yYnN01]$"))
 
-
+    # MANDATORY: eventid XOR last
     eventid         = Option(
         doc = '''
         **Syntax:** **eventid=***id1(,id2,...)*
@@ -100,6 +100,11 @@ class mispgetioc(ReportingCommand):
         **Description:**Comma(,)-separated string of tags to exclude from results. Wildcard is %.''',
         require=False)
 
+    limit         = Option(
+        doc = '''
+        **Syntax:** **limit=***<int>*
+        **Description:**define the limit for each MISP search; default 10000. 0 = no pagination.''',
+        require=False, validate=validators.Match("limit",     r"^[0-9]+$"))
     getuuid         = Option(
         doc = '''
         **Syntax:** **getuuid=***y|Y|n|N|0|1*
@@ -129,43 +134,43 @@ class mispgetioc(ReportingCommand):
         _SPLUNK_PATH = os.environ['SPLUNK_HOME']
 
         # open misp.conf
-        config_file = _SPLUNK_PATH + '/etc/apps/misp42splunk/local/misp.conf'
+        config_file = _SPLUNK_PATH + os.sep + 'etc' + os.sep + 'apps' + os.sep + 'misp42splunk' + os.sep + 'local' + os.sep + 'misp.conf'
         mispconf = ConfigParser.RawConfigParser()
         mispconf.read(config_file)
 
         # Generate args
         my_args = {}
         # MISP instance parameters
-        if self.mispsrv:
-            my_args['mispsrv'] = self.mispsrv
-            logging.debug('mispsrv as option, value is %s', my_args['mispsrv'])
+        if self.misp_url:
+            my_args['misp_url'] = self.misp_url + '/attributes/restSearch'
+            logging.debug('misp_url as option, value is %s', my_args['misp_url'])
         else:
-            my_args['mispsrv'] = mispconf.get('mispsetup', 'mispsrv')
-            logging.debug('misp.conf: mispsrv value is %s', my_args['mispsrv'])
-        if self.mispkey:
-            my_args['mispkey'] = self.mispkey
-            logging.debug('mispkey as option, value is %s', my_args['mispkey'])
+            my_args['misp_url'] = mispconf.get('mispsetup', 'misp_url') + '/attributes/restSearch'
+            logging.debug('misp.conf: misp_url value is %s', my_args['misp_url'])
+        if self.misp_key:
+            my_args['misp_key'] = self.misp_key
+            logging.debug('misp_key as option, value is %s', my_args['misp_key'])
         else:
-            my_args['mispkey'] = mispconf.get('mispsetup', 'mispkey')
-            logging.debug('misp.conf: mispkey value is %s', my_args['mispkey'])
-        if self.verify_cert:
-            if self.verify_cert == 'Y' or self.verify_cert == 'y' or self.verify_cert == '1':
-                my_args['verify_cert'] = True
+            my_args['misp_key'] = mispconf.get('mispsetup', 'misp_key')
+            logging.debug('misp.conf: misp_key value is %s', my_args['misp_key'])
+        if self.misp_verifycert:
+            if self.misp_verifycert == 'Y' or self.misp_verifycert == 'y' or self.misp_verifycert == '1':
+                my_args['misp_verifycert'] = True
             else:
-                my_args['verify_cert'] = False
-            logging.debug('verify_cert as option, value is %s', my_args['verify_cert'])
+                my_args['misp_verifycert'] = False
+            logging.debug('misp_verifycert as option, value is %s', my_args['misp_verifycert'])
         else:
-            my_args['verify_cert'] = mispconf.getboolean('mispsetup', 'sslcheck')
-            logging.debug('misp.conf: sslcheck value is %s', my_args['verify_cert'])
+            if mispconf.has_option('mispsetup', 'misp_verifycert'):
+                my_args['misp_verifycert'] = mispconf.getboolean('mispsetup', 'misp_verifycert')
+                logging.debug('misp.conf: misp_verifycert value is %s', my_args['misp_verifycert'])
+            else:
+                my_args['misp_verifycert'] = True
+                logging.debug('misp.conf: misp_verifycert value not set. Default to True')
 
 
         # build search JSON object
-        limit = 1000
-        other_page = True
-        page = 1
         body_dict = { "returnFormat": "json",
                       "withAttachments": False,
-                      "limit": limit,
                       "deleted": False
                     }
 
@@ -188,9 +193,20 @@ class mispgetioc(ReportingCommand):
 
         # set proper headers
         headers = {'Content-type': 'application/json'}
-        headers['Authorization'] = my_args['mispkey']
+        headers['Authorization'] = my_args['misp_key']
         headers['Accept'] = 'application/json'
 
+        # Search pagination
+        pagination = True
+        other_page = True
+        page = 1
+        if self.limit is not None:
+            if int(self.limit) == 0:
+                pagination = False
+            else:
+                limit = int(self.limit)
+        else:
+            limit = 10000
 
         #Search parameters: boolean and filter
         if self.onlyids == 'Y' or self.onlyids == 'y' or self.onlyids == '1':
@@ -229,12 +245,14 @@ class mispgetioc(ReportingCommand):
 
         results = []
         while other_page:
-            body_dict['page'] = page
+            if pagination == True:
+                body_dict['page'] = page
+                body_dict['limit'] = limit
+
             body = json.dumps(body_dict)
             logging.error('DEBUG MISP REST API REQUEST: %s', body)
             # search
-            my_args['mispurl'] = my_args['mispsrv'] + '/attributes/restSearch'
-            r = requests.post(my_args['mispurl'], headers=headers, data=body, verify=my_args['verify_cert'])
+            r = requests.post(my_args['misp_url'], headers=headers, data=body, verify=my_args['misp_verifycert'])
             # check if status is anything other than 200; throw an exception if it is
             r.raise_for_status()
             # response is 200 by this point or we would have thrown an exception
@@ -244,13 +262,13 @@ class mispgetioc(ReportingCommand):
                     l = len(response['response']['Attribute'])
                     for a in response['response']['Attribute']:
                         v = {}
-                        v['category'] = str(a['category'])
-                        v['event_id'] = str(a['event_id'])
-                        v['object_id'] = str(a['object_id'])
-                        v['type'] = str(a['type'])
-                        v['timestamp'] = str(a['timestamp'])
-                        v['to_ids'] = str(a['to_ids'])
-                        v['value'] = str(a['value'])
+                        v['misp_category'] = str(a['category'])
+                        v['misp_event_id'] = str(a['event_id'])
+                        v['misp_object_id'] = str(a['object_id'])
+                        v['misp_type'] = str(a['type'])
+                        v['misp_timestamp'] = str(a['timestamp'])
+                        v['misp_to_ids'] = str(a['to_ids'])
+                        v['misp_value'] = str(a['value'])
                         # v['json'] = json.dumps(a)
                         # list tag(s) if any in CSV format
                         tag_delims = ''
@@ -259,34 +277,38 @@ class mispgetioc(ReportingCommand):
                             for tag in a['Tag']:
                                 tag_string = tag_string + tag_delims + tag['name']
                                 tag_delims = ','
-                        v['tag'] = tag_string
+                        v['misp_tag'] = tag_string
                         # include attribute UUID if requested
                         if my_args['getuuid']:
-                            v['uuid'] = str(a['uuid'])
+                            v['misp_uuid'] = str(a['uuid'])
                         # include ID of the organisation that created the attribute if requested
                         # in previous version this was the ORG name ==> create lookup
                         if 'Event' in a and my_args['getorg']:
-                            v['orgc_id'] = str(a['Event']['orgc_id'])
+                            v['misp_orgc_id'] = str(a['Event']['orgc_id'])
                         results.append(v)
 
-            if l < limit:
-                other_page = False
+            if pagination == True:
+                if l < limit:
+                    other_page = False
+                else:
+                    page = page + 1
             else:
-                page = page + 1
+                other_page = False
 
         # add colums for each type in results
         typelist = []
         for r in results:
-            if r['type'] not in typelist:
-                typelist.append(r['type'])
+            if r['misp_type'] not in typelist:
+                typelist.append(r['misp_type'])
 
         for r in results:
             v = r
             for t in typelist:
-                if t == r['type']:
-                    v[t] = r['value']
+                misp_t = 'misp_' + t.replace('-', '_')
+                if t == r['misp_type']:
+                    v[misp_t] = r['misp_value']
                 else:
-                    v[t] = ''
+                    v[misp_t] = ''
             yield v
 
 

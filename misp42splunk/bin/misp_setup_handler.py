@@ -29,7 +29,7 @@ class ConfigApp(admin.MConfigHandler):
   '''
   def setup(self):
     if self.requestedAction == admin.ACTION_EDIT:
-      for arg in ['mispsrv', 'sslcheck', 'mispkey', 'thehiveURL', 'thehiveKey', 'P3_PATH']:
+      for arg in ['misp_url', 'misp_key', 'misp_verifycert', 'thehive_url', 'thehive_key', 'P3_PATH']:
         self.supportedArgs.addOptArg(arg)
         
   '''
@@ -53,16 +53,16 @@ class ConfigApp(admin.MConfigHandler):
     if None != confDict:
       for stanza, settings in confDict.items():
         for key, val in settings.items():
-          if key in ['sslcheck']:
+          if key in ['misp_verifycert']:
             if int(val) == 1:
               val = '1'
             else:
               val = '0'
-          if key in ['mispsrv'] and val in [None, '']:
+          if key in ['misp_url'] and val in [None, '']:
             val = ''
-          if key in ['mispkey'] and val in [None, '']:
+          if key in ['misp_key'] and val in [None, '']:
             val = ''
-          if key in ['thehiveURL'] and val in [None, '']:
+          if key in ['thehive_url'] and val in [None, '']:
             val = ''
           if key in ['theiveKey'] and val in [None, '']:
             val = ''
@@ -78,22 +78,22 @@ class ConfigApp(admin.MConfigHandler):
     name = self.callerArgs.id
     args = self.callerArgs
             
-    if int(self.callerArgs.data['sslcheck'][0]) == 1:
-      self.callerArgs.data['sslcheck'][0] = '1'
+    if int(self.callerArgs.data['misp_verifycert'][0]) == 1:
+      self.callerArgs.data['misp_verifycert'][0] = '1'
     else:
-      self.callerArgs.data['sslcheck'][0] = '0'
+      self.callerArgs.data['misp_verifycert'][0] = '0'
     
-    if self.callerArgs.data['mispsrv'][0] in [None, '']:
-      self.callerArgs.data['mispsrv'][0] = ''  
+    if self.callerArgs.data['misp_url'][0] in [None, '']:
+      self.callerArgs.data['misp_url'][0] = ''  
 
-    if self.callerArgs.data['mispkey'][0] in [None, '']:
-      self.callerArgs.data['mispkey'][0] = ''  
+    if self.callerArgs.data['misp_key'][0] in [None, '']:
+      self.callerArgs.data['misp_key'][0] = ''  
         
-    if self.callerArgs.data['thehiveURL'][0] in [None, '']:
-      self.callerArgs.data['thehiveURL'][0] = ''  
+    if self.callerArgs.data['thehive_url'][0] in [None, '']:
+      self.callerArgs.data['thehive_url'][0] = ''  
         
-    if self.callerArgs.data['thehiveKey'][0] in [None, '']:
-      self.callerArgs.data['thehiveKey'][0] = ''  
+    if self.callerArgs.data['thehive_key'][0] in [None, '']:
+      self.callerArgs.data['thehive_key'][0] = ''  
         
     if self.callerArgs.data['P3_PATH'][0] in [None, '']:
       self.callerArgs.data['P3_PATH'][0] = ''  

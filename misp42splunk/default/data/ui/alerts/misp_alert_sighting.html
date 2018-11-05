@@ -63,30 +63,30 @@
         <h4>Specific MISP instance (overwrite general settings</h4>
     </div>
     <div class="control-group">
-        <label class="control-label" for="misp_alert_sighting_URL">URL</label>
+        <label class="control-label" for="misp_alert_sighting_misp_url">misp_url</label>
 
         <div class="controls">
-            <input type="text" name="action.misp_alert_sighting.param.URL" id="misp_alert_sighting_URL"/>
+            <input type="text" name="action.misp_alert_sighting.param.misp_url" id="misp_alert_sighting_misp_url"/>
             <span class="help-block">
-                MISP URL (leave blank to use default settings).
+                MISP misp_url (leave blank to use default settings).
             </span>
         </div>
     </div>
     <div class="control-group">
-        <label class="control-label" for="misp_alert_sighting_authkey">Auth Key</label>
+        <label class="control-label" for="misp_alert_sighting_misp_key">misp_key</label>
 
         <div class="controls">
-            <input type="text" name="action.misp_alert_sighting.param.authkey" id="misp_alert_sighting_authkey"/>
+            <input type="text" name="action.misp_alert_sighting.param.misp_key" id="misp_alert_sighting_misp_key"/>
             <span class="help-block">
-                The Authkey to submit alerts to (leave blank to use default settings).
+                The misp_key to submit alerts to (leave blank to use default settings).
             </span>
         </div>
     </div>
     <div class="control-group">
-        <label class="control-label" for="misp_alert_sighting_sslcheck">Check SSL cert</label>
+        <label class="control-label" for="misp_alert_sighting_misp_verifycert">Check SSL cert</label>
 
         <div class="controls">
-            <input type="checkbox" name="action.misp_alert_sighting.param.sslcheck" id="misp_alert_sighting_sslcheck"/>
+            <input type="checkbox" name="action.misp_alert_sighting.param.misp_verifycert" id="misp_alert_sighting_misp_verifycert"/>
             <span class="help-block">
                 Check SSL certificate of MISP server.
             </span>

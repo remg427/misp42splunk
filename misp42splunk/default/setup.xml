@@ -1,17 +1,17 @@
 <setup>
 
   <block title="Define MISP server parameters" endpoint="misp/customendpoint" entity="mispsetup">
-    <input field="mispsrv">
+    <input field="misp_url">
       <label>MISP url:</label>
       <type>text</type>
     </input>
 
-    <input field="mispkey" endpoint="misp/customendpoint" entity="mispsetup">
+    <input field="misp_key" endpoint="misp/customendpoint" entity="mispsetup">
       <label>Set the MISP auth key</label>
       <type>text</type>
     </input>
 
-    <input field="sslcheck" endpoint="misp/customendpoint" entity="mispsetup">
+    <input field="misp_verifycert" endpoint="misp/customendpoint" entity="mispsetup">
       <label>Check SSL certificate of MISP server</label>
       <type>bool</type>
     </input>
@@ -28,12 +28,12 @@
 
   <block title="(Optional) Define TheHive server parameters" endpoint="misp/customendpoint" entity="mispsetup">
 
-    <input field="thehiveURL">
+    <input field="thehive_url">
       <label>TheHive API url:</label>
       <type>text</type>
     </input>
 
-    <input field="thehiveKey" endpoint="misp/customendpoint" entity="mispsetup">
+    <input field="thehive_key" endpoint="misp/customendpoint" entity="mispsetup">
       <label>API auth key - You should create an account with only the role create alerts</label>
       <type>text</type>
     </input>

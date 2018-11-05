@@ -30,12 +30,12 @@ try:
     config = eval(sys.argv[1])
     sighting = eval(sys.argv[2])
 
-    mispsrv = config['mispsrv']
-    mispkey = config['mispkey']
-    sslcheck = config['sslcheck']
+    misp_url = config['misp_url']
+    misp_key = config['misp_key']
+    misp_verifycert = config['misp_verifycert']
 
-    # connect to misp instance using url, authkey and boolean sslcheck
-    misp = init(mispsrv, mispkey, sslcheck)
+    # connect to misp instance using misp_url, misp_key and boolean misp_verifycert
+    misp = init(misp_url, misp_key, misp_verifycert)
 
     # byvalue: sighting contains {"timestamp": timestamp, "values":["value1", "value2,etc. "]}
     # byuuid:  sighting contains {"timestamp": timestamp, "uuid":"uuid_value"}

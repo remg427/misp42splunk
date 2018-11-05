@@ -67,32 +67,35 @@ def create_alert(config, results):
     # check and complement config
     config_args = {}
 
-    # get the URL we need to connect to MISP
+    # get the misp_url we need to connect to MISP
     # this can be passed as params of the alert. Defaults to values set in misp.conf
     # get MISP settings stored in misp.conf
-    config_file = '/opt/splunk/etc/apps/misp42splunk/local/misp.conf'
+    _SPLUNK_PATH = os.environ['SPLUNK_HOME']
+
+    # open misp.conf
+    config_file = _SPLUNK_PATH + os.sep + 'etc' + os.sep + 'apps' + os.sep + 'misp42splunk' + os.sep + 'local' + os.sep + 'misp.conf'
     mispconf = ConfigParser.RawConfigParser()
     mispconf.read(config_file)
 
-    mispurl = config.get('URL')
-    mispkey = config.get('authkey')
+    misp_url = config.get('misp_url')
+    misp_key = config.get('misp_key')
 
-    # If no specific MISP instance defined, get settings from misp.conf
-    if not mispurl or not mispkey:
-        config_args['mispsrv'] = mispconf.get('mispsetup', 'mispsrv') 
-        config_args['mispkey'] = mispconf.get('mispsetup', 'mispkey')
-        if mispconf.has_option('mispsetup', 'sslcheck'):
-            config_args['sslcheck'] = mispconf.getboolean('mispsetup', 'sslcheck')
+    # If no specific MISP instances defined, get settings from misp.conf
+    if misp_url and misp_key:
+        config_args['misp_url'] = misp_url
+        config_args['misp_key'] = misp_key
+        misp_verifycert = int(config.get('misp_verifycert', "0"))
+        if misp_verifycert == 1:
+            config_args['misp_verifycert'] = True
         else:
-            config_args['sslcheck'] = False
+            config_args['misp_verifycert'] = False
     else:
-        config_args['mispsrv'] = mispurl
-        config_args['mispkey'] = mispkey
-        sslcheck = int(config.get('sslcheck', "0"))
-        if sslcheck == 1:
-            config_args['sslcheck'] = True
+        config_args['misp_url'] = mispconf.get('mispsetup', 'misp_url')
+        config_args['misp_key'] = mispconf.get('mispsetup', 'misp_key')
+        if mispconf.has_option('mispsetup','misp_verifycert'):
+            config_args['misp_verifycert'] = mispconf.getboolean('mispsetup', 'misp_verifycert')
         else:
-            config_args['sslcheck'] = False
+            config_args['misp_verifycert'] = False
 
     # Get mode set in alert settings; either byvalue or byuuid
     mode = config.get('mode', 'byvalue')
@@ -127,11 +130,14 @@ def create_alert(config, results):
                     sightings[value] = timestamp
 
     try:
-        # call Python3 script to created event
-        _SPLUNK_PATH = '/opt/splunk'
-        _NEW_PYTHON_PATH = '/usr/bin/python3'
+        # path to main components either use default values or set ones
+        if mispconf.has_option('mispsetup', 'P3_PATH'):
+            _NEW_PYTHON_PATH = mispconf.get('mispsetup', 'P3_PATH')
+        else:
+            _NEW_PYTHON_PATH = '/usr/bin/python3'
+
         os.environ['PYTHONPATH'] = _NEW_PYTHON_PATH
-        my_process = _SPLUNK_PATH + '/etc/apps/misp42splunk/bin/pymisp_sighting.py'
+        my_process = _SPLUNK_PATH + os.sep + 'etc' + os.sep + 'apps' + os.sep + 'misp42splunk' + os.sep + 'bin' + os.sep + 'pymisp_sighting.py'
 
         # Remove LD_LIBRARY_PATH from the environment (otherwise, we will face some SSL issues
         env = dict(os.environ)
