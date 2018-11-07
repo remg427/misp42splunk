@@ -35,26 +35,31 @@ class MispSearchCommand(StreamingCommand):
 
     ##Description
 
-        body = {"returnFormat": "json",
-                "value": "optional",
-                "type": "optional",
-                "category": "optional",
-                "org": "optional",
-                "tags": "optional",
-                "from": "optional",
-                "to": "optional",
-                "last": "optional",
-                "eventid": "optional",
-                "withAttachments": "optional",
-                "uuid": "optional",
-                "publish_timestamp": "optional",
-                "timestamp": "optional",
-                "enforceWarninglist": "optional",
-                "to_ids": "optional",
-                "deleted": "optional",
-                "includeEventUuid": "optional",
-                "event_timestamp": "optional",
-                "threat_level_id": "optional"
+        body =  {
+                    "returnFormat": "mandatory",
+                    "page": "optional",
+                    "limit": "optional",
+                    "value": "optional",
+                    "type": "optional",
+                    "category": "optional",
+                    "org": "optional",
+                    "tags": "optional",
+                    "from": "optional",
+                    "to": "optional",
+                    "last": "optional",
+                    "eventid": "optional",
+                    "withAttachments": "optional",
+                    "uuid": "optional",
+                    "publish_timestamp": "optional",
+                    "timestamp": "optional",
+                    "enforceWarninglist": "optional",
+                    "to_ids": "optional",
+                    "deleted": "optional",
+                    "includeEventUuid": "optional",
+                    "includeEventTags": "optional",
+                    "event_timestamp": "optional",
+                    "threat_level_id": "optional",
+                    "eventinfo": "optional"
                 }
     
     ##Example
@@ -62,7 +67,7 @@ class MispSearchCommand(StreamingCommand):
     Search in MISP for value of fieldname r_ip (remote IP in proxy logs).
 
         code-block::
-         * | mispsearch fieldname=r_ip
+         * | mispsearch field=r_ip
 
     """
 
@@ -163,7 +168,7 @@ class MispSearchCommand(StreamingCommand):
                 if value is not None:
                     body_dict = { "returnFormat": "json"}
                     body_dict['value'] = str(value)
-                    body_dict['withAttachments'] = "false",
+                    body_dict['withAttachments'] = "false"
                     if to_ids:
                         body_dict['to_ids'] = "True"
                     
