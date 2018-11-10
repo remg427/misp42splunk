@@ -25,7 +25,7 @@ __email__      = "remg427@gmail.com"
 
 @Configuration(local=True)
 
-class MispSearchCommand(StreamingCommand):
+class mispsight(StreamingCommand):
     """ search in MISP for attributes matching the value of field.
 
     ##Syntax
@@ -35,7 +35,7 @@ class MispSearchCommand(StreamingCommand):
 
     ##Description
 
-        body = {"returnFormat": "json",
+        search_body = {"returnFormat": "json",
                 "value": "optional",
                 "type": "optional",
                 "category": "optional",
@@ -72,18 +72,6 @@ class MispSearchCommand(StreamingCommand):
         **Description:**Name of the field containing the value to search for.''',
         require=True, validate=validators.Fieldname())
 
-    onlyids = Option(
-        doc='''
-        **Syntax:** **onlyids=***<y|n>*
-        **Description:** Boolean to search only attributes with to_ids set''',
-        require=False, validate=validators.Match("onlyids", r"^[yYnN01]+$"))
-
-    gettag = Option(
-        doc='''
-        **Syntax:** **gettag=***<y|n>*
-        **Description:** Boolean to return attribute tags''',
-        require=False, validate=validators.Match("gettag", r"^[yYnN01]+$"))
-
 # Superseede MISP instance for this search
     misp_url = Option(
         doc='''
@@ -117,10 +105,10 @@ class MispSearchCommand(StreamingCommand):
         my_args = {}
         # MISP instance parameters
         if self.misp_url:
-            my_args['misp_url'] = self.misp_url + '/attributes/restSearch'
+            my_args['misp_url'] = self.misp_url
             logging.debug('misp_url as option, value is %s', my_args['misp_url'])
         else:
-            my_args['misp_url'] = mispconf.get('mispsetup', 'misp_url') + '/attributes/restSearch'
+            my_args['misp_url'] = mispconf.get('mispsetup', 'misp_url')
             logging.debug('misp.conf: misp_url value is %s', my_args['misp_url'])
         if self.misp_key:
             my_args['misp_key'] = self.misp_key
@@ -148,37 +136,34 @@ class MispSearchCommand(StreamingCommand):
         headers['Accept'] = 'application/json'
 
         fieldname = str(self.field)
-        if self.onlyids == 'Y' or self.onlyids == 'y' or self.onlyids == '1':
-            to_ids = True
-        else:
-            to_ids = False
-        if self.gettag == 'Y' or self.gettag == 'y' or self.gettag == '1':
-            get_tag = True
-        else:
-            get_tag = False
 
         for record in records:
             if fieldname in record:
                 value = record.get(fieldname, None)
                 if value is not None:
-                    body_dict = { "returnFormat": "json"}
-                    body_dict['value'] = str(value)
-                    body_dict['withAttachments'] = "false"
-                    if to_ids:
-                        body_dict['to_ids'] = "True"
-                    
-                    body = json.dumps(body_dict)
-                    misp_category = ''
-                    misp_event_id = ''
-                    misp_to_ids = ''
-                    misp_tag = ''
-                    misp_type = ''
+                    search_url = my_args['misp_url'] + '/attributes/restSearch'
+                    search_dict = { "returnFormat": "json"}
+                    search_dict['value'] = str(value)
+                    search_dict['withAttachments'] = "false",
+                    search_body = json.dumps(search_dict)
+
+                    sight_url = my_args['misp_url'] + '/sightings/restSearch/attribute'
+                    sight_dict = { "returnFormat": "json"}
+
                     misp_value = ''
-                    misp_uuid = ''
-                    delimns = ''
-                    tag_delimns = ''
-                    # search 
-                    r = requests.post(my_args['misp_url'], headers=headers, data=body, verify=my_args['misp_verifycert'])
+                    misp_fp = False
+                    misp_fp_timestamp = 0
+                    misp_fp_event_id = ''
+                    misp_sight_seen = False
+                    misp_sight = {
+                        'count': 0,
+                        'first': 0,
+                        'first_event_id': 0,
+                        'last': 0,
+                        'last_event_id': 0
+                    }
+                    # search
+                    r = requests.post(search_url, headers=headers, data=search_body, verify=my_args['misp_verifycert'])
                     # check if status is anything other than 200; throw an exception if it is
                     r.raise_for_status()
                     # response is 200 by this point or we would have thrown an exception
@@ -186,32 +171,51 @@ class MispSearchCommand(StreamingCommand):
                     response = r.json()
                     if 'response' in response:
                         if 'Attribute' in response['response']:
-                            record['misp_json'] = response['response']['Attribute']
                             for a in response['response']['Attribute']:
-                                misp_type = misp_type + delimns + str(a['type'])
-                                misp_value = misp_value + delimns + str(a['value'])
-                                misp_to_ids = misp_to_ids + delimns + str(a['to_ids'])
-                                misp_category = misp_category + delimns + str(a['category'])
-                                misp_uuid = misp_uuid + delimns + str(a['uuid'])
-                                misp_event_id = misp_event_id + delimns + str(a['event_id'])
-                                if get_tag and 'Tag' in a:
-                                    for tag in a['Tag']:
-                                        misp_tag = misp_tag + tag_delimns + str(tag['name'])
-                                        tag_delimns = ','
-                                delimns = ','
-                            record['misp_type'] = misp_type
-                            record['misp_value'] = misp_value
-                            record['misp_to_ids'] = misp_to_ids
-                            record['misp_category'] = misp_category
-                            record['misp_uuid'] = misp_uuid
-                            record['misp_event_id'] = misp_event_id
-                            if get_tag:
-                                record['misp_tag'] = misp_tag
-
+                                if misp_value == '':
+                                    misp_value = str(a['value'])
+                                if misp_fp == False:
+                                    sight_dict['id'] = str(a['id'])
+                                    sight_body = json.dumps(sight_dict)
+                                    s = requests.post(sight_url, headers=headers, data=sight_body, verify=my_args['misp_verifycert'])
+                                    # check if status is anything other than 200; throw an exception if it is
+                                    s.raise_for_status()
+                                    # response is 200 by this point or we would have thrown an exception
+                                    # print >> sys.stderr, "DEBUG MISP REST API response: %s" % response.json()
+                                    sight = s.json()
+                                    if 'response' in sight:
+                                        for se in sight['response']:
+                                            if 'Sighting' in se:
+                                                if int(se['Sighting']['type']) == 0:  #true sighting
+                                                    misp_sight_seen = True
+                                                    misp_sight['count'] = misp_sight['count'] + 1
+                                                    if misp_sight['first'] == 0 or \
+                                                       misp_sight['first'] > int(se['Sighting']['date_sighting']):
+                                                        misp_sight['first'] = int(se['Sighting']['date_sighting'])
+                                                        misp_sight['first_event_id'] = se['Sighting']['event_id']
+                                                    if misp_sight['last'] < int(se['Sighting']['date_sighting']):
+                                                        misp_sight['last'] = int(se['Sighting']['date_sighting'])
+                                                        misp_sight['last_event_id'] = se['Sighting']['event_id']
+                                                elif int(se['Sighting']['type']) == 1:  #false positive
+                                                    misp_fp = True
+                                                    misp_fp_timestamp = int(se['Sighting']['date_sighting'])
+                                                    misp_fp_event_id = se['Sighting']['event_id']
+                            if misp_fp == True:
+                                record['misp_value'] = misp_value
+                                record['misp_fp'] = "True"
+                                record['misp_fp_timestamp'] = str(misp_fp_timestamp)
+                                record['misp_fp_event_id'] = str(misp_fp_event_id)
+                            if misp_sight_seen == True:
+                                record['misp_value'] = misp_value
+                                record['misp_sight_count'] = str(misp_sight['count'])
+                                record['misp_sight_first'] = str(misp_sight['first'])
+                                record['misp_sight_first_event_id'] = str(misp_sight['first_event_id'])
+                                record['misp_sight_last'] = str(misp_sight['last'])
+                                record['misp_sight_last_event_id'] = str(misp_sight['last_event_id'])
             yield record
 
 if __name__ == "__main__":
     # set up logging suitable for splunkd consumption
     logging.root
     logging.root.setLevel(logging.ERROR)
-    dispatch(MispSearchCommand, sys.argv, sys.stdin, sys.stdout, __name__)
+    dispatch(mispsight, sys.argv, sys.stdin, sys.stdout, __name__)
