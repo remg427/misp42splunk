@@ -25,18 +25,4 @@
     </input>
     
   </block>
-
-  <block title="(Optional) Define TheHive server parameters" endpoint="misp/customendpoint" entity="mispsetup">
-
-    <input field="thehive_url">
-      <label>TheHive API url:</label>
-      <type>text</type>
-    </input>
-
-    <input field="thehive_key" endpoint="misp/customendpoint" entity="mispsetup">
-      <label>API auth key - You should create an account with only the role create alerts</label>
-      <type>text</type>
-    </input>
-    
-  </block>
 </setup>
