@@ -173,15 +173,13 @@ class MispSearchCommand(StreamingCommand):
                         body_dict['to_ids'] = "True"
                     
                     body = json.dumps(body_dict)
-                    misp_category = ''
-                    misp_event_id = ''
-                    misp_to_ids = ''
-                    misp_tag = ''
-                    misp_type = ''
-                    misp_value = ''
-                    misp_uuid = ''
-                    delimns = ''
-                    tag_delimns = ''
+                    misp_category = []
+                    misp_event_id = []
+                    misp_to_ids = []
+                    misp_tag = []
+                    misp_type = []
+                    misp_value = []
+                    misp_uuid = []
                     # search 
                     r = requests.post(my_args['misp_url'], headers=headers, data=body, verify=my_args['misp_verifycert'])
                     # check if status is anything other than 200; throw an exception if it is
@@ -191,24 +189,28 @@ class MispSearchCommand(StreamingCommand):
                     response = r.json()
                     if 'response' in response:
                         if 'Attribute' in response['response']:
-                            record['misp_json'] = response['response']['Attribute']
                             for a in response['response']['Attribute']:
-                                misp_type = misp_type + delimns + str(a['type'])
-                                misp_value = misp_value + delimns + str(a['value'])
-                                misp_to_ids = misp_to_ids + delimns + str(a['to_ids'])
-                                misp_category = misp_category + delimns + str(a['category'])
-                                misp_uuid = misp_uuid + delimns + str(a['uuid'])
-                                misp_event_id = misp_event_id + delimns + str(a['event_id'])
+                                if str(a['type']) not in misp_type:
+                                    misp_type.append(str(a['type']))
+                                if str(a['value']) not in misp_value:
+                                    misp_value.append(str(a['value']))
+                                if str(a['to_ids']) not in misp_to_ids:
+                                    misp_to_ids.append(str(a['to_ids']))
+                                if str(a['category']) not in misp_category:
+                                    misp_category.append(str(a['category']))
+                                if str(a['uuid']) not in misp_uuid:
+                                    misp_uuid.append(str(a['uuid']))
+                                if str(a['event_id']) not in misp_event_id:
+                                    misp_event_id.append(str(a['event_id']))
                                 if get_tag and 'Tag' in a:
                                     for tag in a['Tag']:
-                                        misp_tag = misp_tag + tag_delimns + str(tag['name'])
-                                        tag_delimns = ','
-                                delimns = ','
+                                        if str(tag['name']) not in misp_tag:
+                                            misp_tag.append(str(tag['name']))
                             record['misp_type'] = misp_type
                             record['misp_value'] = misp_value
                             record['misp_to_ids'] = misp_to_ids
                             record['misp_category'] = misp_category
-                            record['misp_uuid'] = misp_uuid
+                            record['misp_attribute_uuid'] = misp_uuid
                             record['misp_event_id'] = misp_event_id
                             if get_tag:
                                 record['misp_tag'] = misp_tag

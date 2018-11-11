@@ -64,14 +64,25 @@ class mispgetioc(ReportingCommand):
     eventid         = Option(
         doc = '''
         **Syntax:** **eventid=***id1(,id2,...)*
-        **Description:**list of event ID(s). **eventid** and **last** are mutually exclusive''',
+        **Description:**list of event ID(s). **eventid**, **last** and **date_from/date_to** are mutually exclusive''',
         require=False, validate=validators.Match("eventid",     r"^[0-9,]+$"))
 
     last            = Option(
         doc = '''
         **Syntax:** **last=***<int>d|h|m*
-        **Description:**publication duration in day(s), hour(s) or minute(s). **eventid** and **last** are mutually exclusive''',
+        **Description:**publication duration in day(s), hour(s) or minute(s). **eventid**, **last** and **date_from/date_to** are mutually exclusive''',
         require=False, validate=validators.Match("last",        r"^[0-9]+[hdm]$"))
+
+    date_from       = Option(
+        doc = '''
+        **Syntax:** **date_from=***date_string"*
+        **Description:**starting date. **eventid**, **last** and **date_from/date_to** are mutually exclusive''',
+        require=False)
+    date_to         = Option(
+        doc = '''
+        **Syntax:** **date_to=***date_string"*
+        **Description:**ending date. **eventid**, **last** and **date_from/date_to** are mutually exclusive''',
+        require=False)
 
     onlyids         = Option(
         doc = '''
@@ -175,10 +186,23 @@ class mispgetioc(ReportingCommand):
                     }
 
         # check that ONE of mandatory fields is present
-        if self.eventid and self.last:
-            logging.error('Options "eventid" and "last" are mutually exclusive')
-            raise Exception('Options "eventid" and "last" are mutually exclusive')
-        elif self.eventid:
+        mandatory_arg = 0
+        if self.eventid:
+            mandatory_arg = mandatory_arg + 1
+        if self.last:
+            mandatory_arg = mandatory_arg + 1
+        if self.date_from:
+            mandatory_arg = mandatory_arg + 1
+
+        if mandatory_arg == 0:
+            logging.error('Missing "eventid", "last" or "date_from/date_to" argument')
+            raise Exception('Missing "eventid", "last" or "date_from/date_to" argument')
+        elif mandatory_arg > 1:
+            logging.error('Options "eventid", "last" and "date_from/date_to" are mutually exclusive')
+            raise Exception('Options "eventid", "last" and "date_from/date_to" are mutually exclusive')
+
+        # Only ONE combination was provided
+        if self.eventid:
             event_criteria = {}
             event_list = self.eventid.split(",")
             event_criteria['OR'] = event_list
@@ -188,8 +212,13 @@ class mispgetioc(ReportingCommand):
             body_dict['last'] = self.last
             logging.info('Option "last" set with %s', body_dict['last'])
         else:
-            logging.error('Missing "eventid" or "last" argument')
-            raise Exception('Missing "eventid" or "last" argument')
+            body_dict['from'] = self.date_from
+            logging.info('Option "from" set with %s', body_dict['from'])
+            if self.date_to:
+                body_dict['to'] = self.date_to
+                logging.info('Option "to" set with %s', body_dict['to'])
+            else:
+                logging.error('Option "from" is set but not "to"')
 
         # set proper headers
         headers = {'Content-type': 'application/json'}
@@ -250,7 +279,7 @@ class mispgetioc(ReportingCommand):
                 body_dict['limit'] = limit
 
             body = json.dumps(body_dict)
-            logging.error('DEBUG MISP REST API REQUEST: %s', body)
+            logging.info('INFO MISP REST API REQUEST: %s', body)
             # search
             r = requests.post(my_args['misp_url'], headers=headers, data=body, verify=my_args['misp_verifycert'])
             # check if status is anything other than 200; throw an exception if it is
@@ -269,18 +298,23 @@ class mispgetioc(ReportingCommand):
                         v['misp_timestamp'] = str(a['timestamp'])
                         v['misp_to_ids'] = str(a['to_ids'])
                         v['misp_value'] = str(a['value'])
-                        # v['json'] = json.dumps(a)
+                        v['misp_description'] = 'MISP e' + str(a['event_id']) + ' attribute ' + str(a['uuid']) + ' of type "' \
+                            + str(a['type']) + '" in category "' + str(a['category']) + '" (to_ids:' + str(a['to_ids']) + ')'
                         # list tag(s) if any in CSV format
-                        tag_delims = ''
-                        tag_string = ''
+                        #tag_delims = ''
+                        #tag_string = ''
+                        # if 'Tag' in a:
+                        #    for tag in a['Tag']:
+                        #        tag_string = tag_string + tag_delims + tag['name']
+                        #        tag_delims = ','
+                        # v['misp_tag'] = tag_string
+                        v['misp_tag'] = []
                         if 'Tag' in a:
                             for tag in a['Tag']:
-                                tag_string = tag_string + tag_delims + tag['name']
-                                tag_delims = ','
-                        v['misp_tag'] = tag_string
+                                v['misp_tag'].append(str(tag['name']))
                         # include attribute UUID if requested
                         if my_args['getuuid']:
-                            v['misp_uuid'] = str(a['uuid'])
+                            v['misp_attribute_uuid'] = str(a['uuid'])
                         # include ID of the organisation that created the attribute if requested
                         # in previous version this was the ORG name ==> create lookup
                         if 'Event' in a and my_args['getorg']:
@@ -301,15 +335,41 @@ class mispgetioc(ReportingCommand):
             if r['misp_type'] not in typelist:
                 typelist.append(r['misp_type'])
 
+        output_dict = {}
+        increment = 1
+        relevant_cat = ['Artifacts dropped', 'Financial fraud', 'Network activity','Payload delivery','Payload installation']
         for r in results:
-            v = r
-            for t in typelist:
-                misp_t = 'misp_' + t.replace('-', '_')
-                if t == r['misp_type']:
-                    v[misp_t] = r['misp_value']
-                else:
-                    v[misp_t] = ''
+            if int(r['misp_object_id']) == 0: # not an object
+                key = str(r['misp_event_id']) + '_' + str(increment)
+                increment = increment + 1 
+                is_object_member = False
+            else: # this is a  MISP object
+                key = str(r['misp_event_id']) + '_' + str(r['misp_object_id'])
+                is_object_member = True
+            
+            if key not in output_dict:
+                v = r                
+                for t in typelist:
+                    misp_t = 'misp_' + t.replace('-', '_')
+                    if t == r['misp_type']:
+                        v[misp_t] = r['misp_value']
+                    else:
+                        v[misp_t] = ''
+                if is_object_member is True:
+                    v['misp_type'] = 'misp_object'
+                    v['misp_value'] = 1
+                output_dict[key] = v
+            else:
+                misp_t = 'misp_' + r['misp_type'].replace('-', '_')
+                v = output_dict[key]
+                if r['misp_category'] in relevant_cat:
+                    v['misp_category'] = r['misp_category']
+                v[misp_t] = r['misp_value']
+                output_dict[key] = v          
+        
+        for k,v in output_dict.items():
             yield v
+            logging.debug(json.dumps(v))
 
 
 if __name__ == "__main__":
