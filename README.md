@@ -2,16 +2,18 @@
 misp42splunk app connects [MISP](http://www.misp-project.org/) and [Splunk](www.splunk.com). The app is designed to be easy to install, set up and maintain using the Splunk GUI without editing directly files. You can use **as many MISP instances as you like;** one being defined at setup time to be the default instance.
 
 The main use cases are:
-1. MISP to  SPLUNK: get MISP event attributes into Splunk search pipeline: **| mispgetioc _params_ | ...**. see 
+1. MISP to SPLUNK:
+	- get MISP event attributes into Splunk search pipeline: **| mispgetioc _params_ | ...**
+	- search for matching attributes in MISP: **search ... |mispsearch field=myvalue | ...**
+	- get sightings information for a specific value: **search ...|mispsight field=myvalue | ...** (note that if there is FP only first hit is returned)
 2. MISP for SPLUNK: 2 Splunk alert actions are available to directly create events or increment attribute sighting in a MISP instance. 
 
 BONUS: You can also create Splunk alert action to create [The Hive](https://thehive-project.org/) alerts
 
-# Prerequisites
+# Prerequisites for alert actions only (create events, sighting)
 1. Install Python 3 on the Splunk Search Head.
 2. Install PyMISP (see https://github.com/MISP/PyMISP).
-3. Check that your Splunk SH can connect to the MISP instance. 
-4. In App setup screen, you can adapt pathes to python3 binary and temp folder
+3. In App setup screen, you can adapt pathes to python3 binary and temp folder
 
 # Installation
 This app is designed to run on Splunk Search Head(s) on Linux plateforms
@@ -26,20 +28,20 @@ This app is designed to run on Splunk Search Head(s) on Linux plateforms
     - For TheHive
         - provide the url to the API of your instance;
         - provide the authkey.
-    - Pathes to python3 binary and temp folder
+    - Pathes to python3 binary.
 
 # Use Cases
 
 Here some activities you may carry out more easily with this app.
 ## Hunting in Splunk logs
-Fresh IOC from MISP > saved searches in Splunk > on match create an alert on [TheHive](https://thehive-project.org/) or (later) any SIR platform of your choice.
+Fresh IOC from MISP > saved searches in Splunk > on match create an alert on [TheHive](https://thehive-project.org/) or (later) any security incident response platform of your choice.
 
 ## Creating events based on automated sandboxing
 If you have output of analysis pushed to Splunk you may automate the creation of events
 Log on sandboxing output > saved search to qualify, sanitize (dedup remove top Alexa, etc.) and prepare the table (misp_*, fo_*, eo_* etc.) > set a splunk alert to create event(s) in MISP
 * Only fields prefixed with misp_ (or fo_ for file objects, eo_ for email objects) are imported
 * if you use MISP objects, please upgrade PyMISP and MISP accordingly
-* Advise: for objects verify the name of the fields to be created; for example see [Email Object definition](https://github.com/MISP/misp-objects/blob/a5c331038edcbb86557396cf39508f0e3e35a33b/objects/email/definition.json)
+* Advise: for objects, verify the name of the fields to be created [Object definitions](https://github.com/MISP/misp-objects/tree/master/objects)
 
 ## Sighting in MISP based on Splunk alerts
 Search for attributes values/uuids in Splunk > alert to increment sighting counters (standard,false positive,expiration) in MISP for those values/uuids 
@@ -54,6 +56,7 @@ Search for attributes values/uuids in Splunk > alert to increment sighting count
 # Todo
 - [X] implement event tagging in misp_alert_create_event
 - [ ] store some saved searches and lookups as examples
+- [ ] remove dependency for pymisp and python3
 
 # Credits
 The creation of this app started from work done by https://github.com/xme/splunk/tree/master/getmispioc and the associated blog https://blog.rootshell.be/2017/10/31/splunk-custom-search-command-searching-misp-iocs/ for MISP interactions.
