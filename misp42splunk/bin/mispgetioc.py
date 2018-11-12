@@ -229,6 +229,7 @@ class mispgetioc(ReportingCommand):
         pagination = True
         other_page = True
         page = 1
+        l = 0
         if self.limit is not None:
             if int(self.limit) == 0:
                 pagination = False
@@ -279,7 +280,7 @@ class mispgetioc(ReportingCommand):
                 body_dict['limit'] = limit
 
             body = json.dumps(body_dict)
-            logging.info('INFO MISP REST API REQUEST: %s', body)
+            logging.error('INFO MISP REST API REQUEST: %s', body)
             # search
             r = requests.post(my_args['misp_url'], headers=headers, data=body, verify=my_args['misp_verifycert'])
             # check if status is anything other than 200; throw an exception if it is
@@ -308,10 +309,14 @@ class mispgetioc(ReportingCommand):
                         #        tag_string = tag_string + tag_delims + tag['name']
                         #        tag_delims = ','
                         # v['misp_tag'] = tag_string
-                        v['misp_tag'] = []
+                        tag_list = []
                         if 'Tag' in a:
                             for tag in a['Tag']:
-                                v['misp_tag'].append(str(tag['name']))
+                                try:
+                                    tag_list.append(str(tag['name']))
+                                except Exception:
+                                    pass
+                        v['misp_tag'] = tag_list
                         # include attribute UUID if requested
                         if my_args['getuuid']:
                             v['misp_attribute_uuid'] = str(a['uuid'])

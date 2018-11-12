@@ -8,8 +8,6 @@ The main use cases are:
 	- get sightings information for a specific value: **search ...|mispsight field=myvalue | ...** (note that if there is FP only first hit is returned)
 2. MISP for SPLUNK: 2 Splunk alert actions are available to directly create events or increment attribute sighting in a MISP instance. 
 
-BONUS: You can also create Splunk alert action to create [The Hive](https://thehive-project.org/) alerts
-
 # Prerequisites for alert actions only (create events, sighting)
 1. Install Python 3 on the Splunk Search Head.
 2. Install PyMISP (see https://github.com/MISP/PyMISP).
@@ -34,7 +32,7 @@ This app is designed to run on Splunk Search Head(s) on Linux plateforms
 
 Here some activities you may carry out more easily with this app.
 ## Hunting in Splunk logs
-Fresh IOC from MISP > saved searches in Splunk > on match create an alert on [TheHive](https://thehive-project.org/) or (later) any security incident response platform of your choice.
+Fresh IOC from MISP > saved searches in Splunk 
 
 ## Creating events based on automated sandboxing
 If you have output of analysis pushed to Splunk you may automate the creation of events
@@ -51,7 +49,6 @@ Search for attributes values/uuids in Splunk > alert to increment sighting count
 #### Splunk alert actions to [update MISP](docs/mispalerts.md)
 ##### -- Alert to create MISP event(s)
 ##### -- Alert for attribute sighting in MISP
-#### Splunk alerts to [create TheHive alerts](docs/thehivealerts.md)
 
 # Todo
 - [X] implement event tagging in misp_alert_create_event
@@ -60,8 +57,6 @@ Search for attributes values/uuids in Splunk > alert to increment sighting count
 
 # Credits
 The creation of this app started from work done by https://github.com/xme/splunk/tree/master/getmispioc and the associated blog https://blog.rootshell.be/2017/10/31/splunk-custom-search-command-searching-misp-iocs/ for MISP interactions.
-
-The alert_action for TheHive is inpired by [this Splunk app](https://splunkbase.splunk.com/app/3642/)
 
 # Licence
 This app misp42splunk is licensed under the GNU Lesser General Public License v3.0.
