@@ -1,11 +1,13 @@
-# misp42splunk
-misp42splunk app connects [MISP](http://www.misp-project.org/) and [Splunk](www.splunk.com). The app is designed to be easy to install, set up and maintain using the Splunk GUI without editing directly files. You can use **as many MISP instances as you like;** one being defined at setup time to be the default instance.
+# overview
+misp42splunk app connects [MISP](http://www.misp-project.org/) and [Splunk](www.splunk.com).
+The app is designed to be easy to install, set up and maintain using the Splunk GUI without directly editing files.
+You can use **as many MISP instances as you like;** one being defined at setup time to be the default instance.
 
 The main use cases are:
 1. MISP to SPLUNK:
-	- get MISP event attributes into Splunk search pipeline: **| mispgetioc _params_ | ...**
-	- search for matching attributes in MISP: **search ... |mispsearch field=myvalue | ...**
-	- get sightings information for a specific value: **search ...|mispsight field=myvalue | ...** (note that if there is FP only first hit is returned)
+	- **| mispgetioc _params_ | ...**: get MISP event attributes into Splunk search pipeline: 
+	- **search ... |mispsearch field=myvalue | ...**search for matching attributes in MISP: 
+	- **search ...|mispsight field=myvalue | ...** get sightings information for a specific value (note that if there is FP, only first hit is returned)
 2. MISP for SPLUNK: 2 Splunk alert actions are available to directly create events or increment attribute sighting in a MISP instance. 
 
 # Prerequisites for alert actions only (create events, sighting)
@@ -19,18 +21,13 @@ This app is designed to run on Splunk Search Head(s) on Linux plateforms
 3. Install the app on your Splunk Search Head(s): "Manage Apps" -> "Install app from file"
 4. A custom endpoint has been defined so you need to restart Splunk (for later updates, you may skip this step)
 5. At next logon, you should be invited to configure the app (if not go to Manage Apps > App-MISP42 > Set up) 
-    - For MISP
-        - provide the url to your MISP instance;
-        - provide the authkey;
-        - check (or not) the certificate of the MISP server.
-    - For TheHive
-        - provide the url to the API of your instance;
-        - provide the authkey.
+    - provide the url to your MISP instance;
+    - provide the authkey;
+    - check (or not) the certificate of the MISP server.
     - Pathes to python3 binary.
 
 # Use Cases
 
-Here some activities you may carry out more easily with this app.
 ## Hunting in Splunk logs
 Fresh IOC from MISP > saved searches in Splunk 
 
@@ -45,10 +42,13 @@ Log on sandboxing output > saved search to qualify, sanitize (dedup remove top A
 Search for attributes values/uuids in Splunk > alert to increment sighting counters (standard,false positive,expiration) in MISP for those values/uuids 
 
 # Usage
-#### custom command [mispgetioc](docs/mispgetioc.md)
-#### Splunk alert actions to [update MISP](docs/mispalerts.md)
-##### -- Alert to create MISP event(s)
-##### -- Alert for attribute sighting in MISP
+    - custom commands
+        -- [mispgetioc](docs/mispgetioc.md) reporting command
+        -- [mispsearch](docs/mispsearch.md) streaming command
+        -- [mispsight](docs/mispsight.md) streaming command
+    - Splunk alert actions to [update MISP](docs/mispalerts.md)
+        -- Alert to create MISP event(s)
+        -- Alert for attribute sighting in MISP
 
 # Todo
 - [X] implement event tagging in misp_alert_create_event
