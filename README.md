@@ -5,9 +5,9 @@ You can use **as many MISP instances as you like;** one being defined at setup t
 
 The main use cases are:
 1. MISP to SPLUNK:
-	- **| mispgetioc _params_ | ...**: get MISP event attributes into Splunk search pipeline: 
-	- **search ... |mispsearch field=myvalue | ...**search for matching attributes in MISP: 
-	- **search ...|mispsight field=myvalue | ...** get sightings information for a specific value (note that if there is FP, only first hit is returned)
+	- **| mispgetioc _params_ | ...** gets MISP event attributes into Splunk search pipeline: 
+	- **search ... |mispsearch field=myvalue | ...** searches for matching attributes in MISP: 
+	- **search ...|mispsight field=myvalue | ...** gets sighting information for a specific value (note that if there is FP, only first hit is returned)
 2. MISP for SPLUNK: 2 Splunk alert actions are available to directly create events or increment attribute sighting in a MISP instance. 
 
 # Prerequisites for alert actions only (create events, sighting)
