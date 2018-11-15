@@ -75,42 +75,50 @@ def create_misp_events(config, results):
 
         # check if building event has been initiated
         # if yes simply add attribute entry otherwise collect other metadata
-        # remove fields _time and info from row and keep their values if this is a new event
+        # remove fields misp_time and info from row and keep their values if this is a new event
         if eventkey in events:
             event = events[eventkey]
             artifacts = event['attribute']
-            if '_time' in row:
-                row.pop('_time')
-            if 'info' in row:
-                row.pop('info')
+            if 'misp_time' in row:
+                row.pop('misp_time')
+            if 'misp_info' in row:
+                row.pop('misp_info')
         else:
             event = {}
             event['eo_count'] = 0
             event['fo_count'] = 0
             event['no_count'] = 0
             artifacts = []
-            if '_time' in row:
-                event['timestamp'] = str(row.pop('_time'))
+            event['tag']= []
+            if 'misp_time' in row:
+                event['timestamp'] = str(row.pop('misp_time'))
             else:
                 event['timestamp'] = str(int(time.time()))
-            if 'info' in row:
-                event['info'] = row.pop('info')
+            if 'misp_info' in row:
+                event['info'] = row.pop('misp_info')
             else:
-                event['info'] = config['info']
+                event['info'] = config['misp_info']
 
         # collect attribute value and build type=value entry
-        if 'to_ids' in row:
-            if str(row.pop('to_ids')) == 'True':
+        if 'misp_to_ids' in row:
+            if str(row.pop('misp_to_ids')) == 'True':
                 to_ids = True
             else:
                 to_ids = False
         else:
             to_ids = False
 
-        if 'category' in row:
-            category = str(row.pop('category'))
+        if 'misp_category' in row:
+            category = str(row.pop('misp_category'))
         else:
             category = None
+
+        if 'misp_tag' in row:
+            tag_list = row.pop('misp_tag').split(',')
+            for tag in tag_list:
+                if tag not in event['tag']:
+                    event['tag'].append(tag)
+
 
         # now we take KV pairs starting by misp_ to add to event as single attribute(s)
         for key, value in row.items():
@@ -194,6 +202,10 @@ def create_misp_events(config, results):
         if config['tags'] is not None:
             tag_list = config['tags'].split(',')
             for tag in tag_list:
+                pymisp.tag(uuid, tag)
+
+        if event['tag'] is not None:
+            for tag in event['tag']:
                 pymisp.tag(uuid, tag)
 
         # add atrributes to event
