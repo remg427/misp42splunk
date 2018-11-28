@@ -1,4 +1,3 @@
-
 # Alerts to interact with MISP
 ## Create MISP event(s)    
 When you create an alert, you may add an alert action to directly create events in MISP based on search results.
@@ -11,20 +10,20 @@ You may search and prepare the results as a table with the following command
 | rename field2 AS fo_object_attribute_name (for file objects)
 | rename field3 AS eo_object_attribute_name (for email objects)
 | rename field4 AS no_object_attribute_name (for network connection objects)
-| table _time to_ids eventkey info category misp_* fo_* eo_* no_* (etc.)
+| eval misp_time=round(_time,0) | eval misp_info=<some string> |eval misp_tag=<some (CSV) string>  
+| table eventkey misp_time misp_info misp_tag to_ids misp_category misp_* fo_* eo_* no_* (etc.)
 ```
 CAUTION: Splunk syntax does not like field names containing '-'.
 
 Do not forget to check the [object attribute names](https://github.com/MISP/misp-objects/)
 
 * Optional fields:
-    - _time: the timestamp will be converted to YYYY-MM-DD for event date. if not provided, set to localtime
+    - misp_time: the timestamp will be converted to YYYY-MM-DD for event date. if not provided, it is set to localtime
     - to_ids: if not defined, set to False
-    - category: if not defined, set to None and populated in relation with the type of attribute
+    - misp_category: if not defined, set to None and populated in relation with the type of attribute
     - eventkey: This string/id is used to group several rows of the results belonging to the same event (e.g. attributes of type email-src, email-subject). The actual value is not pushed to MISP. If not specified by row, this value might be overall defined for the alert - see below
-    - info: This string will be set in the Info field of MISP event. This value might be overall defined for the alert - see below
-
-
+    - misp_info: This string will be set in the Info field of MISP event. This value might be overall defined for the alert - see below
+    - misp_tag: a CSV string of additional event tags (some can be set in the alert action form)
 
 ### create the alert and add alert_action to create events
 Save your search as alert. Select "Alert to create MISP event(s)" as action
@@ -40,7 +39,7 @@ Fill in the form to tune your alert to your needs.
     - Threat Level: Change the Threat Level. Defaults to Undefined
     - Analysis: Change Analysis status. Default to Initial
     - TLP: Change the TLP of the created alert. Defaults to TLP-Amber
-    - tags: comma-separated list of tags (not implemented yet)
+    - tags: comma-separated list of tags
 * Specific alert parameters for MISP serve: If specified, URL and auth key will superseede the config file (misp.conf)
 Using those fields you may search in one MISP instance and create events in another one.
     - URL: MISP URL (leave blank to use default settings).

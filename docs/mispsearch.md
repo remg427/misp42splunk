@@ -8,7 +8,7 @@ The command syntax is as follow:
 
     search something... | mispsearch field=<field_containing_value_to_search_for> 
                 [onlyids=y|n]
-                [gettag_comment=y|n]
+                [gettag=y|n]
                 [misp_url=https://host:port] 
                 [misp_key=misp-authorization-key]
                 [misp_verifycert=y|n]                 
