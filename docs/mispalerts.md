@@ -1,7 +1,7 @@
 # Alerts to interact with MISP
 ## Create MISP event(s)    
 When you create an alert, you may add an alert action to directly create events in MISP based on search results.
-This version of the app supports MISP objects. Upgrade MISP and PyMISP accordingly.
+This version of the app requires MISP 2.4.97 or later.
 
 ### collect results in Splunk
 You may search and prepare the results as a table with the following command
