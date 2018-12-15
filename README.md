@@ -10,13 +10,13 @@ The main use cases are:
 	- **search ...|mispsight field=myvalue | ...** gets sighting information for a specific value (note that if there is FP, only first hit is returned)
 2. MISP for SPLUNK: 2 Splunk alert actions are available to directly create events or increment attribute sighting in a MISP instance. 
 
-# Prerequisites for alert actions only (create events, sighting)
+# Prerequisites if you want to use alert action sighting (no prerequisite for other functions)
 1. Install Python 3 on the Splunk Search Head.
 2. Install PyMISP (see https://github.com/MISP/PyMISP).
-3. In App setup screen, you can adapt pathes to python3 binary and temp folder
+3. In App setup screen, you can adapt pathes to python3 binary
 
 # Installation
-This app is designed to run on Splunk Search Head(s) on Linux plateforms
+This app is designed to run on Splunk Search Head(s) on Linux plateforms (not tested on Windows but it could work)
 1. Download this [file](misp42splunk.tar.gz) which is the Splunk app ( it is an archive containing the sub-directory misp42splunk)
 3. Install the app on your Splunk Search Head(s): "Manage Apps" -> "Install app from file"
 4. A custom endpoint has been defined so you need to restart Splunk (for later updates, you may skip this step)
@@ -24,7 +24,7 @@ This app is designed to run on Splunk Search Head(s) on Linux plateforms
     - provide the url to your MISP instance;
     - provide the authkey;
     - check (or not) the certificate of the MISP server.
-    - Pathes to python3 binary.
+    - Pathes to python3 binary (alert sighting only).
 
 # Use Cases
 
