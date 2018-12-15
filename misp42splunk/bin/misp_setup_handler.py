@@ -29,7 +29,7 @@ class ConfigApp(admin.MConfigHandler):
   '''
   def setup(self):
     if self.requestedAction == admin.ACTION_EDIT:
-      for arg in ['misp_url', 'misp_key', 'misp_verifycert', 'P3_PATH']:
+      for arg in ['misp_url', 'misp_key', 'misp_verifycert']:
         self.supportedArgs.addOptArg(arg)
         
   '''
@@ -62,8 +62,6 @@ class ConfigApp(admin.MConfigHandler):
             val = ''
           if key in ['misp_key'] and val in [None, '']:
             val = ''
-          if key in ['P3_PATH'] and val in [None, '']:
-            val = ''
           confInfo[stanza].append(key, val)
           
   '''
@@ -84,10 +82,7 @@ class ConfigApp(admin.MConfigHandler):
 
     if self.callerArgs.data['misp_key'][0] in [None, '']:
       self.callerArgs.data['misp_key'][0] = ''  
-        
-    if self.callerArgs.data['P3_PATH'][0] in [None, '']:
-      self.callerArgs.data['P3_PATH'][0] = ''  
-      
+           
 #    Since we are using a conf file to store parameters, 
 #    write them to the [mispsetup] stanza
 #    in app_name/local/misp.conf  

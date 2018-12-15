@@ -10,11 +10,6 @@ The main use cases are:
 	- **search ...|mispsight field=myvalue | ...** gets sighting information for a specific value (note that if there is FP, only first hit is returned)
 2. MISP for SPLUNK: 2 Splunk alert actions are available to directly create events or increment attribute sighting in a MISP instance. 
 
-# Prerequisites if you want to use alert action sighting (no prerequisite for other functions)
-1. Install Python 3 on the Splunk Search Head.
-2. Install PyMISP (see https://github.com/MISP/PyMISP).
-3. In App setup screen, you can adapt pathes to python3 binary
-
 # Installation
 This app is designed to run on Splunk Search Head(s) on Linux plateforms (not tested on Windows but it could work)
 1. Download this [file](misp42splunk.tar.gz) which is the Splunk app ( it is an archive containing the sub-directory misp42splunk)
@@ -24,7 +19,6 @@ This app is designed to run on Splunk Search Head(s) on Linux plateforms (not te
     - provide the url to your MISP instance;
     - provide the authkey;
     - check (or not) the certificate of the MISP server.
-    - Pathes to python3 binary (alert sighting only).
 
 # Use Cases
 
@@ -33,7 +27,7 @@ Fresh IOC from MISP > saved searches in Splunk
 
 ## Creating events based on automated sandboxing
 If you have output of analysis pushed to Splunk you may automate the creation of events
-Log on sandboxing output > saved search to qualify, sanitize (dedup remove top Alexa, etc.) and prepare the table (misp_*, fo_*, eo_* etc.) > set a splunk alert to create event(s) in MISP
+Log on sandboxing output > saved search to qualify, sanitize (dedup remove top Alexa, etc.) and prepare the table (misp_*, fo_*, eo_* and no_*) > set a splunk alert to create event(s) in MISP
 * Only fields prefixed with misp_ (or fo_ for file objects, eo_ for email objects) are imported
 * if you use MISP objects, please upgrade PyMISP and MISP accordingly
 * Advise: for objects, verify the name of the fields to be created [Object definitions](https://github.com/MISP/misp-objects/tree/master/objects)
@@ -52,8 +46,8 @@ Search for attributes values/uuids in Splunk > alert to increment sighting count
 
 # Todo
 - [X] implement event tagging in misp_alert_create_event
-- [ ] store some saved searches and lookups as examples
-- [ ] remove dependency for pymisp and python3
+- [X] store some saved searches and lookups as examples
+- [X] remove dependency for pymisp and python3
 
 # Credits
 The creation of this app started from work done by https://github.com/xme/splunk/tree/master/getmispioc and the associated blog https://blog.rootshell.be/2017/10/31/splunk-custom-search-command-searching-misp-iocs/ for MISP interactions.
