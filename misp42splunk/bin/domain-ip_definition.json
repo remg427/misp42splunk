@@ -1,0 +1,52 @@
+{
+  "required": [
+    "ip",
+    "domain"
+  ],
+  "attributes": {
+    "text": {
+      "description": "A description of the tuple",
+      "disable_correlation": true,
+      "ui-priority": 1,
+      "misp-attribute": "text",
+      "recommended": false
+    },
+    "last-seen": {
+      "description": "Last time the tuple has been seen",
+      "disable_correlation": true,
+      "ui-priority": 0,
+      "misp-attribute": "datetime"
+    },
+    "first-seen": {
+      "description": "First time the tuple has been seen",
+      "disable_correlation": true,
+      "ui-priority": 0,
+      "misp-attribute": "datetime"
+    },
+    "domain": {
+      "description": "Domain name",
+      "categories": [
+        "Network activity",
+        "External analysis"
+      ],
+      "ui-priority": 1,
+      "misp-attribute": "domain",
+      "multiple": true
+    },
+    "ip": {
+      "description": "IP Address",
+      "categories": [
+        "Network activity",
+        "External analysis"
+      ],
+      "ui-priority": 1,
+      "misp-attribute": "ip-dst",
+      "multiple": true
+    }
+  },
+  "version": 6,
+  "description": "A domain and IP address seen as a tuple in a specific time frame.",
+  "meta-category": "network",
+  "uuid": "43b3b146-77eb-4931-b4cc-b66c60f28734",
+  "name": "domain-ip"
+}
