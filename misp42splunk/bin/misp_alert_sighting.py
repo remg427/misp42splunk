@@ -9,16 +9,25 @@
 #
 # most of the code here was based on the following example on splunk custom alert actions
 # http://docs.splunk.com/Documentation/Splunk/6.5.3/AdvancedDev/ModAlertsAdvancedExample
-
+'''
+{
+    "values": "mandatory",
+    "id": "mandatory",
+    "type": "optional",
+    "source": "optional",
+    "timestamp": "optional",
+    "date": "optional",
+    "time": "optional"
+}
+'''
 import os
 import sys
-import tempfile
-import subprocess
 import json
 import gzip
 import csv
 import ConfigParser
 import time
+import requests
 
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
@@ -64,9 +73,6 @@ def group_values(r,tslabel,ds):
 def create_alert(config, results):
     print >> sys.stderr, "DEBUG Creating alert with config %s" % json.dumps(config)
 
-    # check and complement config
-    config_args = {}
-
     # get the misp_url we need to connect to MISP
     # this can be passed as params of the alert. Defaults to values set in misp.conf
     # get MISP settings stored in misp.conf
@@ -77,32 +83,30 @@ def create_alert(config, results):
     mispconf = ConfigParser.RawConfigParser()
     mispconf.read(config_file)
 
+    # get specific misp url and key if any (from alert configuration)
     misp_url = config.get('misp_url')
     misp_key = config.get('misp_key')
 
     # If no specific MISP instances defined, get settings from misp.conf
     if misp_url and misp_key:
-        config_args['misp_url'] = misp_url
-        config_args['misp_key'] = misp_key
+        misp_url = str(misp_url) + '/sightings/add'
         misp_verifycert = int(config.get('misp_verifycert', "0"))
         if misp_verifycert == 1:
-            config_args['misp_verifycert'] = True
+            misp_verifycert = True
         else:
-            config_args['misp_verifycert'] = False
+            misp_verifycert = False
     else:
-        config_args['misp_url'] = mispconf.get('mispsetup', 'misp_url')
-        config_args['misp_key'] = mispconf.get('mispsetup', 'misp_key')
+        misp_url = str(mispconf.get('mispsetup', 'misp_url')) + '/sightings/add'
+        misp_key = mispconf.get('mispsetup', 'misp_key')
         if mispconf.has_option('mispsetup','misp_verifycert'):
-            config_args['misp_verifycert'] = mispconf.getboolean('mispsetup', 'misp_verifycert')
+            misp_verifycert = mispconf.getboolean('mispsetup', 'misp_verifycert')
         else:
-            config_args['misp_verifycert'] = False
+            misp_verifycert = False
 
     # Get mode set in alert settings; either byvalue or byuuid
     mode = config.get('mode', 'byvalue')
     # Get type set in alert settings; either 0, 1 or 2
     sighting_type = int(config.get('s_type', '0'))
-
-    print >> sys.stderr, "check config_args: %s" % config_args
 
     # iterate through each row, cleaning multivalue fields and then
     #   mode byvalue: adding the values under same timestamp
@@ -129,46 +133,32 @@ def create_alert(config, results):
                 if value != "":
                     sightings[value] = timestamp
 
-    try:
-        # path to main components either use default values or set ones
-        if mispconf.has_option('mispsetup', 'P3_PATH'):
-            _NEW_PYTHON_PATH = mispconf.get('mispsetup', 'P3_PATH')
+    # set proper headers
+    headers = {'Content-type': 'application/json'}
+    headers['Authorization'] = misp_key
+    headers['Accept'] = 'application/json'
+
+    # iterate in dict events to create events
+    for key, data in sightings.items():
+        if mode == 'byvalue':
+            sighting = json.dumps(dict(
+                timestamp=int(key),
+                values=data,
+                type=sighting_type
+            ))
         else:
-            _NEW_PYTHON_PATH = '/usr/bin/python3'
+            sighting = json.dumps(dict(
+                timestamp=int(data),
+                id=key,
+                type=sighting_type
+            ))
 
-        os.environ['PYTHONPATH'] = _NEW_PYTHON_PATH
-        my_process = _SPLUNK_PATH + os.sep + 'etc' + os.sep + 'apps' + os.sep + 'misp42splunk' + os.sep + 'bin' + os.sep + 'pymisp_sighting.py'
-
-        # Remove LD_LIBRARY_PATH from the environment (otherwise, we will face some SSL issues
-        env = dict(os.environ)
-        del env['LD_LIBRARY_PATH']
-
-        FNULL = open(os.devnull, 'w')
-        # iterate in dict events to create events
-        for key, data in sightings.items():
-            if mode == 'byvalue':
-                sighting = json.dumps(dict(
-                    timestamp=int(key),
-                    values=data,
-                    type=sighting_type
-                ))
-            else:
-                sighting = json.dumps(dict(
-                    timestamp=int(data),
-                    uuid=key,
-                    type=sighting_type
-                ))
-            print >> sys.stderr, 'Calling pymisp_sighting.py for sighting %s' % (sighting)
-            # actually send the request to create the alert; fail gracefully
-            p = subprocess.Popen([_NEW_PYTHON_PATH, my_process, str(config_args), str(sighting)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=FNULL, env=env)
-            output = p.communicate()[0]
-            print >> sys.stderr, "output pymisp_sighting: %s" % output
-
-    # somehow we got a bad response code from MISP
-    # some other request error occurred
-    except IOError as e:
-        print >> sys.stderr, "ERROR Error creating alert: %s" % e
-
+        # byvalue: sighting contains {"timestamp": timestamp, "values":["value1", "value2,etc. "]}
+        # byuuid:  sighting contains {"timestamp": timestamp, "uuid":"uuid_value"}
+        r = requests.post(misp_url, headers=headers, data=sighting, verify=misp_verifycert)
+        # check if status is anything other than 200; throw an exception if it is
+        r.raise_for_status()
+        # response is 200 by this point or we would have thrown an exception
 
 if __name__ == "__main__":
     # make sure we have the right number of arguments - more than 1;
