@@ -1,0 +1,178 @@
+{
+  "requiredOneOf": [
+    "filename",
+    "size-in-bytes",
+    "authentihash",
+    "ssdeep",
+    "md5",
+    "sha1",
+    "sha224",
+    "sha256",
+    "sha384",
+    "sha512",
+    "sha512/224",
+    "sha512/256",
+    "tlsh",
+    "pattern-in-file",
+    "x509-fingerprint-sha1",
+    "malware-sample",
+    "path",
+    "fullpath"
+  ],
+  "attributes": {
+    "md5": {
+      "description": "[Insecure] MD5 hash (128 bits)",
+      "ui-priority": 1,
+      "misp-attribute": "md5",
+      "recommended": false
+    },
+    "sha1": {
+      "description": "[Insecure] Secure Hash Algorithm 1 (160 bits)",
+      "ui-priority": 1,
+      "misp-attribute": "sha1",
+      "recommended": false
+    },
+    "sha224": {
+      "description": "Secure Hash Algorithm 2 (224 bits)",
+      "ui-priority": 0,
+      "misp-attribute": "sha224",
+      "recommended": false
+    },
+    "sha256": {
+      "description": "Secure Hash Algorithm 2 (256 bits)",
+      "ui-priority": 1,
+      "misp-attribute": "sha256"
+    },
+    "sha384": {
+      "description": "Secure Hash Algorithm 2 (384 bits)",
+      "ui-priority": 0,
+      "misp-attribute": "sha384",
+      "recommended": false
+    },
+    "sha512": {
+      "description": "Secure Hash Algorithm 2 (512 bits)",
+      "ui-priority": 1,
+      "misp-attribute": "sha512"
+    },
+    "sha512/224": {
+      "description": "Secure Hash Algorithm 2 (224 bits)",
+      "ui-priority": 0,
+      "misp-attribute": "sha512/224",
+      "recommended": false
+    },
+    "sha512/256": {
+      "description": "Secure Hash Algorithm 2 (256 bits)",
+      "ui-priority": 0,
+      "misp-attribute": "sha512/256",
+      "recommended": false
+    },
+    "ssdeep": {
+      "description": "Fuzzy hash using context triggered piecewise hashes (CTPH)",
+      "ui-priority": 0,
+      "misp-attribute": "ssdeep"
+    },
+    "authentihash": {
+      "description": "Authenticode executable signature hash",
+      "ui-priority": 0,
+      "misp-attribute": "authentihash",
+      "recommended": false
+    },
+    "size-in-bytes": {
+      "description": "Size of the file, in bytes",
+      "disable_correlation": true,
+      "ui-priority": 0,
+      "misp-attribute": "size-in-bytes"
+    },
+    "entropy": {
+      "description": "Entropy of the whole file",
+      "disable_correlation": true,
+      "ui-priority": 1,
+      "misp-attribute": "float"
+    },
+    "pattern-in-file": {
+      "description": "Pattern that can be found in the file",
+      "categories": [
+        "Artifacts dropped",
+        "Payload installation",
+        "External analysis"
+      ],
+      "ui-priority": 1,
+      "misp-attribute": "pattern-in-file",
+      "multiple": true
+    },
+    "text": {
+      "description": "Free text value to attach to the file",
+      "disable_correlation": true,
+      "ui-priority": 1,
+      "misp-attribute": "text",
+      "recommended": false
+    },
+    "malware-sample": {
+      "description": "The file itself (binary)",
+      "ui-priority": 1,
+      "misp-attribute": "malware-sample"
+    },
+    "filename": {
+      "description": "Filename on disk",
+      "disable_correlation": true,
+      "multiple": true,
+      "categories": [
+        "Payload delivery",
+        "Artifacts dropped",
+        "Payload installation",
+        "External analysis"
+      ],
+      "ui-priority": 1,
+      "misp-attribute": "filename"
+    },
+    "path": {
+      "description": "Path of the filename complete or partial",
+      "disable_correlation": true,
+      "multiple": true,
+      "ui-priority": 0,
+      "misp-attribute": "text"
+    },
+    "fullpath": {
+      "description": "Complete path of the filename including the filename",
+      "multiple": true,
+      "ui-priority": 0,
+      "misp-attribute": "text"
+    },
+    "tlsh": {
+      "description": "Fuzzy hash by Trend Micro: Locality Sensitive Hash",
+      "ui-priority": 0,
+      "misp-attribute": "tlsh"
+    },
+    "certificate": {
+      "description": "Certificate value if the binary is signed with another authentication scheme than authenticode",
+      "ui-priority": 0,
+      "misp-attribute": "x509-fingerprint-sha1"
+    },
+    "mimetype": {
+      "description": "Mime type",
+      "disable_correlation": true,
+      "ui-priority": 0,
+      "misp-attribute": "mime-type"
+    },
+    "state": {
+      "misp-attribute": "text",
+      "ui-priority": 0,
+      "description": "State of the file",
+      "multiple": true,
+      "disable_correlation": true,
+      "values_list": [
+        "Malicious",
+        "Harmless",
+        "Signed",
+        "Revoked",
+        "Expired",
+        "Trusted"
+      ]
+    }
+  },
+  "version": 15,
+  "description": "File object describing a file with meta-information",
+  "meta-category": "file",
+  "uuid": "688c46fb-5edb-40a3-8273-1af7923e2215",
+  "name": "file"
+}

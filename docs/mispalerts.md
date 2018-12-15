@@ -18,7 +18,7 @@ CAUTION: Splunk syntax does not like field names containing '-'.
 Do not forget to check the [object attribute names](https://github.com/MISP/misp-objects/)
 
 * Optional fields:
-    - misp_time: the timestamp will be converted to YYYY-MM-DD for event date. if not provided, it is set to localtime
+    - misp_time: the timestamp will be converted to YYYY-MM-DD for event date. if not provided, it is set to localtime. for example | eval misp_time = round(_time,0)
     - to_ids: if not defined, set to False
     - misp_category: if not defined, set to None and populated in relation with the type of attribute
     - eventkey: This string/id is used to group several rows of the results belonging to the same event (e.g. attributes of type email-src, email-subject). The actual value is not pushed to MISP. If not specified by row, this value might be overall defined for the alert - see below
