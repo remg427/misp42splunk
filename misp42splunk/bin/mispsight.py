@@ -22,7 +22,7 @@ __version__    = "3.0.0"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
-@Configuration(local=True)
+@Configuration(distributed=False)
 
 class mispsight(StreamingCommand):
     """ search in MISP for attributes matching the value of field.
