@@ -10,7 +10,6 @@
 # most of the code here was based on the following example on splunk custom alert actions
 # http://docs.splunk.com/Documentation/Splunk/6.5.3/AdvancedDev/ModAlertsAdvancedExample
 
-import ConfigParser
 import csv
 import datetime
 import gzip
@@ -19,6 +18,8 @@ import os
 import requests
 import sys
 import time
+from splunk.clilib import cli_common as cli
+import logging
 
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
@@ -226,45 +227,47 @@ def create_misp_events(config, results):
         r.raise_for_status()
         # response is 200 by this point or we would have thrown an exception
         response = r.json()
+        logging.info("event created")
+        logging.debug("event created %s", json.dumps(response))
+
         # print(json.dumps(response))
 
     return status
 
 def prepare_config(config, filename):
-    print >> sys.stderr, "DEBUG Creating alert with config %s" % json.dumps(config)
+    logging.debug("DEBUG Creating alert with config %s", json.dumps(config))
 
     # get the misp_url we need to connect to MISP
     # this can be passed as params of the alert. Defaults to values set in misp.conf
     # get MISP settings stored in misp.conf
-    _SPLUNK_PATH = os.environ['SPLUNK_HOME']
     # open misp.conf
-    config_file = _SPLUNK_PATH + os.sep + 'etc' + os.sep + 'apps' + os.sep + 'misp42splunk' + os.sep + 'local' + os.sep + 'misp.conf'
-    mispconf = ConfigParser.RawConfigParser()
-    mispconf.read(config_file)
-
-    # check and complement config
-    config_args = {}
-
-    # MISP instance parameters
+    mispconf = cli.getConfStanza('misp','mispsetup')
+    
+    # get specific misp url and key if any (from alert configuration)
     misp_url = config.get('misp_url')
     misp_key = config.get('misp_key')
 
     # If no specific MISP instances defined, get settings from misp.conf
     if misp_url and misp_key:
-        config_args['misp_url'] = misp_url
-        config_args['misp_key'] = misp_key
+        misp_url = str(misp_url)
         misp_verifycert = int(config.get('misp_verifycert', "0"))
         if misp_verifycert == 1:
-            config_args['misp_verifycert'] = True
+            misp_verifycert = True
         else:
-            config_args['misp_verifycert'] = False
+            misp_verifycert = False
     else:
-        config_args['misp_url'] = mispconf.get('mispsetup', 'misp_url')
-        config_args['misp_key'] = mispconf.get('mispsetup', 'misp_key')
-        if mispconf.has_option('mispsetup','misp_verifycert'):
-            config_args['misp_verifycert'] = mispconf.getboolean('mispsetup', 'misp_verifycert')
+        misp_url = str(mispconf.get('misp_url'))
+        misp_key = mispconf.get('misp_key')
+        if mispconf.get('misp_verifycert') == 1:
+            misp_verifycert = True
         else:
-            config_args['misp_verifycert'] = False
+            misp_verifycert = False
+
+    # check and complement config
+    config_args = {}
+    config_args['misp_url'] = misp_url
+    config_args['misp_key'] = misp_key
+    config_args['misp_verifycert'] = misp_verifycert
 
     # Get string values from alert form
     config_args['eventkey'] = config.get('unique', "oneEvent")
@@ -287,6 +290,9 @@ def prepare_config(config, filename):
 
 
 if __name__ == "__main__":
+    # set up logging suitable for splunkd consumption
+    logging.root
+    logging.root.setLevel(logging.ERROR)
     # make sure we have the right number of arguments - more than 1; and first argument is "--execute"
     if len(sys.argv) > 1 and sys.argv[1] == "--execute":
         # read the payload from stdin as a json string
@@ -309,24 +315,26 @@ if __name__ == "__main__":
                     # regular csv reader and zipping the dict manually later at
                     # least, in theory
                     Reader = csv.DictReader(file)
+                    logging.debug('Reader is %s', str(Reader))
                     Config = prepare_config(configuration,filename)
-
+                    logging.debug('Config is %s', json.dumps(Config))
                     Events = prepare_misp_events(Config, Reader)
+                    logging.debug('Events contains %s', json.dumps(Events))
                     #print(json.dumps(Events))
                     status = create_misp_events(Config, Events)
 
-                # by this point - all alerts should have been created with all necessary observables attached to each one
+                # by this point - all alerts shosuld have been created with all necessary observables attached to each one
                 # we can gracefully exit now
                 sys.exit(0)
             # something went wrong with opening the results file
             except IOError as e:
-                print >> sys.stderr, "FATAL Results file exists but could not be opened/read"
+                logging.error("FATAL Results file exists but could not be opened/read")
                 sys.exit(3)
         # somehow the results file does not exist
         else:
-            print >> sys.stderr, "FATAL Results file does not exist"
+            logging.error("FATAL Results file does not exist")
             sys.exit(2)
     # somehow we received the wrong number of arguments
     else:
-        print >> sys.stderr, "FATAL Unsupported execution mode (expected --execute flag)"
+        logging.error("FATAL Unsupported execution mode (expected --execute flag)")
         sys.exit(1)

@@ -11,13 +11,12 @@
 #
 
 from __future__ import absolute_import, division, print_function, unicode_literals
-import os
 import sys
-import ConfigParser
 import requests
 import json
 
 from splunklib.searchcommands import dispatch, ReportingCommand, Configuration, Option, validators
+from splunk.clilib import cli_common as cli
 import logging
 
 __author__     = "Remi Seguy"
@@ -64,24 +63,24 @@ class mispgetioc(ReportingCommand):
     eventid         = Option(
         doc = '''
         **Syntax:** **eventid=***id1(,id2,...)*
-        **Description:**list of event ID(s). **eventid**, **last** and **date_from/date_to** are mutually exclusive''',
+        **Description:**list of event ID(s). **eventid**, **last** and **date_from** are mutually exclusive''',
         require=False, validate=validators.Match("eventid",     r"^[0-9,]+$"))
 
     last            = Option(
         doc = '''
         **Syntax:** **last=***<int>d|h|m*
-        **Description:**publication duration in day(s), hour(s) or minute(s). **eventid**, **last** and **date_from/date_to** are mutually exclusive''',
+        **Description:**publication duration in day(s), hour(s) or minute(s). **eventid**, **last** and **date_from** are mutually exclusive''',
         require=False, validate=validators.Match("last",        r"^[0-9]+[hdm]$"))
 
     date_from       = Option(
         doc = '''
         **Syntax:** **date_from=***date_string"*
-        **Description:**starting date. **eventid**, **last** and **date_from/date_to** are mutually exclusive''',
+        **Description:**starting date. **eventid**, **last** and **date_from** are mutually exclusive''',
         require=False)
     date_to         = Option(
         doc = '''
         **Syntax:** **date_to=***date_string"*
-        **Description:**ending date. **eventid**, **last** and **date_from/date_to** are mutually exclusive''',
+        **Description:**(optional)ending date in searches with date_from. if not set default is now''',
         require=False)
 
     onlyids         = Option(
@@ -142,13 +141,8 @@ class mispgetioc(ReportingCommand):
         # Phase 1: Preparation
 
         # self.logger.debug('mispgetioc.reduce')
-        _SPLUNK_PATH = os.environ['SPLUNK_HOME']
-
         # open misp.conf
-        config_file = _SPLUNK_PATH + os.sep + 'etc' + os.sep + 'apps' + os.sep + 'misp42splunk' + os.sep + 'local' + os.sep + 'misp.conf'
-        mispconf = ConfigParser.RawConfigParser()
-        mispconf.read(config_file)
-
+        mispconf = cli.getConfStanza('misp','mispsetup')
         # Generate args
         my_args = {}
         # MISP instance parameters
@@ -156,13 +150,13 @@ class mispgetioc(ReportingCommand):
             my_args['misp_url'] = self.misp_url + '/attributes/restSearch'
             logging.debug('misp_url as option, value is %s', my_args['misp_url'])
         else:
-            my_args['misp_url'] = mispconf.get('mispsetup', 'misp_url') + '/attributes/restSearch'
+            my_args['misp_url'] = mispconf.get('misp_url') + '/attributes/restSearch'
             logging.debug('misp.conf: misp_url value is %s', my_args['misp_url'])
         if self.misp_key:
             my_args['misp_key'] = self.misp_key
             logging.debug('misp_key as option, value is %s', my_args['misp_key'])
         else:
-            my_args['misp_key'] = mispconf.get('mispsetup', 'misp_key')
+            my_args['misp_key'] = mispconf.get('misp_key')
             logging.debug('misp.conf: misp_key value is %s', my_args['misp_key'])
         if self.misp_verifycert:
             if self.misp_verifycert == 'Y' or self.misp_verifycert == 'y' or self.misp_verifycert == '1':
@@ -171,13 +165,11 @@ class mispgetioc(ReportingCommand):
                 my_args['misp_verifycert'] = False
             logging.debug('misp_verifycert as option, value is %s', my_args['misp_verifycert'])
         else:
-            if mispconf.has_option('mispsetup', 'misp_verifycert'):
-                my_args['misp_verifycert'] = mispconf.getboolean('mispsetup', 'misp_verifycert')
-                logging.debug('misp.conf: misp_verifycert value is %s', my_args['misp_verifycert'])
-            else:
+            if int(mispconf.get('misp_verifycert')) == 1:
                 my_args['misp_verifycert'] = True
-                logging.debug('misp.conf: misp_verifycert value not set. Default to True')
-
+            else:
+                my_args['misp_verifycert'] = False
+            logging.debug('misp.conf: misp_verifycert value is %s', my_args['misp_verifycert'])
 
         # build search JSON object
         body_dict = { "returnFormat": "json",
@@ -195,11 +187,11 @@ class mispgetioc(ReportingCommand):
             mandatory_arg = mandatory_arg + 1
 
         if mandatory_arg == 0:
-            logging.error('Missing "eventid", "last" or "date_from/date_to" argument')
-            raise Exception('Missing "eventid", "last" or "date_from/date_to" argument')
+            logging.error('Missing "eventid", "last" or "date_from" argument')
+            raise Exception('Missing "eventid", "last" or "date_from" argument')
         elif mandatory_arg > 1:
-            logging.error('Options "eventid", "last" and "date_from/date_to" are mutually exclusive')
-            raise Exception('Options "eventid", "last" and "date_from/date_to" are mutually exclusive')
+            logging.error('Options "eventid", "last" and "date_from" are mutually exclusive')
+            raise Exception('Options "eventid", "last" and "date_from" are mutually exclusive')
 
         # Only ONE combination was provided
         if self.eventid:
@@ -213,12 +205,12 @@ class mispgetioc(ReportingCommand):
             logging.info('Option "last" set with %s', body_dict['last'])
         else:
             body_dict['from'] = self.date_from
-            logging.info('Option "from" set with %s', body_dict['from'])
+            logging.info('Option "date_from" set with %s', body_dict['from'])
             if self.date_to:
                 body_dict['to'] = self.date_to
-                logging.info('Option "to" set with %s', body_dict['to'])
+                logging.info('Option "date_to" set with %s', body_dict['to'])
             else:
-                logging.error('Option "from" is set but not "to"')
+                logging.info('Option "date_to" will be set to now().')
 
         # set proper headers
         headers = {'Content-type': 'application/json'}

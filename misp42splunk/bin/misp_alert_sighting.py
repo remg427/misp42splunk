@@ -25,9 +25,9 @@ import sys
 import json
 import gzip
 import csv
-import ConfigParser
 import time
 import requests
+from splunk.clilib import cli_common as cli
 
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
@@ -76,13 +76,10 @@ def create_alert(config, results):
     # get the misp_url we need to connect to MISP
     # this can be passed as params of the alert. Defaults to values set in misp.conf
     # get MISP settings stored in misp.conf
-    _SPLUNK_PATH = os.environ['SPLUNK_HOME']
 
     # open misp.conf
-    config_file = _SPLUNK_PATH + os.sep + 'etc' + os.sep + 'apps' + os.sep + 'misp42splunk' + os.sep + 'local' + os.sep + 'misp.conf'
-    mispconf = ConfigParser.RawConfigParser()
-    mispconf.read(config_file)
-
+    mispconf = cli.getConfStanza('misp','mispsetup')
+    
     # get specific misp url and key if any (from alert configuration)
     misp_url = config.get('misp_url')
     misp_key = config.get('misp_key')
@@ -96,10 +93,10 @@ def create_alert(config, results):
         else:
             misp_verifycert = False
     else:
-        misp_url = str(mispconf.get('mispsetup', 'misp_url')) + '/sightings/add'
-        misp_key = mispconf.get('mispsetup', 'misp_key')
-        if mispconf.has_option('mispsetup','misp_verifycert'):
-            misp_verifycert = mispconf.getboolean('mispsetup', 'misp_verifycert')
+        misp_url = str(mispconf.get('misp_url')) + '/sightings/add'
+        misp_key = mispconf.get('misp_key')
+        if mispconf.get('misp_verifycert') == 1:
+            misp_verifycert = True
         else:
             misp_verifycert = False
 
