@@ -9,12 +9,11 @@
 # Feel free to use the code, but please share the changes you've made
 #
 
-import os
 import sys
-import ConfigParser
 import requests
 import json
 from splunklib.searchcommands import dispatch, StreamingCommand, Configuration, Option, validators
+from splunk.clilib import cli_common as cli
 import logging
 
 __author__     = "Remi Seguy"
@@ -94,13 +93,9 @@ class mispsight(StreamingCommand):
 
     def stream(self, records):
         # self.logger.debug('mispgetioc.reduce')
-        _SPLUNK_PATH = os.environ['SPLUNK_HOME']
 
         # open misp.conf
-        config_file = _SPLUNK_PATH + os.sep + 'etc' + os.sep + 'apps' + os.sep + 'misp42splunk' + os.sep + 'local' + os.sep + 'misp.conf'
-        mispconf = ConfigParser.RawConfigParser()
-        mispconf.read(config_file)
-
+        mispconf = cli.getConfStanza('misp','mispsetup')
         # Generate args
         my_args = {}
         # MISP instance parameters
@@ -108,13 +103,13 @@ class mispsight(StreamingCommand):
             my_args['misp_url'] = self.misp_url
             logging.debug('misp_url as option, value is %s', my_args['misp_url'])
         else:
-            my_args['misp_url'] = mispconf.get('mispsetup', 'misp_url')
+            my_args['misp_url'] = mispconf.get('misp_url')
             logging.debug('misp.conf: misp_url value is %s', my_args['misp_url'])
         if self.misp_key:
             my_args['misp_key'] = self.misp_key
             logging.debug('misp_key as option, value is %s', my_args['misp_key'])
         else:
-            my_args['misp_key'] = mispconf.get('mispsetup', 'misp_key')
+            my_args['misp_key'] = mispconf.get('misp_key')
             logging.debug('misp.conf: misp_key value is %s', my_args['misp_key'])
         if self.misp_verifycert:
             if self.misp_verifycert == 'Y' or self.misp_verifycert == 'y' or self.misp_verifycert == '1':
@@ -123,12 +118,11 @@ class mispsight(StreamingCommand):
                 my_args['misp_verifycert'] = False
             logging.debug('misp_verifycert as option, value is %s', my_args['misp_verifycert'])
         else:
-            if mispconf.has_option('mispsetup', 'misp_verifycert'):
-                my_args['misp_verifycert'] = mispconf.getboolean('mispsetup', 'misp_verifycert')
-                logging.debug('misp.conf: misp_verifycert value is %s', my_args['misp_verifycert'])
-            else:
+            if int(mispconf.get('misp_verifycert')) == 1:
                 my_args['misp_verifycert'] = True
-                logging.debug('misp.conf: misp_verifycert value not set. Default to True')
+            else:
+                my_args['misp_verifycert'] = False
+            logging.debug('misp.conf: misp_verifycert value is %s', my_args['misp_verifycert'])
 
         # set proper headers
         headers = {'Content-type': 'application/json'}
@@ -167,8 +161,8 @@ class mispsight(StreamingCommand):
                     # check if status is anything other than 200; throw an exception if it is
                     r.raise_for_status()
                     # response is 200 by this point or we would have thrown an exception
-                    # print >> sys.stderr, "DEBUG MISP REST API response: %s" % response.json()
                     response = r.json()
+                    logging.info("INFO MISP REST API %s has response: %s" % (search_url, r.json()))
                     if 'response' in response:
                         if 'Attribute' in response['response']:
                             for a in response['response']['Attribute']:
@@ -181,8 +175,8 @@ class mispsight(StreamingCommand):
                                     # check if status is anything other than 200; throw an exception if it is
                                     s.raise_for_status()
                                     # response is 200 by this point or we would have thrown an exception
-                                    # print >> sys.stderr, "DEBUG MISP REST API response: %s" % response.json()
                                     sight = s.json()
+                                    logging.info("INFO MISP REST API %s has response: %s" % (sight_url, s.json()))
                                     if 'response' in sight:
                                         for se in sight['response']:
                                             if 'Sighting' in se:
