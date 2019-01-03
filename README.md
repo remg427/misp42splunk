@@ -44,10 +44,8 @@ Search for attributes values/uuids in Splunk > alert to increment sighting count
     *  Alert to create MISP event(s)
     *  Alert for attribute sighting in MISP
 
-# Todo
-- [X] implement event tagging in misp_alert_create_event
-- [X] store some saved searches and lookups as examples
-- [X] remove dependency for pymisp and python3
+# developer's corner
+switch to v3.0 branch where MISP API wrapper is developed such | mispapireport
 
 # Credits
 The creation of this app started from work done by https://github.com/xme/splunk/tree/master/getmispioc and the associated blog https://blog.rootshell.be/2017/10/31/splunk-custom-search-command-searching-misp-iocs/ for MISP interactions.
