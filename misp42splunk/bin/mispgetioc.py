@@ -46,32 +46,27 @@ class mispgetioc(ReportingCommand):
         **Syntax:** **misp_url=***<MISP URL>*
         **Description:**URL of MISP instance.''',
         require=False, validate=validators.Match("misp_url", r"^https?:\/\/[0-9a-zA-Z\-\.]+(?:\:\d+)?$"))
-
     misp_key = Option(
         doc='''
         **Syntax:** **misp_key=***<AUTH_KEY>*
         **Description:**MISP API AUTH KEY.''',
         require=False, validate=validators.Match("misp_key", r"^[0-9a-zA-Z]{40}$"))
-
     misp_verifycert = Option(
         doc = '''
-        **Syntax:** **misp_verifycert=***<y|n>*
+        **Syntax:** **misp_verifycert=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
         **Description:**Verify or not MISP certificate.''',
-        require=False, validate=validators.Match("misp_verifycert", r"^[yYnN01]$"))
-
+        require=False, validate=validators.Boolean())
     # MANDATORY: eventid XOR last
     eventid         = Option(
         doc = '''
         **Syntax:** **eventid=***id1(,id2,...)*
         **Description:**list of event ID(s). **eventid**, **last** and **date_from** are mutually exclusive''',
-        require=False, validate=validators.Match("eventid",     r"^[0-9,]+$"))
-
+        require=False, validate=validators.Match("eventid",r"^[0-9,]+$"))
     last            = Option(
         doc = '''
         **Syntax:** **last=***<int>d|h|m*
         **Description:**publication duration in day(s), hour(s) or minute(s). **eventid**, **last** and **date_from** are mutually exclusive''',
-        require=False, validate=validators.Match("last",        r"^[0-9]+[hdm]$"))
-
+        require=False, validate=validators.Match("last",r"^[0-9]+[hdm]$"))
     date_from       = Option(
         doc = '''
         **Syntax:** **date_from=***date_string"*
@@ -82,13 +77,16 @@ class mispgetioc(ReportingCommand):
         **Syntax:** **date_to=***date_string"*
         **Description:**(optional)ending date in searches with date_from. if not set default is now''',
         require=False)
-
     onlyids         = Option(
         doc = '''
-        **Syntax:** **onlyids=***y|Y|n|N|0|1*
+        **Syntax:** **onlyids=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
+        **Description:**deprecated use to_ids option instead.''',
+        require=False, validate=validators.Boolean())
+    to_ids          = Option(
+        doc = '''
+        **Syntax:** **to_ids=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
         **Description:**Boolean to search only attributes with the flag "to_ids" set to true.''',
-        require=False, validate=validators.Match("onlyids",     r"^[yYnN01]+$"))
-
+        require=False, validate=validators.Boolean())
     category        = Option(
         doc = '''
         **Syntax:** **category=***CSV string*
@@ -109,7 +107,6 @@ class mispgetioc(ReportingCommand):
         **Syntax:** **not_tags=***CSV string*
         **Description:**Comma(,)-separated string of tags to exclude from results. Wildcard is %.''',
         require=False)
-
     limit         = Option(
         doc = '''
         **Syntax:** **limit=***<int>*
@@ -117,19 +114,20 @@ class mispgetioc(ReportingCommand):
         require=False, validate=validators.Match("limit",     r"^[0-9]+$"))
     getuuid         = Option(
         doc = '''
-        **Syntax:** **getuuid=***y|Y|n|N|0|1*
+        **Syntax:** **getuuid=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
         **Description:**Boolean to return attribute UUID.''',
-        require=False, validate=validators.Match("getuuid",     r"^[yYnN01]+$"))
+        require=False, validate=validators.Boolean())
     getorg          = Option(
         doc = '''
-        **Syntax:** **getorg=***y|Y|n|N|0|1*
+        **Syntax:** **getorg=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
         **Description:**Boolean to return the ID of the organisation that created the event.''',
-        require=False, validate=validators.Match("getorg",      r"^[yYnN01]+$"))
+        require=False, validate=validators.Boolean())
     geteventtag     = Option(
         doc = '''
-        **Syntax:** **geteventtag=***y|Y|n|N|0|1*
+        **Syntax:** **geteventtag=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
         **Description:**Boolean to return also event tag(s). By default only attribute tag(s) are returned.''',
-        require=False, validate=validators.Match("geteventtag", r"^[yYnN01]+$"))
+        require=False, validate=validators.Boolean())
+
 
     @Configuration()
     def map(self, records):
@@ -159,10 +157,7 @@ class mispgetioc(ReportingCommand):
             my_args['misp_key'] = mispconf.get('misp_key')
             logging.debug('misp.conf: misp_key value is %s', my_args['misp_key'])
         if self.misp_verifycert:
-            if self.misp_verifycert == 'Y' or self.misp_verifycert == 'y' or self.misp_verifycert == '1':
-                my_args['misp_verifycert'] = True
-            else:
-                my_args['misp_verifycert'] = False
+            my_args['misp_verifycert'] = self.misp_verifycert
             logging.debug('misp_verifycert as option, value is %s', my_args['misp_verifycert'])
         else:
             if int(mispconf.get('misp_verifycert')) == 1:
@@ -231,9 +226,11 @@ class mispgetioc(ReportingCommand):
             limit = 10000
 
         #Search parameters: boolean and filter
-        if self.onlyids == 'Y' or self.onlyids == 'y' or self.onlyids == '1':
+        if self.onlyids is True:
             body_dict['to_ids'] = True
-        if self.geteventtag == 'Y' or self.geteventtag == 'y' or self.geteventtag == '1':
+        if self.to_ids is True:
+            body_dict['to_ids'] = True
+        if self.geteventtag is True:
             body_dict['includeEventTags'] = True
         if self.category is not None:
             cat_criteria = {}
@@ -256,11 +253,11 @@ class mispgetioc(ReportingCommand):
             body_dict['tags'] = tags_criteria
 
         # output filter parameters
-        if self.getuuid == 'Y' or self.getuuid == 'y' or self.getuuid == '1':
+        if self.getuuid is True:
             my_args['getuuid'] = True
         else:
             my_args['getuuid'] = False
-        if self.getorg == 'Y' or self.getorg == 'y' or self.getorg == '1':
+        if self.getorg is True:
             my_args['getorg'] = True
         else:
             my_args['getorg'] = False
@@ -292,16 +289,6 @@ class mispgetioc(ReportingCommand):
                         v['misp_timestamp'] = str(a['timestamp'])
                         v['misp_to_ids'] = str(a['to_ids'])
                         v['misp_value'] = str(a['value'])
-                        v['misp_description'] = 'MISP e' + str(a['event_id']) + ' attribute ' + str(a['uuid']) + ' of type "' \
-                            + str(a['type']) + '" in category "' + str(a['category']) + '" (to_ids:' + str(a['to_ids']) + ')'
-                        # list tag(s) if any in CSV format
-                        #tag_delims = ''
-                        #tag_string = ''
-                        # if 'Tag' in a:
-                        #    for tag in a['Tag']:
-                        #        tag_string = tag_string + tag_delims + tag['name']
-                        #        tag_delims = ','
-                        # v['misp_tag'] = tag_string
                         tag_list = []
                         if 'Tag' in a:
                             for tag in a['Tag']:
@@ -335,7 +322,7 @@ class mispgetioc(ReportingCommand):
 
         output_dict = {}
         increment = 1
-        relevant_cat = ['Artifacts dropped', 'Financial fraud', 'Network activity','Payload delivery','Payload installation']
+        #relevant_cat = ['Artifacts dropped', 'Financial fraud', 'Network activity','Payload delivery','Payload installation']
         for r in results:
             if int(r['misp_object_id']) == 0: # not an object
                 key = str(r['misp_event_id']) + '_' + str(increment)
@@ -343,8 +330,7 @@ class mispgetioc(ReportingCommand):
                 is_object_member = False
             else: # this is a  MISP object
                 key = str(r['misp_event_id']) + '_' + str(r['misp_object_id'])
-                is_object_member = True
-            
+                is_object_member = True           
             if key not in output_dict:
                 v = r                
                 for t in typelist:
@@ -353,16 +339,21 @@ class mispgetioc(ReportingCommand):
                         v[misp_t] = r['misp_value']
                     else:
                         v[misp_t] = ''
+                category = []
+                category.append(r['misp_category'])
+                v['misp_category'] = category
                 if is_object_member is True:
                     v['misp_type'] = 'misp_object'
-                    v['misp_value'] = 1
+                    v['misp_value'] = r['misp_object_id']
                 output_dict[key] = v
             else:
-                misp_t = 'misp_' + r['misp_type'].replace('-', '_')
                 v = output_dict[key]
-                if r['misp_category'] in relevant_cat:
-                    v['misp_category'] = r['misp_category']
-                v[misp_t] = r['misp_value']
+                misp_t = 'misp_' + r['misp_type'].replace('-', '_')
+                v[misp_t] = r['misp_value'] # set value for relevant type
+                category = v['misp_category'] 
+                if r['misp_category'] not in category: # append category 
+                    category.append(r['misp_category'])
+                    v['misp_category'] = category
                 output_dict[key] = v          
         
         for k,v in output_dict.items():
