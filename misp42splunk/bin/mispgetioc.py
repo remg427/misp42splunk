@@ -127,6 +127,11 @@ class mispgetioc(ReportingCommand):
         **Syntax:** **geteventtag=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
         **Description:**Boolean to return also event tag(s). By default only attribute tag(s) are returned.''',
         require=False, validate=validators.Boolean())
+    pipesplit     = Option(
+        doc = '''
+        **Syntax:** **pipesplit=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
+        **Description:**Boolean to split multivalue attributes into 2 attributes.''',
+        require=False, validate=validators.Boolean())
 
 
     @Configuration()
@@ -261,6 +266,10 @@ class mispgetioc(ReportingCommand):
             my_args['getorg'] = True
         else:
             my_args['getorg'] = False
+        if self.pipesplit is True:
+            my_args['pipe'] = True
+        else:
+            my_args['pipe'] = False
 
         results = []
         while other_page:
@@ -269,7 +278,7 @@ class mispgetioc(ReportingCommand):
                 body_dict['limit'] = limit
 
             body = json.dumps(body_dict)
-            logging.error('INFO MISP REST API REQUEST: %s', body)
+            logging.info('INFO MISP REST API REQUEST: %s', body)
             # search
             r = requests.post(my_args['misp_url'], headers=headers, data=body, verify=my_args['misp_verifycert'])
             # check if status is anything other than 200; throw an exception if it is
@@ -284,11 +293,8 @@ class mispgetioc(ReportingCommand):
                         v['misp_category'] = str(a['category'])
                         v['misp_attribute_id'] = str(a['id'])
                         v['misp_event_id'] = str(a['event_id'])
-                        v['misp_object_id'] = str(a['object_id'])
-                        v['misp_type'] = str(a['type'])
                         v['misp_timestamp'] = str(a['timestamp'])
                         v['misp_to_ids'] = str(a['to_ids'])
-                        v['misp_value'] = str(a['value'])
                         tag_list = []
                         if 'Tag' in a:
                             for tag in a['Tag']:
@@ -297,14 +303,46 @@ class mispgetioc(ReportingCommand):
                                 except Exception:
                                     pass
                         v['misp_tag'] = tag_list
-                        # include attribute UUID if requested
-                        if my_args['getuuid']:
-                            v['misp_attribute_uuid'] = str(a['uuid'])
                         # include ID of the organisation that created the attribute if requested
                         # in previous version this was the ORG name ==> create lookup
                         if 'Event' in a and my_args['getorg']:
                             v['misp_orgc_id'] = str(a['Event']['orgc_id'])
-                        results.append(v)
+                                                            # include attribute UUID if requested
+                        if my_args['getuuid']:
+                            v['misp_attribute_uuid'] = str(a['uuid'])
+                        # handle object and multivalue attributes
+                        v['misp_object_id'] = str(a['object_id'])
+                        if int(a['object_id']) == 0: # not part of an object
+                            current_type = str(a['type'])
+                            if '|' in current_type: # multivalue attribute
+                                if my_args['pipe'] is True: # multivalue attribute will be split
+                                    mv_type_list = current_type.split('|')
+                                    mv_value_list = str(a['value']).split('|')
+                                    left_v = v.copy()
+                                    left_v['misp_type'] = mv_type_list.pop()
+                                    left_v['misp_value'] = mv_value_list.pop()
+                                    logging.debug(json.dumps(left_v))
+                                    results.append(left_v)
+                                    logging.debug(json.dumps(results))
+                                    right_v= v.copy()
+                                    right_v['misp_type'] = mv_type_list.pop()
+                                    right_v['misp_value'] = mv_value_list.pop()
+                                    logging.debug(json.dumps(right_v))
+                                    logging.debug(json.dumps(left_v))
+                                    results.append(right_v)
+                                    logging.debug(json.dumps(results))
+                                else: # multivalue attribute kept as one
+                                    v['misp_type'] = current_type
+                                    v['misp_value'] = str(a['value'])
+                                    results.append(v)
+                            else:
+                                v['misp_type'] = current_type
+                                v['misp_value'] = str(a['value'])
+                                results.append(v)
+                        else: # this is an attribute part of a MISP object
+                            v['misp_type'] = str(a['type'])
+                            v['misp_value'] = str(a['value'])
+                            results.append(v)
 
             if pagination == True:
                 if l < limit:
@@ -317,24 +355,25 @@ class mispgetioc(ReportingCommand):
         # add colums for each type in results
         typelist = []
         for r in results:
-            if r['misp_type'] not in typelist:
-                typelist.append(r['misp_type'])
+            misp_type = r['misp_type']
+            logging.debug(json.dumps(misp_type))
+            if misp_type not in typelist:
+                typelist.append(misp_type)
+        logging.debug(json.dumps(typelist))
 
         output_dict = {}
-        increment = 1
         #relevant_cat = ['Artifacts dropped', 'Financial fraud', 'Network activity','Payload delivery','Payload installation']
         for r in results:
             if int(r['misp_object_id']) == 0: # not an object
-                key = str(r['misp_event_id']) + '_' + str(increment)
-                increment = increment + 1 
+                key = str(r['misp_event_id']) + '_' +  r['misp_attribute_id']
                 is_object_member = False
             else: # this is a  MISP object
-                key = str(r['misp_event_id']) + '_' + str(r['misp_object_id'])
+                key = str(r['misp_event_id']) + '_object_' + str(r['misp_object_id'])
                 is_object_member = True           
             if key not in output_dict:
                 v = r                
                 for t in typelist:
-                    misp_t = 'misp_' + t.replace('-', '_')
+                    misp_t = 'misp_' + t.replace('-', '_').replace('|','_p_')
                     if t == r['misp_type']:
                         v[misp_t] = r['misp_value']
                     else:
@@ -354,7 +393,13 @@ class mispgetioc(ReportingCommand):
                 if r['misp_category'] not in category: # append category 
                     category.append(r['misp_category'])
                     v['misp_category'] = category
-                output_dict[key] = v          
+                if is_object_member is False:
+                    misp_type = r['misp_type'] + '|' + v['misp_type']
+                    v['misp_type'] = misp_type
+                    misp_value = r['misp_value'] + '|' + v['misp_value']
+                    v['misp_value'] = misp_value
+                output_dict[key] = v
+            logging.debug(json.dumps(output_dict))
         
         for k,v in output_dict.items():
             yield v
@@ -364,5 +409,5 @@ class mispgetioc(ReportingCommand):
 if __name__ == "__main__":
     # set up logging suitable for splunkd consumption
     logging.root
-    logging.root.setLevel(logging.ERROR)
+    logging.root.setLevel(logging.DEBUG)
     dispatch(mispgetioc, sys.argv, sys.stdin, sys.stdout, __name__)

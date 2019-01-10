@@ -45,7 +45,8 @@ Search for attributes values/uuids in Splunk > alert to increment sighting count
     *  Alert for attribute sighting in MISP
 
 # developer's corner
-switch to v3.0 branch where MISP API wrapper is developed such | mispapireport
+switch to v3.0 branch where MISP API wrapper under development 
+    | mispapireport
 
 # Credits
 The creation of this app started from work done by https://github.com/xme/splunk/tree/master/getmispioc and the associated blog https://blog.rootshell.be/2017/10/31/splunk-custom-search-command-searching-misp-iocs/ for MISP interactions.
