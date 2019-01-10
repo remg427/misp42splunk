@@ -11,18 +11,21 @@ So the output can be immediately reused in a search without complex transforms
 The command syntax is as follow:
 
     |mispgetioc ( [eventid=id] | [last=interval]  | date_from="YYYY-mm-dd" (date_to="YYYY-mm-dd") )
-                [onlyids=y|n]
+                [to_ids=<1|y|Y|t|true|True|0|n|N|f|false|False>]
                 [category="CSV_string"]
                 [type="CSV_string"]
-                **[getuuid=y|n|Y|N|0|1]**
-                **[getorg=y|n|Y|N|0|1]**
+                **[getuuid=<1|y|Y|t|true|True|0|n|N|f|false|False>]**
+                **[getorg=<1|y|Y|t|true|True|0|n|N|f|false|False>]**
                 **[tags="CSV_string"]**
                 **[not_tags="CSV_string"]
+                **[getorg=<1|y|Y|t|true|True|0|n|N|f|false|False>]**
                 [misp_url=https://host:port] 
                 [misp_key=misp-authorization-key]
                 [misp_verifycert=y|n]                 
                 
-
+----
+    Note: "onlyids" is maintained for compatibility and works like "to_ids"
+----
 - You must set either parameter 'eventid', 'last' or 'date_from'
     + eventid is the numeric value on the instance. (if you think uuid should be an option introduce an issue or pull request)
     + last interval is a number followed by a letter d(ays), h(ours) or m(inutes)
@@ -38,12 +41,12 @@ will return the following columns
 
 another example:
 
-    |mispgetioc last=7d type="sha256,domain,ip-dst,text" onlyids=Y getuuid=Y getorg=Y
+    |mispgetioc last=7d type="sha256,domain,ip-dst,text" to_ids=Y getuuid=Y getorg=Y
 
 
 - The other parameters are optional
     + you may filter the results using
-        - onlyids (boolean),
+        - to_ids (boolean),
         - [type](https://www.circl.lu/doc/misp/categories-and-types/#types). Use a CSV string to list the types; for example type="domain" or type="domain,hostname,ip-dst"
         - [category](https://www.circl.lu/doc/misp/categories-and-types/#categories) Use a CSV string to list the categories; for example category="Payload delivery" or category="Payload delivery,Network activity,External analysis"
         - tags. Use a CSV string to search for events with these tags
@@ -52,6 +55,7 @@ another example:
     + you may set getuuid=Y to get the event uuid in the results 
     + likewise set getorg=Y to list the originating organisation
     + geteventtag will return event tags in the result
+    + if you want to split multivalue attributes set pipesplit to "True" 
 
 - If you need to fecth from another MISP instance different from the default one defined in the setup of the app, you may overwrite the misp server parameters for this search by setting
     + misp_url: set the url to the MISP instance
