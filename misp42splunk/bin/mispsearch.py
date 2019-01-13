@@ -18,12 +18,55 @@ import logging
 
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
-__version__    = "3.0.0"
+__version__    = "2.0.14"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
-@Configuration(distributed=False)
 
+def prepare_config(self):
+    # Generate confg_args
+    config_args = {}
+    # open misp.conf
+    mispconf = cli.getConfStanza('misp','mispsetup')        
+    # MISP instance parameters
+    # get specific misp url and key if any (and misp_verifycert)
+    if self.misp_url and self.misp_key:
+        config_args['misp_url'] = self.misp_url
+        logging.info('misp_url as option, value is %s', config_args['misp_url'])
+        config_args['misp_key'] = self.misp_key
+        logging.info('misp_key as option, value is %s', config_args['misp_key'])
+        if self.misp_verifycert:
+            config_args['misp_verifycert'] = self.misp_verifycert
+        else:
+            config_args['misp_verifycert'] = False
+        logging.info('misp_verifycert as option, value is %s', config_args['misp_verifycert'])
+    else:
+        # get MISP settings stored in misp.conf
+        config_args['misp_url'] = mispconf.get('misp_url')
+        logging.info('misp.conf: misp_url value is %s', config_args['misp_url'])
+        config_args['misp_key'] = mispconf.get('misp_key')
+        logging.info('misp.conf: misp_key value is %s', config_args['misp_key'])
+        if int(mispconf.get('misp_verifycert')) == 1:
+            config_args['misp_verifycert'] = True
+        else:
+            config_args['misp_verifycert'] = False
+        logging.info('misp.conf: misp_verifycert value is %s', config_args['misp_verifycert'])
+    # get proxy parameters if any
+    http_proxy = mispconf.get('http_proxy', '')
+    https_proxy = mispconf.get('https_proxy', '')
+    if http_proxy != '' and https_proxy != '':
+        config_args['proxies'] = {
+            "http": http_proxy,
+            "https": https_proxy
+        }
+    else:
+        config_args['proxies'] = {}
+    logging.info('proxies dict is %s', json.dumps(config_args['proxies']))
+
+    return config_args
+
+
+@Configuration(distributed=False)
 class MispSearchCommand(StreamingCommand):
     """ search in MISP for attributes matching the value of field.
 
@@ -75,82 +118,49 @@ class MispSearchCommand(StreamingCommand):
         **Syntax:** **field=***<fieldname>*
         **Description:**Name of the field containing the value to search for.''',
         require=True, validate=validators.Fieldname())
-
     onlyids = Option(
         doc='''
         **Syntax:** **onlyids=***<y|n>*
         **Description:** Boolean to search only attributes with to_ids set''',
-        require=False, validate=validators.Match("onlyids", r"^[yYnN01]+$"))
-
+        require=False, validate=validators.Boolean())
     gettag = Option(
         doc='''
         **Syntax:** **gettag=***<y|n>*
         **Description:** Boolean to return attribute tags''',
-        require=False, validate=validators.Match("gettag", r"^[yYnN01]+$"))
-
-# Superseede MISP instance for this search
+        require=False, validate=validators.Boolean())
+    # Superseede MISP instance for this search
     misp_url = Option(
         doc='''
         **Syntax:** **misp_url=***<MISP URL>*
         **Description:**URL of MISP instance.''',
         require=False, validate=validators.Match("misp_url", r"^https?:\/\/[0-9a-zA-Z\-\.]+(?:\:\d+)?$"))
-
     misp_key = Option(
         doc='''
         **Syntax:** **misp_key=***<AUTH_KEY>*
         **Description:**MISP API AUTH KEY.''',
         require=False, validate=validators.Match("misp_key", r"^[0-9a-zA-Z]{40}$"))
-
     misp_verifycert = Option(
         doc = '''
         **Syntax:** **misp_verifycert=***<y|n>*
         **Description:**Verify or not MISP certificate.''',
-        require=False, validate=validators.Match("misp_verifycert", r"^[yYnN01]$"))
+        require=False, validate=validators.Boolean())
 
 
     def stream(self, records):
-        # open misp.conf
-        mispconf = cli.getConfStanza('misp','mispsetup')
         # Generate args
-        my_args = {}
-        # MISP instance parameters
-        if self.misp_url:
-            my_args['misp_url'] = self.misp_url + '/attributes/restSearch'
-            logging.debug('misp_url as option, value is %s', my_args['misp_url'])
-        else:
-            my_args['misp_url'] = mispconf.get('misp_url') + '/attributes/restSearch'
-            logging.debug('misp.conf: misp_url value is %s', my_args['misp_url'])
-        if self.misp_key:
-            my_args['misp_key'] = self.misp_key
-            logging.debug('misp_key as option, value is %s', my_args['misp_key'])
-        else:
-            my_args['misp_key'] = mispconf.get('misp_key')
-            logging.debug('misp.conf: misp_key value is %s', my_args['misp_key'])
-        if self.misp_verifycert:
-            if self.misp_verifycert == 'Y' or self.misp_verifycert == 'y' or self.misp_verifycert == '1':
-                my_args['misp_verifycert'] = True
-            else:
-                my_args['misp_verifycert'] = False
-            logging.debug('misp_verifycert as option, value is %s', my_args['misp_verifycert'])
-        else:
-            if int(mispconf.get('misp_verifycert')) == 1:
-                my_args['misp_verifycert'] = True
-            else:
-                my_args['misp_verifycert'] = False
-            logging.debug('misp.conf: misp_verifycert value is %s', my_args['misp_verifycert'])
-
-
+        my_args = prepare_config(self)
+        my_args['misp_url'] = my_args['misp_url'] + '/attributes/restSearch'
         # set proper headers
         headers = {'Content-type': 'application/json'}
         headers['Authorization'] = my_args['misp_key']
         headers['Accept'] = 'application/json'
 
         fieldname = str(self.field)
-        if self.onlyids == 'Y' or self.onlyids == 'y' or self.onlyids == '1':
+        if self.onlyids is True:
             to_ids = True
         else:
             to_ids = False
-        if self.gettag == 'Y' or self.gettag == 'y' or self.gettag == '1':
+        if self.gettag is True:
             get_tag = True
         else:
             get_tag = False
@@ -174,7 +184,8 @@ class MispSearchCommand(StreamingCommand):
                     misp_value = []
                     misp_uuid = []
                     # search 
-                    r = requests.post(my_args['misp_url'], headers=headers, data=body, verify=my_args['misp_verifycert'])
+                    logging.info('INFO MISP REST API REQUEST: %s', body)
+                    r = requests.post(my_args['misp_url'], headers=headers, data=body, verify=my_args['misp_verifycert'], proxies=my_args['proxies'])
                     # check if status is anything other than 200; throw an exception if it is
                     r.raise_for_status()
                     # response is 200 by this point or we would have thrown an exception

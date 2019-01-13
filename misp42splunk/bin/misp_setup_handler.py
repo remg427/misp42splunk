@@ -29,7 +29,7 @@ class ConfigApp(admin.MConfigHandler):
   '''
   def setup(self):
     if self.requestedAction == admin.ACTION_EDIT:
-      for arg in ['misp_url', 'misp_key', 'misp_verifycert']:
+      for arg in ['misp_url', 'misp_key', 'misp_verifycert', 'http_proxy', 'https_proxy']:
         self.supportedArgs.addOptArg(arg)
         
   '''
@@ -58,9 +58,7 @@ class ConfigApp(admin.MConfigHandler):
               val = '1'
             else:
               val = '0'
-          if key in ['misp_url'] and val in [None, '']:
-            val = ''
-          if key in ['misp_key'] and val in [None, '']:
+          if key in ['misp_url', 'misp_key', 'http_proxy', 'https_proxy'] and val in [None, '']:
             val = ''
           confInfo[stanza].append(key, val)
           
@@ -76,13 +74,19 @@ class ConfigApp(admin.MConfigHandler):
       self.callerArgs.data['misp_verifycert'][0] = '1'
     else:
       self.callerArgs.data['misp_verifycert'][0] = '0'
-    
+
     if self.callerArgs.data['misp_url'][0] in [None, '']:
       self.callerArgs.data['misp_url'][0] = ''  
 
     if self.callerArgs.data['misp_key'][0] in [None, '']:
       self.callerArgs.data['misp_key'][0] = ''  
-           
+
+    if self.callerArgs.data['http_proxy'][0] in [None, '']:
+      self.callerArgs.data['http_proxy'][0] = ''  
+
+    if self.callerArgs.data['https_proxy'][0] in [None, '']:
+      self.callerArgs.data['https_proxy'][0] = ''  
+
 #    Since we are using a conf file to store parameters, 
 #    write them to the [mispsetup] stanza
 #    in app_name/local/misp.conf  

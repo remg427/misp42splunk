@@ -2,29 +2,32 @@
 ## custom command mispgetioc version 2.0
 This custom command must be the first of a search (or a sub-search). The results are displayed in a table that contains:
 
-    + always following fields = ['event_id', 'category' 'object_id', 'timestamp', 'to_ids', 'event_tag', 'tags', 'type', 'value']
-    + if object_id is not equal 0, object attributes are displayed on the same row and field type is set to object, value to 1
-    + and a column by type either with a value or empty
+
+- always following fields = ['event_id', 'category' 'object_id', 'timestamp', 'to_ids', 'event_tag', 'tags', 'type', 'value']
+- if object_id is not equal 0, object attributes are displayed on the same row and field type is set to object, value to object_id
+- and a column by type either with a value or empty
 
 So the output can be immediately reused in a search without complex transforms
 
 The command syntax is as follow:
 
     |mispgetioc ( [eventid=id] | [last=interval]  | date_from="YYYY-mm-dd" (date_to="YYYY-mm-dd") )
-                [to_ids=<1|y|Y|t|true|True|0|n|N|f|false|False>]
+                [to_ids=y|n]
                 [category="CSV_string"]
                 [type="CSV_string"]
-                **[getuuid=<1|y|Y|t|true|True|0|n|N|f|false|False>]**
-                **[getorg=<1|y|Y|t|true|True|0|n|N|f|false|False>]**
+                **[pipesplit=y|n]**
+                **[getuuid=y|n]**
+                **[getorg=y|n**
                 **[tags="CSV_string"]**
                 **[not_tags="CSV_string"]
-                **[getorg=<1|y|Y|t|true|True|0|n|N|f|false|False>]**
+                **[getorg=y|n]**
                 [misp_url=https://host:port] 
                 [misp_key=misp-authorization-key]
                 [misp_verifycert=y|n]                 
                 
 ----
     Note: "onlyids" is maintained for compatibility and works like "to_ids"
+    Boolean: value can be <1|y|Y|t|true|True|0|n|N|f|false|False>
 ----
 - You must set either parameter 'eventid', 'last' or 'date_from'
     + eventid is the numeric value on the instance. (if you think uuid should be an option introduce an issue or pull request)
@@ -37,7 +40,7 @@ one example:
 
 will return the following columns
 
-    | _time | misp_category | misp_event_id | misp_ip_dst | misp_domain | misp_sha256 | orgc | misp_text | misp_to_ids | misp_type | misp_attribute_uuid | misp_value
+    | _time | misp_category | misp_event_id | misp_ip_dst | misp_domain | misp_sha256 | misp_orgc | misp_text | misp_to_ids | misp_type | misp_attribute_uuid | misp_value
 
 another example:
 
@@ -52,10 +55,10 @@ another example:
         - tags. Use a CSV string to search for events with these tags
         - not_tags. Use a CSV string to search for events which have not these tags
 
-    + you may set getuuid=Y to get the event uuid in the results 
+    + you may set getuuid=Y to get the event UUID in the results 
     + likewise set getorg=Y to list the originating organisation
     + geteventtag will return event tags in the result
-    + if you want to split multivalue attributes set pipesplit to "True" 
+    + **if you want to split multivalue attributes set pipesplit to "True" **
 
 - If you need to fecth from another MISP instance different from the default one defined in the setup of the app, you may overwrite the misp server parameters for this search by setting
     + misp_url: set the url to the MISP instance

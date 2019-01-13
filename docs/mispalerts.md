@@ -1,6 +1,6 @@
 # Alerts to interact with MISP
 ## Create MISP event(s)    
-When you create an alert, you may add an alert action to directly create events in MISP based on search results.
+When you create an alert, you may add an alert action to directly create events (or edit events) in MISP based on search results.
 This version of the app requires MISP 2.4.97 or later.
 
 ### collect results in Splunk
@@ -33,6 +33,7 @@ Fill in the form to tune your alert to your needs.
     - Title: The title of this alert.
     - Description: The description to send with the alert.
 * Global event parameters: the parameters will apply for all events created by this alert unless overwritten (see above)
+    - EventID: the event you want to add attrributes and objects. Leave blank or put 0 to create new events (default)
     - Unique ID: indicate the field containing the unique id to group several rows under a single event. If not defined an default eventkey will be generated and all results will be added to the same event.
     - Info: This string will be set in the Info field of MISP event. If not defined, the Info field will contain 'malspam'. By default, it takes a copy of the description (token $description$)
     - Distribution: Change the Distribution. Defaults to Your organisation only

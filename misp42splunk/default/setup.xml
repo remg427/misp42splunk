@@ -13,4 +13,14 @@
       <type>bool</type>
     </input>
   </block>
+  <block title="(Optional) proxy parameters if needed - leave empty if no proxy required. Use the syntax http://user:pass@proxyhost:port/" endpoint="misp/customendpoint" entity="mispsetup">
+    <input field="http_proxy">
+      <label>http url:</label>
+      <type>text</type>
+    </input>
+    <input field="https_proxy" endpoint="misp/customendpoint" entity="mispsetup">
+      <label>https url</label>
+      <type>text</type>
+    </input>
+  </block>
 </setup>
