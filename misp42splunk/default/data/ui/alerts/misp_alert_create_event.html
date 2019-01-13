@@ -27,6 +27,15 @@
         <h4>Global event parameters</h4>
     </div>
     <div class="control-group">
+        <label class="control-label" for="misp_alert_create_event_eventid">EventID</label>
+        <div class="controls">
+            <input type="text" name="action.misp_alert_create_event.param.eventid" id="misp_alert_create_event_eventid" required/>
+            <span class="help-block">
+                If an event ID or UUID is provided, attributes will be added to it.
+            </span>
+        </div>
+    </div>
+    <div class="control-group">
         <label class="control-label" for="misp_alert_create_event_unique">Unique ID</label>
         <div class="controls">
             <input type="text" name="action.misp_alert_create_event.param.unique" id="misp_alert_create_event_unique" required></input>

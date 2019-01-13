@@ -21,17 +21,55 @@ import logging
 
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
-__version__    = "4.0.0"
+__version__    = "2.0.14"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
-# try:
-#    from utils import error, parse
-# except ImportError:
-#    raise Exception("Add the SDK repository to your PYTHONPATH to run the examples (e.g., export PYTHONPATH=~/splunk-sdk-python.")
+
+def prepare_config(self):
+    # Generate confg_args
+    config_args = {}
+    # open misp.conf
+    mispconf = cli.getConfStanza('misp','mispsetup')        
+    # MISP instance parameters
+    # get specific misp url and key if any (and misp_verifycert)
+    if self.misp_url and self.misp_key:
+        config_args['misp_url'] = self.misp_url
+        logging.info('misp_url as option, value is %s', config_args['misp_url'])
+        config_args['misp_key'] = self.misp_key
+        logging.info('misp_key as option, value is %s', config_args['misp_key'])
+        if self.misp_verifycert:
+            config_args['misp_verifycert'] = self.misp_verifycert
+        else:
+            config_args['misp_verifycert'] = False
+        logging.info('misp_verifycert as option, value is %s', config_args['misp_verifycert'])
+    else:
+        # get MISP settings stored in misp.conf
+        config_args['misp_url'] = mispconf.get('misp_url')
+        logging.info('misp.conf: misp_url value is %s', config_args['misp_url'])
+        config_args['misp_key'] = mispconf.get('misp_key')
+        logging.info('misp.conf: misp_key value is %s', config_args['misp_key'])
+        if int(mispconf.get('misp_verifycert')) == 1:
+            config_args['misp_verifycert'] = True
+        else:
+            config_args['misp_verifycert'] = False
+        logging.info('misp.conf: misp_verifycert value is %s', config_args['misp_verifycert'])
+    # get proxy parameters if any
+    http_proxy = mispconf.get('http_proxy', '')
+    https_proxy = mispconf.get('https_proxy', '')
+    if http_proxy != '' and https_proxy != '':
+        config_args['proxies'] = {
+            "http": http_proxy,
+            "https": https_proxy
+        }
+    else:
+        config_args['proxies'] = {}
+    logging.info('proxies dict is %s', json.dumps(config_args['proxies']))
+
+    return config_args
+
 
 @Configuration(requires_preop=False)
-
 class mispgetioc(ReportingCommand):
     """ get the attributes from a MISP instance.
     ##Syntax
@@ -142,34 +180,8 @@ class mispgetioc(ReportingCommand):
     def reduce(self, records):
 
         # Phase 1: Preparation
-
-        # self.logger.debug('mispgetioc.reduce')
-        # open misp.conf
-        mispconf = cli.getConfStanza('misp','mispsetup')
-        # Generate args
-        my_args = {}
-        # MISP instance parameters
-        if self.misp_url:
-            my_args['misp_url'] = self.misp_url + '/attributes/restSearch'
-            logging.debug('misp_url as option, value is %s', my_args['misp_url'])
-        else:
-            my_args['misp_url'] = mispconf.get('misp_url') + '/attributes/restSearch'
-            logging.debug('misp.conf: misp_url value is %s', my_args['misp_url'])
-        if self.misp_key:
-            my_args['misp_key'] = self.misp_key
-            logging.debug('misp_key as option, value is %s', my_args['misp_key'])
-        else:
-            my_args['misp_key'] = mispconf.get('misp_key')
-            logging.debug('misp.conf: misp_key value is %s', my_args['misp_key'])
-        if self.misp_verifycert:
-            my_args['misp_verifycert'] = self.misp_verifycert
-            logging.debug('misp_verifycert as option, value is %s', my_args['misp_verifycert'])
-        else:
-            if int(mispconf.get('misp_verifycert')) == 1:
-                my_args['misp_verifycert'] = True
-            else:
-                my_args['misp_verifycert'] = False
-            logging.debug('misp.conf: misp_verifycert value is %s', my_args['misp_verifycert'])
+        my_args = prepare_config(self,'/attributes/restSearch')
+        my_args['misp_url'] = my_args['misp_url'] + '/attributes/restSearch'
 
         # build search JSON object
         body_dict = { "returnFormat": "json",
@@ -195,10 +207,13 @@ class mispgetioc(ReportingCommand):
 
         # Only ONE combination was provided
         if self.eventid:
-            event_criteria = {}
-            event_list = self.eventid.split(",")
-            event_criteria['OR'] = event_list
-            body_dict['eventid'] = event_criteria
+            if "," in self.eventid:
+                event_criteria = {}
+                event_list = self.eventid.split(",")
+                event_criteria['OR'] = event_list
+                body_dict['eventid'] = event_criteria
+            else:
+                body_dict['eventid'] = self.eventid
             logging.info('Option "eventid" set with %s', body_dict['eventid'])
         elif self.last:
             body_dict['last'] = self.last
@@ -272,6 +287,8 @@ class mispgetioc(ReportingCommand):
             my_args['pipe'] = False
 
         results = []
+        # add colums for each type in results
+        typelist = []
         while other_page:
             if pagination == True:
                 body_dict['page'] = page
@@ -280,7 +297,7 @@ class mispgetioc(ReportingCommand):
             body = json.dumps(body_dict)
             logging.info('INFO MISP REST API REQUEST: %s', body)
             # search
-            r = requests.post(my_args['misp_url'], headers=headers, data=body, verify=my_args['misp_verifycert'])
+            r = requests.post(my_args['misp_url'], headers=headers, data=body, verify=my_args['misp_verifycert'], proxies=my_args['proxies'])
             # check if status is anything other than 200; throw an exception if it is
             r.raise_for_status()
             # response is 200 by this point or we would have thrown an exception
@@ -307,42 +324,34 @@ class mispgetioc(ReportingCommand):
                         # in previous version this was the ORG name ==> create lookup
                         if 'Event' in a and my_args['getorg']:
                             v['misp_orgc_id'] = str(a['Event']['orgc_id'])
-                                                            # include attribute UUID if requested
+                        # include attribute UUID if requested
                         if my_args['getuuid']:
                             v['misp_attribute_uuid'] = str(a['uuid'])
                         # handle object and multivalue attributes
                         v['misp_object_id'] = str(a['object_id'])
-                        if int(a['object_id']) == 0: # not part of an object
-                            current_type = str(a['type'])
-                            if '|' in current_type: # multivalue attribute
-                                if my_args['pipe'] is True: # multivalue attribute will be split
-                                    mv_type_list = current_type.split('|')
-                                    mv_value_list = str(a['value']).split('|')
-                                    left_v = v.copy()
-                                    left_v['misp_type'] = mv_type_list.pop()
-                                    left_v['misp_value'] = mv_value_list.pop()
-                                    logging.debug(json.dumps(left_v))
-                                    results.append(left_v)
-                                    logging.debug(json.dumps(results))
-                                    right_v= v.copy()
-                                    right_v['misp_type'] = mv_type_list.pop()
-                                    right_v['misp_value'] = mv_value_list.pop()
-                                    logging.debug(json.dumps(right_v))
-                                    logging.debug(json.dumps(left_v))
-                                    results.append(right_v)
-                                    logging.debug(json.dumps(results))
-                                else: # multivalue attribute kept as one
-                                    v['misp_type'] = current_type
-                                    v['misp_value'] = str(a['value'])
-                                    results.append(v)
-                            else:
-                                v['misp_type'] = current_type
-                                v['misp_value'] = str(a['value'])
-                                results.append(v)
-                        else: # this is an attribute part of a MISP object
-                            v['misp_type'] = str(a['type'])
+                        current_type = str(a['type'])
+                        # combined: not part of an object AND multivalue attribute QND to be split
+                        if int(a['object_id']) == 0 and '|' in current_type and my_args['pipe'] is True: 
+                            mv_type_list = current_type.split('|')
+                            mv_value_list = str(a['value']).split('|')
+                            left_v = v.copy()
+                            left_v['misp_type'] = mv_type_list.pop()
+                            left_v['misp_value'] = mv_value_list.pop()
+                            results.append(left_v)
+                            if left_v['misp_type'] not in typelist:
+                                typelist.append(left_v['misp_type'])
+                            right_v= v.copy()
+                            right_v['misp_type'] = mv_type_list.pop()
+                            right_v['misp_value'] = mv_value_list.pop()
+                            results.append(right_v)
+                            if right_v['misp_type'] not in typelist:
+                                typelist.append(right_v['misp_type'])
+                        else:
+                            v['misp_type'] = current_type
                             v['misp_value'] = str(a['value'])
                             results.append(v)
+                            if current_type not in typelist:
+                                typelist.append(current_type)
 
             if pagination == True:
                 if l < limit:
@@ -352,14 +361,7 @@ class mispgetioc(ReportingCommand):
             else:
                 other_page = False
 
-        # add colums for each type in results
-        typelist = []
-        for r in results:
-            misp_type = r['misp_type']
-            logging.debug(json.dumps(misp_type))
-            if misp_type not in typelist:
-                typelist.append(misp_type)
-        logging.debug(json.dumps(typelist))
+        logging.info(json.dumps(typelist))
 
         output_dict = {}
         #relevant_cat = ['Artifacts dropped', 'Financial fraud', 'Network activity','Payload delivery','Payload installation']
@@ -403,11 +405,9 @@ class mispgetioc(ReportingCommand):
         
         for k,v in output_dict.items():
             yield v
-            logging.debug(json.dumps(v))
-
 
 if __name__ == "__main__":
     # set up logging suitable for splunkd consumption
     logging.root
-    logging.root.setLevel(logging.DEBUG)
+    logging.root.setLevel(logging.ERROR)
     dispatch(mispgetioc, sys.argv, sys.stdin, sys.stdout, __name__)

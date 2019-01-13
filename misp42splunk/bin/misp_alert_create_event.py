@@ -7,7 +7,7 @@
 # Copyright: LGPLv3 (https://www.gnu.org/licenses/lgpl-3.0.txt)
 # Feel free to use the code, but please share the changes you've made
 #
-# most of the code here was based on the following example on splunk custom alert actions
+# most of the code here was based on the following example on splunk custom alert event_list
 # http://docs.splunk.com/Documentation/Splunk/6.5.3/AdvancedDev/ModAlertsAdvancedExample
 
 import csv
@@ -23,17 +23,19 @@ import logging
 
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
-__version__    = "3.0.0"
+__version__    = "2.0.14"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
 
-def store_attribute(t, v, to_ids=False, category=None):
+def store_attribute(t, v, to_ids=None, category=None):
     Attribute = {}
     Attribute['type'] = t
     Attribute['value'] = v
-    Attribute['to_ids'] = to_ids
-    Attribute['category'] = category
+    if to_ids is not None:
+        Attribute['to_ids'] = to_ids
+    if category is not None:
+        Attribute['category'] = category
     return Attribute
 
 
@@ -58,7 +60,7 @@ def store_object_attribute(ot, t, v):
         exit(3)    
 
 
-def prepare_misp_events(config, results):
+def prepare_misp_events(config, results, event_list):
     # print(config)
     # iterate through each row, cleaning multivalue fields and then adding the attributes under same event key
     # this builds the dict events
@@ -69,8 +71,7 @@ def prepare_misp_events(config, results):
         'distribution': config['distribution'],
         'published': False,
         'Attribute': [],
-        'Object': [],
-
+        'Object': []
     }
     # tag the event with TLP level
     tags = [{ 'name': config['tlp']}]
@@ -87,10 +88,17 @@ def prepare_misp_events(config, results):
         # Splunk makes a bunch of dumb empty multivalue fields - we filter those out here
         row = {key: value for key, value in row.items() if not key.startswith("__mv_")}
 
-        # GEt the specific eventkey if define in Splunk search. Defaults to alert form got above
+        # Get the specific eventkey if defined in Splunk search. Defaults to alert form value
         eventkey = config['eventkey']
         if eventkey in row:
-            eventkey = row.pop(eventkey)
+            eventkey = str(row[eventkey])
+        # Get the specific eventid if define in Splunk search. Defaults to alert form value
+        # Value == 0: means create new event
+        # Value <> 0: edit existing event
+        eventid = config['eventid']
+        if 'eventid' in row:
+            eventid = str(row.pop('eventid'))
+        logging.info("eventid is %s", eventid)
 
         # check if building event has been initiated
         # if yes simply add attribute entry otherwise collect other metadata
@@ -105,6 +113,7 @@ def prepare_misp_events(config, results):
             if 'misp_info' in row:
                 row.pop('misp_info')
         else:
+            event_list[eventkey] = eventid
             event = event_baseline
             attributes = event['Attribute']
             objects = event['Object']
@@ -136,7 +145,7 @@ def prepare_misp_events(config, results):
             else:
                 to_ids = False
         else:
-            to_ids = False
+            to_ids = None
 
         if 'misp_category' in row:
             category = str(row.pop('misp_category'))
@@ -204,12 +213,9 @@ def prepare_misp_events(config, results):
     return events
 
 
-def create_misp_events(config, results):
+def process_misp_events(config, results, event_list):
 
-    #create them in MISP
-    # print(events)
-
-    misp_url = config['misp_url'] + '/events/add'
+    misp_url_create = config['misp_url'] + '/events/add'
     misp_key = config['misp_key']
     misp_verifycert = config['misp_verifycert']
 
@@ -220,34 +226,45 @@ def create_misp_events(config, results):
 
     status = 200
     for eventkey in results:
-        body = json.dumps(results[eventkey])
-        # POST json data to create events
-        r = requests.post(misp_url, headers=headers, data=body, verify=misp_verifycert)
-        # check if status is anything other than 200; throw an exception if it is
-        r.raise_for_status()
-        # response is 200 by this point or we would have thrown an exception
-        response = r.json()
-        logging.info("event created")
-        logging.debug("event created %s", json.dumps(response))
-
-        # print(json.dumps(response))
-
+        if event_list[eventkey] == "0": # create new event
+            body = json.dumps(results[eventkey])
+            logging.info("create body is %s", body)
+            # POST json data to create events
+            r = requests.post(misp_url_create, headers=headers, data=body, verify=misp_verifycert, proxies=config['proxies'])
+            # check if status is anything other than 200; throw an exception if it is
+            r.raise_for_status()
+            # response is 200 by this point or we would have thrown an exception
+            response = r.json()
+            logging.info("event created")
+            logging.debug("event created %s", json.dumps(response))
+        else: # edit existing eventid with Attribute and Object
+            misp_url_edit = config['misp_url'] + '/events/edit/' + event_list[eventkey]
+            edit_body = {}
+            edit_body['Attribute'] = results[eventkey]['Attribute']
+            edit_body['Object'] = results[eventkey]['Object']
+            body = json.dumps(edit_body)
+            logging.info("edit body is %s", body)
+            # POST json data to create events
+            r = requests.post(misp_url_edit, headers=headers, data=body, verify=misp_verifycert, proxies=config['proxies'])
+            # check if status is anything other than 200; throw an exception if it is
+            r.raise_for_status()
+            # response is 200 by this point or we would have thrown an exception
+            response = r.json()
+            logging.info("event edited")
+            logging.debug("event edited %s", json.dumps(response))
     return status
 
 def prepare_config(config, filename):
-    logging.debug("DEBUG Creating alert with config %s", json.dumps(config))
-
-    # get the misp_url we need to connect to MISP
-    # this can be passed as params of the alert. Defaults to values set in misp.conf
-    # get MISP settings stored in misp.conf
+    logging.info("Creating alert with config %s", json.dumps(config))
+    
+    config_args = {}
     # open misp.conf
     mispconf = cli.getConfStanza('misp','mispsetup')
-    
+    # get the misp_url we need to connect to MISP
+    # this can be passed as params of the alert. Defaults to values set in misp.conf  
     # get specific misp url and key if any (from alert configuration)
     misp_url = config.get('misp_url')
-    misp_key = config.get('misp_key')
-
-    # If no specific MISP instances defined, get settings from misp.conf
+    misp_key = config.get('misp_key')   
     if misp_url and misp_key:
         misp_url = str(misp_url)
         misp_verifycert = int(config.get('misp_verifycert', "0"))
@@ -255,7 +272,8 @@ def prepare_config(config, filename):
             misp_verifycert = True
         else:
             misp_verifycert = False
-    else:
+    else: 
+        # get MISP settings stored in misp.conf
         misp_url = str(mispconf.get('misp_url'))
         misp_key = mispconf.get('misp_key')
         if mispconf.get('misp_verifycert') == 1:
@@ -264,12 +282,22 @@ def prepare_config(config, filename):
             misp_verifycert = False
 
     # check and complement config
-    config_args = {}
     config_args['misp_url'] = misp_url
     config_args['misp_key'] = misp_key
-    config_args['misp_verifycert'] = misp_verifycert
+    config_args['misp_verifycert'] = misp_verifycert   
+    # get proxy parameters if any
+    http_proxy = mispconf.get('http_proxy', '')
+    https_proxy = mispconf.get('https_proxy', '')
+    if http_proxy != '' and https_proxy != '':
+        config_args['proxies'] = {
+            "http": http_proxy,
+            "https": https_proxy
+        }
+    else:
+        config_args['proxies'] = {}
 
     # Get string values from alert form
+    config_args['eventid'] = config.get('eventid', "0")
     config_args['eventkey'] = config.get('unique', "oneEvent")
     config_args['info'] = config.get('info', "notable event")
     config_args['tlp'] = config.get('tlp')
@@ -285,6 +313,7 @@ def prepare_config(config, filename):
 
     # add filename of the file containing the result of the search
     config_args['filename'] = filename
+    logging.info("config_args is %s", json.dumps(config_args))
 
     return config_args
 
@@ -318,10 +347,11 @@ if __name__ == "__main__":
                     logging.debug('Reader is %s', str(Reader))
                     Config = prepare_config(configuration,filename)
                     logging.debug('Config is %s', json.dumps(Config))
-                    Events = prepare_misp_events(Config, Reader)
+                    event_list = {}
+                    Events = prepare_misp_events(Config, Reader, event_list)
                     logging.debug('Events contains %s', json.dumps(Events))
                     #print(json.dumps(Events))
-                    status = create_misp_events(Config, Events)
+                    status = process_misp_events(Config, Events, event_list)
 
                 # by this point - all alerts shosuld have been created with all necessary observables attached to each one
                 # we can gracefully exit now
