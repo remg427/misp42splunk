@@ -21,7 +21,7 @@ import logging
 
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
-__version__    = "2.0.14"
+__version__    = "2.0.15"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
@@ -180,7 +180,7 @@ class mispgetioc(ReportingCommand):
     def reduce(self, records):
 
         # Phase 1: Preparation
-        my_args = prepare_config(self,'/attributes/restSearch')
+        my_args = prepare_config(self)
         my_args['misp_url'] = my_args['misp_url'] + '/attributes/restSearch'
 
         # build search JSON object
