@@ -501,5 +501,5 @@ class mispapireport(ReportingCommand):
 if __name__ == "__main__":
     # set up logging suitable for splunkd consumption
     logging.root
-    logging.root.setLevel(logging.DEBUG)
+    logging.root.setLevel(logging.ERROR)
     dispatch(mispapireport, sys.argv, sys.stdin, sys.stdout, __name__)
