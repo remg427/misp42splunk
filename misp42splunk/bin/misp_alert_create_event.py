@@ -28,7 +28,7 @@ __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
 
-def store_attribute(t, v, to_ids=None, category=None):
+def store_attribute(t, v, to_ids=None, category=None, comment=None):
     Attribute = {}
     Attribute['type'] = t
     Attribute['value'] = v
@@ -36,6 +36,8 @@ def store_attribute(t, v, to_ids=None, category=None):
         Attribute['to_ids'] = to_ids
     if category is not None:
         Attribute['category'] = category
+    if comment is not None:
+        Attribute['comment'] = comment
     return Attribute
 
 
@@ -146,17 +148,20 @@ def prepare_misp_events(config, results, event_list):
                 to_ids = False
         else:
             to_ids = None
-
         if 'misp_category' in row:
             category = str(row.pop('misp_category'))
         else:
             category = None
+        if 'misp_comment' in row:
+            comment = str(row.pop('misp_comment'))
+        else:
+            comment = None
 
         # now we take KV pairs starting by misp_ to add to event as single attribute(s)
         for key, value in row.items():
             if key.startswith("misp_") and value != "":
                 misp_key = str(key).replace('misp_', '').replace('_', '-')
-                attributes.append(store_attribute(misp_key, str(value), to_ids, category))
+                attributes.append(store_attribute(misp_key, str(value), to_ids, category, comment))
 
         # update event attribute list
         event['Attribute'] = attributes
