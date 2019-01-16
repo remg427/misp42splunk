@@ -31,7 +31,7 @@ from splunk.clilib import cli_common as cli
 
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
-__version__    = "3.0.0"
+__version__    = "2.0.17"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
@@ -99,6 +99,16 @@ def create_alert(config, results):
             misp_verifycert = True
         else:
             misp_verifycert = False
+    # get proxy parameters if any
+    http_proxy = mispconf.get('http_proxy', '')
+    https_proxy = mispconf.get('https_proxy', '')
+    if http_proxy != '' and https_proxy != '':
+        proxies = {
+            "http": http_proxy,
+            "https": https_proxy
+        }
+    else:
+        proxies = {}
 
     # Get mode set in alert settings; either byvalue or byuuid
     mode = config.get('mode', 'byvalue')
@@ -152,7 +162,7 @@ def create_alert(config, results):
 
         # byvalue: sighting contains {"timestamp": timestamp, "values":["value1", "value2,etc. "]}
         # byuuid:  sighting contains {"timestamp": timestamp, "uuid":"uuid_value"}
-        r = requests.post(misp_url, headers=headers, data=sighting, verify=misp_verifycert)
+        r = requests.post(misp_url, headers=headers, data=sighting, verify=misp_verifycert, proxies=proxies)
         # check if status is anything other than 200; throw an exception if it is
         r.raise_for_status()
         # response is 200 by this point or we would have thrown an exception
