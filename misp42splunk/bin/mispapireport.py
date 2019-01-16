@@ -142,7 +142,7 @@ class mispapireport(ReportingCommand):
         **Syntax:** **mode=***p|j<AUTH_KEY>*
         **Description:**mode to build the JSON request.''',
         require=False, validate=validators.Match("mode", r"^(p|j)$"))
-
+    # if mode=j a complete JSON request has to be provided
     json_request     = Option(
         doc = '''
         **Syntax:** **json_request=***valid JSON request*
@@ -501,5 +501,5 @@ class mispapireport(ReportingCommand):
 if __name__ == "__main__":
     # set up logging suitable for splunkd consumption
     logging.root
-    logging.root.setLevel(logging.DEBUG)
+    logging.root.setLevel(logging.ERROR)
     dispatch(mispapireport, sys.argv, sys.stdin, sys.stdout, __name__)
