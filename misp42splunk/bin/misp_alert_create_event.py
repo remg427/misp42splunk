@@ -23,12 +23,12 @@ import logging
 
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
-__version__    = "2.0.14"
+__version__    = "2.0.17"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
 
-def store_attribute(t, v, to_ids=None, category=None, comment=None):
+def store_attribute(t, v, to_ids=None, category=None, attribute_tag=None, comment=None):
     Attribute = {}
     Attribute['type'] = t
     Attribute['value'] = v
@@ -38,10 +38,20 @@ def store_attribute(t, v, to_ids=None, category=None, comment=None):
         Attribute['category'] = category
     if comment is not None:
         Attribute['comment'] = comment
+        # append event tags provided in the row
+    if attribute_tag is not None:
+        att_tags = []
+        att_tag_list = attribute_tag.split(',')
+        for atag in att_tag_list:
+            if atag not in att_tags:
+                new_tag = { 'name': atag }
+                att_tags.append(new_tag)
+    # update event tag list
+    Attribute['Tag'] = att_tags
     return Attribute
 
 
-def store_object_attribute(ot, t, v):
+def store_object_attribute(ot, t, v, attribute_tag=None):
     try:
         # open object definition.json
         _SPLUNK_PATH = os.environ['SPLUNK_HOME']
@@ -55,7 +65,15 @@ def store_object_attribute(ot, t, v):
                 Attribute['type'] = object_attributes[t]['misp-attribute']
                 Attribute['object_relation'] =  t
                 Attribute['value'] = v
-    
+        if attribute_tag is not None:
+            att_tags = []
+            att_tag_list = attribute_tag.split(',')
+            for atag in att_tag_list:
+                if atag not in att_tags:
+                    new_tag = { 'name': atag }
+                    att_tags.append(new_tag)
+        # update event tag list
+        Attribute['Tag'] = att_tags    
         return Attribute
     except IOError as e:
         print("FATAL %s object definition could not be opened/read" % ot)
@@ -152,6 +170,10 @@ def prepare_misp_events(config, results, event_list):
             category = str(row.pop('misp_category'))
         else:
             category = None
+        if 'misp_attribute_tag' in row:
+            attribute_tag = str(row.pop('misp_attribute_tag'))
+        else:
+            comment = None
         if 'misp_comment' in row:
             comment = str(row.pop('misp_comment'))
         else:
@@ -161,7 +183,7 @@ def prepare_misp_events(config, results, event_list):
         for key, value in row.items():
             if key.startswith("misp_") and value != "":
                 misp_key = str(key).replace('misp_', '').replace('_', '-')
-                attributes.append(store_attribute(misp_key, str(value), to_ids, category, comment))
+                attributes.append(store_attribute(misp_key, str(value), to_ids=to_ids, category=category, attribute_tag=attribute_tag, comment=comment))
 
         # update event attribute list
         event['Attribute'] = attributes
@@ -174,17 +196,17 @@ def prepare_misp_events(config, results, event_list):
         for key, value in row.items():
             if key.startswith("fo_") and value != "":
                 fo_key = str(key).replace('fo_', '').replace('_', '-')
-                object_attribute = store_object_attribute('file',fo_key, str(value))
+                object_attribute = store_object_attribute('file',fo_key, str(value), attribute_tag=attribute_tag)
                 if object_attribute:
                     fo_attribute.append(object_attribute)
             if key.startswith("eo_") and value != "":
                 eo_key = str(key).replace('eo_', '').replace('_', '-')
-                object_attribute = store_object_attribute('email',eo_key, str(value))
+                object_attribute = store_object_attribute('email',eo_key, str(value), attribute_tag=attribute_tag)
                 if object_attribute:
                     eo_attribute.append(object_attribute)
             if key.startswith("no_") and value != "":
                 no_key = str(key).replace('no_', '').replace('_', '-')
-                object_attribute = store_object_attribute('domain-ip',no_key, str(value))
+                object_attribute = store_object_attribute('domain-ip',no_key, str(value), attribute_tag=attribute_tag)
                 if object_attribute:
                     no_attribute.append(object_attribute)
 

@@ -21,7 +21,7 @@ import logging
 
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
-__version__    = "2.0.15"
+__version__    = "2.0.17"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
@@ -124,6 +124,11 @@ class mispgetioc(ReportingCommand):
         doc = '''
         **Syntax:** **to_ids=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
         **Description:**Boolean to search only attributes with the flag "to_ids" set to true.''',
+        require=False, validate=validators.Boolean())
+    published       = Option(
+        doc = '''
+        **Syntax:** **published=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
+        **Description:**select only published events (for option from to) .''',
         require=False, validate=validators.Boolean())
     category        = Option(
         doc = '''
@@ -250,6 +255,8 @@ class mispgetioc(ReportingCommand):
             body_dict['to_ids'] = True
         if self.to_ids is True:
             body_dict['to_ids'] = True
+        if self.published is True:
+            body_dict['published'] = True
         if self.geteventtag is True:
             body_dict['includeEventTags'] = True
         if self.category is not None:
