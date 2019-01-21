@@ -20,7 +20,7 @@ import logging
 
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
-__version__    = "2.0.16"
+__version__    = "2.0.17"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
@@ -148,14 +148,12 @@ class mispapireport(ReportingCommand):
         **Syntax:** **json_request=***valid JSON request*
         **Description:**Valid JSON request''',
         require=False)
-
     # specific formats
     last             = Option(
         doc = '''
         **Syntax:** **last=***<int>d|h|m*
         **Description:**publication duration in day(s), hour(s) or minute(s).''',
         require=False, validate=validators.Match("last",        r"^[0-9]+[hdm]$"))
-
     date_from        = Option(
         doc = '''
         **Syntax:** **date_from=***date_string"*
@@ -166,72 +164,60 @@ class mispapireport(ReportingCommand):
         **Syntax:** **date_to=***date_string"*
         **Description:**(optional)ending date in searches with date_from. if not set default is now''',
         require=False)
-
     threat_level_id = Option(
         doc = '''
         **Syntax:** **threat_level_id=***1-4*
         **Description:**Threat level.''',
         require=False, validate=validators.Match("threat_level_id",     r"^[1-4]$"))
-
     org           = Option(
         doc = '''
         **Syntax:** **org=***CSV string*
         **Description:**Comma(,)-separated string of org name(s), id(s), uuid(s).''',
         require=False)
-
     # CSV numeric list
     eventid          = Option(
         doc = '''
         **Syntax:** **eventid=***id1(,id2,...)*
         **Description:**list of event ID(s).''',
         require=False, validate=validators.Match("eventid",     r"^[0-9,]+$"))
-
     # strings
     value            = Option(
         doc = '''
         **Syntax:** **value=***string*
         **Description:**value.''',
         require=False)
-
     eventinfo        = Option(
         doc = '''
         **Syntax:** **eventinfo=***string*
         **Description:**eventinfo string''',
         require=False)
-
     # numeric values
     limit         = Option(
         doc = '''
         **Syntax:** **limit=***<int>*
         **Description:**define the limit for each MISP search; default 10000. 0 = no pagination.''',
         require=False, validate=validators.Match("limit",     r"^[0-9]+$"))
-
     page          = Option(
         doc = '''
         **Syntax:** **page=***<int>*
         **Description:**define the page of result to get.''',
         require=False, validate=validators.Match("limit",     r"^[0-9]+$"))
-
-
     # CSV strings       
     uuid            = Option(
         doc = '''
         **Syntax:** **uuid=***id1(,id2,...)*
         **Description:**list of event UUID(s).''',
         require=False)
-
     type            = Option(
         doc = '''
         **Syntax:** **type=***CSV string*
         **Description:**Comma(,)-separated string of categories to search for. Wildcard is %.''',
         require=False)
-
     category        = Option(
         doc = '''
         **Syntax:** **category=***CSV string*
         **Description:**Comma(,)-separated string of categories to search for. Wildcard is %.''',
         require=False)
-
     tags            = Option(
         doc = '''
         **Syntax:** **tags=***CSV string*
@@ -242,36 +228,36 @@ class mispapireport(ReportingCommand):
         **Syntax:** **not_tags=***CSV string*
         **Description:**Comma(,)-separated string of tags to exclude from results. Wildcard is %.''',
         require=False)
-
     # Booleans
     to_ids            = Option(
         doc = '''
         **Syntax:** **to_ids=***y|Y|1|true|True|n|N|0|false|False*
         **Description:**Boolean to search only attributes with the flag "to_ids" set to true.''',
         require=False, validate=validators.Boolean())
-
     enforceWarninglist= Option(
         doc = '''
         **Syntax:** **enforceWarninglist=***y|Y|1|true|True|n|N|0|false|False*
         **Description:**Boolean to apply warning lists to results.''',
         require=False, validate=validators.Boolean())
-
     deleted           = Option(
         doc = '''
         **Syntax:** **deleted=***y|Y|1|true|True|n|N|0|false|False*
         **Description:**Boolean to include deleted attributes to results.''',
         require=False, validate=validators.Boolean())
-
     includeEventUuid  = Option(
         doc = '''
         **Syntax:** **includeEventUuid=***y|Y|1|true|True|n|N|0|false|False*
         **Description:**Boolean to include event UUID(s) to results.''',
         require=False, validate=validators.Boolean())
-
     includeEventTags  = Option(
         doc = '''
         **Syntax:** **includeEventTags=***y|Y|1|true|True|n|N|0|false|False*
         **Description:**Boolean to include event UUID(s) to results.''',
+        require=False, validate=validators.Boolean())
+    pipesplit     = Option(
+        doc = '''
+        **Syntax:** **pipesplit=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
+        **Description:**Boolean to split multivalue attributes into 2 attributes.''',
         require=False, validate=validators.Boolean())
 
     @Configuration()
