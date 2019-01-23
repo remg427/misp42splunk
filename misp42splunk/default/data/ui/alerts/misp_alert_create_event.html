@@ -17,7 +17,7 @@
         <label class="control-label" for="misp_alert_create_event_description">Description</label>
 
         <div class="controls">
-            <textarea name="action.misp_alert_create_event.param.description" id="misp_alert_create_event_description" required />
+            <textarea name="action.misp_alert_create_event.param.description" id="misp_alert_create_event_description" />
             <span class="help-block">
                 The description to send with the alert.
             </span>
@@ -29,16 +29,16 @@
     <div class="control-group">
         <label class="control-label" for="misp_alert_create_event_eventid">EventID</label>
         <div class="controls">
-            <input type="text" name="action.misp_alert_create_event.param.eventid" id="misp_alert_create_event_eventid" required/>
+            <input type="text" name="action.misp_alert_create_event.param.eventid" id="misp_alert_create_event_eventid" />
             <span class="help-block">
-                If an event ID or UUID is provided, attributes will be added to it.
+                If a valid event ID (UUID) is provided, attributes are added to it.
             </span>
         </div>
     </div>
     <div class="control-group">
         <label class="control-label" for="misp_alert_create_event_unique">Unique ID</label>
         <div class="controls">
-            <input type="text" name="action.misp_alert_create_event.param.unique" id="misp_alert_create_event_unique" required></input>
+            <input type="text" name="action.misp_alert_create_event.param.unique" id="misp_alert_create_event_unique" />
             <span class="help-block">
                 A field name that contains a unique identifier per event to be created.
             </span>
@@ -47,7 +47,7 @@
     <div class="control-group">
         <label class="control-label" for="misp_alert_create_event_info">Info</label>
         <div class="controls">
-            <textarea name="action.misp_alert_create_event.param.info" id="misp_alert_create_event_info" required>$description$</textarea>
+            <input name="action.misp_alert_create_event.param.info" id="misp_alert_create_event_info" />
             <span class="help-block">
                 The default Info field for the MISP events if not provided in results.
             </span>
@@ -93,7 +93,7 @@
         <label class="control-label" for="misp_alert_create_event_tlp">TLP</label>
 
         <div class="controls">
-            <select id="misp_alert_create_event_tlp" name="action.misp_alert_create_event.param.tlp">
+            <select id="misp_alert_create_event_tlp" name="action.misp_alert_create_event.param.tlp" required>
                 <option value="TLP:WHITE">White</option>
                 <option value="TLP:GREEN">Green</option>
                 <option value="TLP:AMBER" selected>Amber</option>
@@ -107,7 +107,7 @@
         <div class="controls">
             <input type="text" name="action.misp_alert_create_event.param.tags" id="misp_alert_create_event_tags" />
             <span class="help-block">
-                Use single comma-separated string without quotes for multiple tags (ex. "badIP,spam").
+                Use single comma-separated string without quotes for multiple tags (ex. badIP,spam).
             </span>
         </div>
     </div>
