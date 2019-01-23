@@ -46,8 +46,8 @@ def store_attribute(t, v, to_ids=None, category=None, attribute_tag=None, commen
             if atag not in att_tags:
                 new_tag = { 'name': atag }
                 att_tags.append(new_tag)
-    # update event tag list
-    Attribute['Tag'] = att_tags
+        # update event tag list
+        Attribute['Tag'] = att_tags
     return Attribute
 
 
@@ -72,8 +72,8 @@ def store_object_attribute(ot, t, v, attribute_tag=None):
                 if atag not in att_tags:
                     new_tag = { 'name': atag }
                     att_tags.append(new_tag)
-        # update event tag list
-        Attribute['Tag'] = att_tags    
+            # update event tag list
+            Attribute['Tag'] = att_tags    
         return Attribute
     except IOError as e:
         print("FATAL %s object definition could not be opened/read" % ot)
@@ -145,7 +145,7 @@ def prepare_misp_events(config, results, event_list):
             if 'misp_info' in row:
                 event['info'] = row.pop('misp_info')
             else:
-                event['info'] = config['misp_info']
+                event['info'] = config['info']
 
         # append event tags provided in the row
         if 'misp_tag' in row:
@@ -173,7 +173,7 @@ def prepare_misp_events(config, results, event_list):
         if 'misp_attribute_tag' in row:
             attribute_tag = str(row.pop('misp_attribute_tag'))
         else:
-            comment = None
+            attribute_tag = None
         if 'misp_comment' in row:
             comment = str(row.pop('misp_comment'))
         else:
@@ -324,10 +324,19 @@ def prepare_config(config, filename):
         config_args['proxies'] = {}
 
     # Get string values from alert form
-    config_args['eventid'] = config.get('eventid', "0")
-    config_args['eventkey'] = config.get('unique', "oneEvent")
-    config_args['info'] = config.get('info', "notable event")
     config_args['tlp'] = config.get('tlp')
+    if not config.get('eventid'):
+        config_args['eventid'] = "0"
+    else:
+        config_args['eventid'] = config.get('eventid')
+    if not config.get('unique'): 
+        config_args['eventkey'] = "oneEvent"
+    else:
+        config_args['eventkey'] = config.get('unique')
+    if not config.get('info'):
+        config_args['info'] = "notable event"
+    else:
+        config_args['info'] = config.get('info')
     if 'tags' in config:
         config_args['tags'] = config.get('tags')
     else:
