@@ -13,7 +13,7 @@ The command syntax is as follow:
                 [misp_key=misp-authorization-key]
                 [misp_verifycert=y|n]                 
                 
-**WARNING**: if the field contains null value, you may get a server error 500. You can use the splunk command __|fillnull <field>__ to avoid those errors (Thanks @jlachesk for solving this #54).
+**WARNING**: if the field contains null value, you may get a server error 500. You can use the splunk command __|fillnull field__ to avoid those errors (Thanks @jlachesk for solving this #54).
     
 one simple example:
 
