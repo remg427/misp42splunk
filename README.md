@@ -5,18 +5,31 @@ The app is designed to be easy to install, set up and maintain using the Splunk 
 
 MISP instances must be version 2.4.97 or above (new REST API).
 
-You can use **as many MISP instances as you like!**
-  * Default instance: one instance is defined in app setup screen (together with proxy settings). You are invited to do it at setup time.
-  * then on search line (or alert form), you can specifiy another instance for the current search. You have to provide misp_url and misp_key parameters. If you do not provide misp_verifycert, it is set to False.
+## version > 2.1.0
+As before, you can use **as many MISP instances as you like!** and now this is easy to manage/use.
 
-The main use cases are:
+  1. Install and configure the app via the setup screen. Provide all information for the default MISP instance
+  2. When saving, the file local/misp.conf is updated to reflect your changes
+  3. NEW: the changes are written to another file lookups/misp_instances.csv (created if it does not exist)
+  4. You can then edit that lookup table to add additional instances, one per row 
+
+        | misp_instance | misp_url | misp_key | misp_verifycert | misp_use_proxy | description |
+        |---------------|----------|----------|-----------------|----------------|-------------|
+        | default | url1 | key1 | False | False | default MISP instance defined at MISP42 app setup |
+        | mispdev | url2 | key2 | True | True | MISP sandbox |
+
+  5. If you want to use another insatnce than default one simply add:  misp_instance=instance_name
+
+# Usage
+
 1. MISP to SPLUNK:
 
 	- **| mispgetioc _params_ | ...** gets MISP event attributes into Splunk search pipeline. 
+    - **| mispapireport _params_ | ...** gets MISP event attributes into Splunk search pipeline. 
 	- **search ... |mispsearch field=myvalue | ...** searches for matching attributes in MISP.
-	- **search ...|mispsight field=myvalue | ...** gets sighting information for a specific value (note that if there is FP, only first hit is returned)
-2. MISP for SPLUNK: 2 Splunk alert actions are available
+	- **search ... |mispsight  field=myvalue | ...** gets sighting information for a specific value (note that if there is FP, only first hit is returned)
 
+2. MISP for SPLUNK: 2 Splunk alert actions are available
         
 	- one action to create or **edit** events. NEW in > 2.0.14, if you provide an eventid (or UUID), then this event is edited instead of creating a new one. This allows to contribute to misp event(s) across several alert triggers.
 	- one action to increment attribute sighting in a MISP instance. 
