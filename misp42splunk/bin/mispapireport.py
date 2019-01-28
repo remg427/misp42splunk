@@ -54,7 +54,7 @@ def prepare_config(self):
             config_args['misp_verifycert'] = False
         logging.info('misp.conf: misp_verifycert value is %s', config_args['misp_verifycert'])
     # get proxy parameters if any
-    http_proxy = mispconf.get('http_proxy', '')
+    http_proxy  = mispconf.get('http_proxy', '')
     https_proxy = mispconf.get('https_proxy', '')
     if http_proxy != '' and https_proxy != '':
         config_args['proxies'] = {
