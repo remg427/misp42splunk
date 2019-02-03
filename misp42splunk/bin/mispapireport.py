@@ -26,6 +26,51 @@ __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
 
+<<<<<<< HEAD
+=======
+def prepare_config(self):
+    # Generate confg_args
+    config_args = {}
+    # open misp.conf
+    mispconf = cli.getConfStanza('misp','mispsetup')        
+    # MISP instance parameters
+    # get specific misp url and key if any (and misp_verifycert)
+    if self.misp_url and self.misp_key:
+        config_args['misp_url'] = self.misp_url
+        logging.info('misp_url as option, value is %s', config_args['misp_url'])
+        config_args['misp_key'] = self.misp_key
+        logging.info('misp_key as option, value is %s', config_args['misp_key'])
+        if self.misp_verifycert:
+            config_args['misp_verifycert'] = self.misp_verifycert
+        else:
+            config_args['misp_verifycert'] = False
+        logging.info('misp_verifycert as option, value is %s', config_args['misp_verifycert'])
+    else:
+        # get MISP settings stored in misp.conf
+        config_args['misp_url'] = mispconf.get('misp_url')
+        logging.info('misp.conf: misp_url value is %s', config_args['misp_url'])
+        config_args['misp_key'] = mispconf.get('misp_key')
+        logging.info('misp.conf: misp_key value is %s', config_args['misp_key'])
+        if int(mispconf.get('misp_verifycert')) == 1:
+            config_args['misp_verifycert'] = True
+        else:
+            config_args['misp_verifycert'] = False
+        logging.info('misp.conf: misp_verifycert value is %s', config_args['misp_verifycert'])
+    # get proxy parameters if any
+    http_proxy  = mispconf.get('http_proxy', '')
+    https_proxy = mispconf.get('https_proxy', '')
+    if http_proxy != '' and https_proxy != '':
+        config_args['proxies'] = {
+            "http": http_proxy,
+            "https": https_proxy
+        }
+    else:
+        config_args['proxies'] = {}
+    logging.info('proxies dict is %s', json.dumps(config_args['proxies']))
+
+    return config_args
+
+>>>>>>> master
 
 @Configuration(requires_preop=False)
 class mispapireport(ReportingCommand):
