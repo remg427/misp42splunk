@@ -5,8 +5,8 @@ The app is designed to be easy to install, set up and maintain using the Splunk 
 
 MISP instances must be version 2.4.97 or above (new REST API).
 
-## version > 2.1.0
-As before, you can use **as many MISP instances as you like!** and now this is easy to manage/use.
+## Several MISP instances
+As before, you can use **as many MISP instances as you like!** and now with version >= 2.1.0, this is easy to manage/use.
 
   1. Install and configure the app via the setup screen. Provide all information for the default MISP instance
   2. When saving, the file local/misp.conf is updated to reflect your changes
