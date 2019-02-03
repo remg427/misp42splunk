@@ -28,10 +28,11 @@ import csv
 import time
 import requests
 from splunk.clilib import cli_common as cli
+import logging
 
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
-__version__    = "2.0.17"
+__version__    = "2.1.0"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
@@ -79,26 +80,6 @@ def create_alert(config, results):
 
     # open misp.conf
     mispconf = cli.getConfStanza('misp','mispsetup')
-    
-    # get specific misp url and key if any (from alert configuration)
-    misp_url = config.get('misp_url')
-    misp_key = config.get('misp_key')
-
-    # If no specific MISP instances defined, get settings from misp.conf
-    if misp_url and misp_key:
-        misp_url = str(misp_url) + '/sightings/add'
-        misp_verifycert = int(config.get('misp_verifycert', "0"))
-        if misp_verifycert == 1:
-            misp_verifycert = True
-        else:
-            misp_verifycert = False
-    else:
-        misp_url = str(mispconf.get('misp_url')) + '/sightings/add'
-        misp_key = mispconf.get('misp_key')
-        if mispconf.get('misp_verifycert') == 1:
-            misp_verifycert = True
-        else:
-            misp_verifycert = False
     # get proxy parameters if any
     http_proxy = mispconf.get('http_proxy', '')
     https_proxy = mispconf.get('https_proxy', '')
@@ -108,7 +89,50 @@ def create_alert(config, results):
             "https": https_proxy
         }
     else:
-        proxies = {}
+        proxies = {}    
+    # get specific misp url and key if any (from alert configuration)
+    misp_url = config.get('misp_url')
+    misp_key = config.get('misp_key')
+    misp_instance = config.get('misp_instance')   
+    # If no specific MISP instances defined, get settings from misp.conf
+    if misp_url and misp_key:
+        misp_url = str(misp_url) + '/sightings/add'
+        misp_verifycert = int(config.get('misp_verifycert'))
+        if misp_verifycert == 1:
+            misp_verifycert = True
+        else:
+            misp_verifycert = False
+    elif misp_instance:
+        _SPLUNK_PATH = os.environ['SPLUNK_HOME']
+        misp_instances = _SPLUNK_PATH + os.sep + 'etc' + os.sep + 'apps' + os.sep + 'misp42splunk' + os.sep + 'lookups' + os.sep + 'misp_instances.csv'
+        found_instance = False
+        try:
+            with open(misp_instances, 'rb') as file_object:  # open misp_instances.csv if exists and load content.
+                csv_reader = csv.DictReader(file_object)
+                for row in csv_reader:
+                    if row['misp_instance'] == misp_instance:
+                        found_instance = True
+                        misp_url = row['misp_url']
+                        misp_key = row['misp_key']
+                        if row['misp_verifycert'] == 'True':
+                            misp_verifycert = True
+                        else:
+                            misp_verifycert = False
+                        if row['misp_use_proxy'] == 'False':
+                            proxies = {}  
+        except IOError : # file misp_instances.csv not readable
+            logging.error('file misp_instances.csv not readable')
+        if found_instance is False:
+            logging.error('misp_instance name %s not found', misp_instance)
+    else:
+        misp_url = str(mispconf.get('misp_url')) + '/sightings/add'
+        misp_key = mispconf.get('misp_key')
+        if int(mispconf.get('misp_verifycert')) == 1:
+            misp_verifycert = True
+        else:
+            misp_verifycert = False
+        if int(mispconf.get('misp_use_proxy')) == 0:
+            proxies = {} 
 
     # Get mode set in alert settings; either byvalue or byuuid
     mode = config.get('mode', 'byvalue')
@@ -168,6 +192,9 @@ def create_alert(config, results):
         # response is 200 by this point or we would have thrown an exception
 
 if __name__ == "__main__":
+    # set up logging suitable for splunkd consumption
+    logging.root
+    logging.root.setLevel(logging.ERROR)   
     # make sure we have the right number of arguments - more than 1;
     # and first argument is "--execute"
     if len(sys.argv) > 1 and sys.argv[1] == "--execute":
@@ -176,7 +203,6 @@ if __name__ == "__main__":
         # extract the file path and alert config from the payload
         configuration = payload.get('configuration')
         filepath = payload.get('results_file')
-
         # test if the results file exists - this should basically never fail
         # unless we are parsing configuration incorrectly
         # example path this variable should hold:

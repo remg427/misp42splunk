@@ -9,6 +9,7 @@ The command syntax is as follow:
     search something... | mispsearch field=<field_containing_value_to_search_for> 
                 [onlyids=y|n]
                 [gettag=y|n]
+                [misp_instance=instance_name] 
                 [misp_url=https://host:port] 
                 [misp_key=misp-authorization-key]
                 [misp_verifycert=y|n]                 
@@ -35,7 +36,12 @@ will add following fields
         - onlyids (boolean),
     + you may set gettag=Y to get the attribute tags 
 
-- If you need to fecth from another MISP instance different from the default one defined in the setup of the app, you may overwrite the misp server parameters for this search by setting
+
+- If you need to fecth from another MISP instance different from the default one defined in the setup of the app, you may overwrite the misp server parameters for this search by setting either:
+    + misp_instance=instance_name
+
+    or (deprecated)
+
     + misp_url: set the url to the MISP instance
     + misp_key: misp-authorization-key for this instance
     + misp_verifycert: you may check ssl certificate (default no)  

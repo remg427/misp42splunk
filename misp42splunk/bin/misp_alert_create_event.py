@@ -23,7 +23,7 @@ import logging
 
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
-__version__    = "2.0.17"
+__version__    = "2.1.0"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
@@ -112,11 +112,12 @@ def prepare_misp_events(config, results, event_list):
         eventkey = config['eventkey']
         if eventkey in row:
             eventkey = str(row[eventkey])
+        logging.info("eventkey is %s", eventkey)
         # Get the specific eventid if define in Splunk search. Defaults to alert form value
         # Value == 0: means create new event
         # Value <> 0: edit existing event
-        eventid = config['eventid']
-        if 'eventid' in row:
+        eventid = config['eventid'] # from the alert conf
+        if 'eventid' in row:        # from the result row (overwrites other values)
             eventid = str(row.pop('eventid'))
         logging.info("eventid is %s", eventid)
 
@@ -125,18 +126,13 @@ def prepare_misp_events(config, results, event_list):
         # remove fields misp_time and info from row and keep their values if this is a new event
         if eventkey in events:
             event = events[eventkey]
-            attributes = event['Attribute']
-            objects = event['Object']
-            tags = event['Tag']
             if 'misp_time' in row:
                 row.pop('misp_time')
             if 'misp_info' in row:
                 row.pop('misp_info')
         else:
             event_list[eventkey] = eventid
-            event = event_baseline
-            attributes = event['Attribute']
-            objects = event['Object']
+            event = event_baseline.copy()
             tags = event['Tag']
             if 'misp_time' in row:
                 event['date'] = datetime.datetime.fromtimestamp(int(row.pop('misp_time'))).strftime('%Y-%m-%d')
@@ -146,6 +142,9 @@ def prepare_misp_events(config, results, event_list):
                 event['info'] = row.pop('misp_info')
             else:
                 event['info'] = config['info']
+        attributes = list(event['Attribute'])
+        objects = list(event['Object'])
+        tags = list(event['Tag'])
 
         # append event tags provided in the row
         if 'misp_tag' in row:
@@ -156,7 +155,7 @@ def prepare_misp_events(config, results, event_list):
                     tags.append(new_tag)
 
         # update event tag list
-        event['Tag'] = tags
+        event['Tag'] = list(tags)
 
         # collect attribute value and build type=value entry
         if 'misp_to_ids' in row:
@@ -186,7 +185,7 @@ def prepare_misp_events(config, results, event_list):
                 attributes.append(store_attribute(misp_key, str(value), to_ids=to_ids, category=category, attribute_tag=attribute_tag, comment=comment))
 
         # update event attribute list
-        event['Attribute'] = attributes
+        event['Attribute'] = list(attributes)
 
         # now we look for attribute belonging to a file email or network object i.e.
         # on the same row, field(s) start(s) with fo_, eo_ or no_
@@ -231,7 +230,7 @@ def prepare_misp_events(config, results, event_list):
             }
             objects.append(new_object)
         # update event object list
-        event['Object'] = objects
+        event['Object'] = list(objects)
 
         # update event defintion
         events[eventkey] = event
@@ -281,37 +280,12 @@ def process_misp_events(config, results, event_list):
             logging.debug("event edited %s", json.dumps(response))
     return status
 
-def prepare_config(config, filename):
+def prepare_alert_config(config, filename):
     logging.info("Creating alert with config %s", json.dumps(config))
     
     config_args = {}
     # open misp.conf
     mispconf = cli.getConfStanza('misp','mispsetup')
-    # get the misp_url we need to connect to MISP
-    # this can be passed as params of the alert. Defaults to values set in misp.conf  
-    # get specific misp url and key if any (from alert configuration)
-    misp_url = config.get('misp_url')
-    misp_key = config.get('misp_key')   
-    if misp_url and misp_key:
-        misp_url = str(misp_url)
-        misp_verifycert = int(config.get('misp_verifycert', "0"))
-        if misp_verifycert == 1:
-            misp_verifycert = True
-        else:
-            misp_verifycert = False
-    else: 
-        # get MISP settings stored in misp.conf
-        misp_url = str(mispconf.get('misp_url'))
-        misp_key = mispconf.get('misp_key')
-        if mispconf.get('misp_verifycert') == 1:
-            misp_verifycert = True
-        else:
-            misp_verifycert = False
-
-    # check and complement config
-    config_args['misp_url'] = misp_url
-    config_args['misp_key'] = misp_key
-    config_args['misp_verifycert'] = misp_verifycert   
     # get proxy parameters if any
     http_proxy = mispconf.get('http_proxy', '')
     https_proxy = mispconf.get('https_proxy', '')
@@ -322,6 +296,56 @@ def prepare_config(config, filename):
         }
     else:
         config_args['proxies'] = {}
+    # get the misp_url we need to connect to MISP
+    # this can be passed as params of the alert. Defaults to values set in misp.conf  
+    # get specific misp url and key if any (from alert configuration)
+    misp_url = config.get('misp_url')
+    misp_key = config.get('misp_key')   
+    misp_instance = config.get('misp_instance')   
+    if misp_url and misp_key:
+        misp_url = str(misp_url)
+        misp_verifycert = int(config.get('misp_verifycert'))
+        if misp_verifycert == 1:
+            misp_verifycert = True
+        else:
+            misp_verifycert = False
+    elif misp_instance:
+        _SPLUNK_PATH = os.environ['SPLUNK_HOME']
+        misp_instances = _SPLUNK_PATH + os.sep + 'etc' + os.sep + 'apps' + os.sep + 'misp42splunk' + os.sep + 'lookups' + os.sep + 'misp_instances.csv'
+        found_instance = False
+        try:
+            with open(misp_instances, 'rb') as file_object:  # open misp_instances.csv if exists and load content.
+                csv_reader = csv.DictReader(file_object)
+                for row in csv_reader:
+                    if row['misp_instance'] == misp_instance:
+                        found_instance = True
+                        misp_url = row['misp_url']
+                        misp_key = row['misp_key']
+                        if row['misp_verifycert'] == 'True':
+                            misp_verifycert = True
+                        else:
+                            misp_verifycert = False
+                        if row['misp_use_proxy'] == 'False':
+                            config_args['proxies'] = {}
+        except IOError : # file misp_instances.csv not readable
+            logging.error('file misp_instances.csv not readable')
+        if found_instance is False:
+            logging.error('misp_instance name %s not found', misp_instance)
+    else: 
+        # get MISP settings stored in misp.conf
+        misp_url = str(mispconf.get('misp_url'))
+        misp_key = mispconf.get('misp_key')
+        if int(mispconf.get('misp_verifycert')) == 1:
+            misp_verifycert = True
+        else:
+            misp_verifycert = False
+        if int(mispconf.get('misp_use_proxy')) == 0:
+            config_args['proxies'] = {} 
+
+    # check and complement config
+    config_args['misp_url'] = misp_url
+    config_args['misp_key'] = misp_key
+    config_args['misp_verifycert'] = misp_verifycert   
 
     # Get string values from alert form
     config_args['tlp'] = config.get('tlp')
@@ -349,7 +373,6 @@ def prepare_config(config, filename):
 
     # add filename of the file containing the result of the search
     config_args['filename'] = filename
-    logging.info("config_args is %s", json.dumps(config_args))
 
     return config_args
 
@@ -381,7 +404,7 @@ if __name__ == "__main__":
                     # least, in theory
                     Reader = csv.DictReader(file)
                     logging.debug('Reader is %s', str(Reader))
-                    Config = prepare_config(configuration,filename)
+                    Config = prepare_alert_config(configuration,filename)
                     logging.debug('Config is %s', json.dumps(Config))
                     event_list = {}
                     Events = prepare_misp_events(Config, Reader, event_list)

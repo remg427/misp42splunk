@@ -12,6 +12,10 @@
       <label>Check SSL certificate of MISP server</label>
       <type>bool</type>
     </input>
+    <input field="misp_use_proxy" endpoint="misp/customendpoint" entity="mispsetup">
+      <label>Use proxy settings (provided below) for default instance</label>
+      <type>bool</type>
+    </input>
   </block>
   <block title="(Optional) proxy parameters if needed - leave empty if no proxy required. Use the syntax http://user:pass@proxyhost:port/" endpoint="misp/customendpoint" entity="mispsetup">
     <input field="http_proxy">

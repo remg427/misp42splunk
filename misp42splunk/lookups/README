@@ -1,0 +1,7 @@
+You can register several MISP instances to use them in splunk searches and alert actions
+simply edit the file misp_instances.csv and add a row with your inputs
+
+If the file does not exists go to Splunk GUI > Manage Apps > MISP42 Setup
+
+headers are:
+misp_instance,misp_url,misp_key,misp_verifycert,misp_use_proxy,description

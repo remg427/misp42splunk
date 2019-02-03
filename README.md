@@ -5,11 +5,23 @@ The app is designed to be easy to install, set up and maintain using the Splunk 
 
 MISP instances must be version 2.4.97 or above (new REST API).
 
-You can use **as many MISP instances as you like!**
-  * Default instance: one instance is defined in app setup screen (together with proxy settings). You are invited to do it at setup time.
-  * then on search line (or alert form), you can specifiy another instance for the current search. You have to provide misp_url and misp_key parameters. If you do not provide misp_verifycert, it is set to False.
+## Several MISP instances
+As before, you can use **as many MISP instances as you like!** and now with version >= 2.1.0, this is easy to manage/use.
 
-The main use cases are:
+  1. Install and configure the app via the setup screen. Provide all information for the default MISP instance
+  2. When saving, the file local/misp.conf is updated to reflect your changes
+  3. NEW: the changes are written to another file lookups/misp_instances.csv (created if it does not exist)
+  4. You can then edit that lookup table to add additional instances, one per row 
+
+        | misp_instance | misp_url | misp_key | misp_verifycert | misp_use_proxy | description |
+        |---------------|----------|----------|-----------------|----------------|-------------|
+        | default | url1 | key1 | False | False | default MISP instance defined at MISP42 app setup |
+        | mispdev | url2 | key2 | True | True | MISP sandbox |
+
+  5. If you want to use another insatnce than default one simply add:  misp_instance=instance_name
+
+# Usage
+
 1. MISP to SPLUNK:
 
 	- **| mispgetioc _params_ | ...** gets MISP event attributes into Splunk search pipeline. 
@@ -34,6 +46,7 @@ This app is designed to run on **Splunk Search Head(s)** on Linux plateforms (no
     - provide the url to your MISP instance;
     - provide the authkey;
     - check (or not) the certificate of the MISP server.
+    - use (or not) the proxy for this instance
     - define a proxy if required (leave blank for no proxy)
 
 # Use Cases

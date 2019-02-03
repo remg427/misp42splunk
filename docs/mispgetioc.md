@@ -21,6 +21,7 @@ The command syntax is as follow:
                 **[tags="CSV_string"]**
                 **[not_tags="CSV_string"]
                 **[getorg=y|n]**
+                [misp_instance=instance_name] 
                 [misp_url=https://host:port] 
                 [misp_key=misp-authorization-key]
                 [misp_verifycert=y|n]                 
@@ -60,7 +61,12 @@ another example:
     + geteventtag will return event tags in the result
     + **if you want to split multivalue attributes set pipesplit to "True" **
 
-- If you need to fecth from another MISP instance different from the default one defined in the setup of the app, you may overwrite the misp server parameters for this search by setting
+
+- If you need to fecth from another MISP instance different from the default one defined in the setup of the app, you may overwrite the misp server parameters for this search by setting either:
+    + misp_instance=instance_name
+
+    or (deprecated)
+
     + misp_url: set the url to the MISP instance
     + misp_key: misp-authorization-key for this instance
     + misp_verifycert: you may check ssl certificate (default no)  
