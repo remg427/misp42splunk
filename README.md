@@ -46,6 +46,7 @@ This app is designed to run on **Splunk Search Head(s)** on Linux plateforms (no
     - provide the url to your MISP instance;
     - provide the authkey;
     - check (or not) the certificate of the MISP server.
+    - use (or not) the proxy for this instance
     - define a proxy if required (leave blank for no proxy)
 
 # Use Cases
