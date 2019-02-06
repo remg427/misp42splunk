@@ -276,6 +276,8 @@ class mispgetioc(ReportingCommand):
                     l = len(response['response']['Attribute'])
                     for a in response['response']['Attribute']:
                         v = {}
+                        v['misp_description'] = 'MISP e' + str(a['event_id']) + ' attribute ' + str(a['uuid']) + ' of type "' \
+                         + str(a['type']) + '" in category "' + str(a['category']) + '" (to_ids:' + str(a['to_ids']) + ')'
                         v['misp_category'] = str(a['category'])
                         v['misp_attribute_id'] = str(a['id'])
                         v['misp_event_id'] = str(a['event_id'])
