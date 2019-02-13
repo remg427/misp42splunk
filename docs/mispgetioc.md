@@ -15,12 +15,13 @@ The command syntax is as follow:
                 [to_ids=y|n]
                 [category="CSV_string"]
                 [type="CSV_string"]
-                **[pipesplit=y|n]**
-                **[getuuid=y|n]**
-                **[getorg=y|n**
                 **[tags="CSV_string"]**
                 **[not_tags="CSV_string"]
-                **[getorg=y|n]**
+                **[pipesplit=y|n]**
+                **[getuuid=y|n]**
+                **[add_description=y|n]**
+                **[geteventtag=y|n]**
+                **[getorg=y|n**
                 [misp_instance=instance_name] 
                 [misp_url=https://host:port] 
                 [misp_key=misp-authorization-key]
