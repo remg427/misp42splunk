@@ -137,6 +137,11 @@ class mispgetioc(ReportingCommand):
         **Syntax:** **pipesplit=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
         **Description:**Boolean to split multivalue attributes into 2 attributes.''',
         require=False, validate=validators.Boolean())
+    add_description = Option(
+        doc = '''
+        **Syntax:** **add_description=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
+        **Description:**Boolean to return misp_description.''',
+        require=False, validate=validators.Boolean())
 
 
     @Configuration()
@@ -254,6 +259,10 @@ class mispgetioc(ReportingCommand):
             my_args['pipe'] = True
         else:
             my_args['pipe'] = False
+        if self.add_description is True:
+            my_args['add_desc'] = True
+        else:
+            my_args['add_desc'] = False
 
         results = []
         # add colums for each type in results
@@ -276,8 +285,6 @@ class mispgetioc(ReportingCommand):
                     l = len(response['response']['Attribute'])
                     for a in response['response']['Attribute']:
                         v = {}
-                        v['misp_description'] = 'MISP e' + str(a['event_id']) + ' attribute ' + str(a['uuid']) + ' of type "' \
-                         + str(a['type']) + '" in category "' + str(a['category']) + '" (to_ids:' + str(a['to_ids']) + ')'
                         v['misp_category'] = str(a['category'])
                         v['misp_attribute_id'] = str(a['id'])
                         v['misp_event_id'] = str(a['event_id'])
@@ -300,6 +307,14 @@ class mispgetioc(ReportingCommand):
                             v['misp_attribute_uuid'] = str(a['uuid'])
                         # handle object and multivalue attributes
                         v['misp_object_id'] = str(a['object_id'])
+                        if my_args['add_desc'] is True:
+                            if int(a['object_id']) == 0:
+                                v['misp_description'] = 'MISP e' + str(a['event_id']) + ' attribute ' +  str(a['uuid']) +' of type "' \
+                                + str(a['type']) + '" in category "' + str(a['category']) + '" (to_ids:' + str(a['to_ids']) + ')'
+                            else:
+                                v['misp_description'] = 'MISP e' + str(a['event_id']) + ' attribute ' +  str(a['uuid']) +' of type "' \
+                                + str(a['type']) + '" in category "' + str(a['category']) + '" (to_ids:' + str(a['to_ids'])  \
+                                + ' - o'+ str(a['object_id']) + ' )'
                         current_type = str(a['type'])
                         # combined: not part of an object AND multivalue attribute QND to be split
                         if int(a['object_id']) == 0 and '|' in current_type and my_args['pipe'] is True: 
@@ -344,7 +359,7 @@ class mispgetioc(ReportingCommand):
                 key = str(r['misp_event_id']) + '_object_' + str(r['misp_object_id'])
                 is_object_member = True           
             if key not in output_dict:
-                v = r                
+                v = dict(r)                
                 for t in typelist:
                     misp_t = 'misp_' + t.replace('-', '_').replace('|','_p_')
                     if t == r['misp_type']:
@@ -354,24 +369,42 @@ class mispgetioc(ReportingCommand):
                 category = []
                 category.append(r['misp_category'])
                 v['misp_category'] = category
+                if my_args['add_desc'] is True:
+                    description = []
+                    description.append(r['misp_description'])
+                    v['misp_description'] = description
+                if my_args['getuuid'] is True:
+                    attribute_uuid = []
+                    attribute_uuid.append(r['misp_attribute_uuid'])
+                    v['misp_attribute_uuid'] = attribute_uuid
                 if is_object_member is True:
                     v['misp_type'] = 'misp_object'
                     v['misp_value'] = r['misp_object_id']
-                output_dict[key] = v
+                output_dict[key] = dict(v)
             else:
-                v = output_dict[key]
+                v = dict(output_dict[key])
                 misp_t = 'misp_' + r['misp_type'].replace('-', '_')
                 v[misp_t] = r['misp_value'] # set value for relevant type
                 category = v['misp_category'] 
                 if r['misp_category'] not in category: # append category 
                     category.append(r['misp_category'])
                     v['misp_category'] = category
+                if my_args['add_desc'] is True:
+                    description = v['misp_description']
+                    if r['misp_description'] not in description:
+                        description.append(r['misp_description'])
+                    v['misp_description'] = description    
+                if my_args['getuuid'] is True:
+                    attribute_uuid = v['misp_attribute_uuid']
+                    if r['misp_attribute_uuid'] not in attribute_uuid:
+                        attribute_uuid.append(r['misp_attribute_uuid'])
+                    v['misp_attribute_uuid'] = attribute_uuid
                 if is_object_member is False:
                     misp_type = r['misp_type'] + '|' + v['misp_type']
                     v['misp_type'] = misp_type
                     misp_value = r['misp_value'] + '|' + v['misp_value']
                     v['misp_value'] = misp_value
-                output_dict[key] = v
+                output_dict[key] = dict(v)
             logging.debug(json.dumps(output_dict))
         
         for k,v in output_dict.items():
