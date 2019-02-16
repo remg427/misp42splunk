@@ -3,7 +3,9 @@ misp42splunk app connects [MISP](http://www.misp-project.org/) and [Splunk](www.
 
 The app is designed to be easy to install, set up and maintain using the Splunk GUI without directly editing files.
 
-MISP instances must be version 2.4.97 or above (new REST API).
+MISP instances must be version 2.4.98 or above (new REST API).
+
+**misp42splunk version >=2.1.3**: if the filter "to_ids" is used, only matching attributes of objects are returned. it could result into partial data.
 
 ## Several MISP instances
 As before, you can use **as many MISP instances as you like!** and now with version >= 2.1.0, this is easy to manage/use.
