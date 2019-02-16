@@ -222,6 +222,8 @@ class mispgetioc(ReportingCommand):
             body_dict['to_ids'] = True
         if self.to_ids is True:
             body_dict['to_ids'] = True
+        elif self.to_ids is False:
+            body_dict['to_ids'] = False
         if self.published is True:
             body_dict['published'] = True
         if self.geteventtag is True:
@@ -366,6 +368,9 @@ class mispgetioc(ReportingCommand):
                         v[misp_t] = r['misp_value']
                     else:
                         v[misp_t] = ''
+                to_ids = []
+                to_ids.append(r['misp_to_ids'])
+                v['misp_to_ids'] = to_ids
                 category = []
                 category.append(r['misp_category'])
                 v['misp_category'] = category
@@ -385,6 +390,10 @@ class mispgetioc(ReportingCommand):
                 v = dict(output_dict[key])
                 misp_t = 'misp_' + r['misp_type'].replace('-', '_')
                 v[misp_t] = r['misp_value'] # set value for relevant type
+                to_ids = v['misp_to_ids']
+                if r['misp_to_ids'] not in to_ids:
+                    to_ids.append(r['misp_to_ids'])
+                    v['misp_to_ids'] = to_ids
                 category = v['misp_category'] 
                 if r['misp_category'] not in category: # append category 
                     category.append(r['misp_category'])
