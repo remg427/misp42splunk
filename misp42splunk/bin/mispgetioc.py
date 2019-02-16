@@ -218,11 +218,9 @@ class mispgetioc(ReportingCommand):
             limit = 10000
 
         #Search parameters: boolean and filter
-        if self.onlyids is True:
+        if self.to_ids is True or self.onlyids is True:
             body_dict['to_ids'] = True
-        if self.to_ids is True:
-            body_dict['to_ids'] = True
-        elif self.to_ids is False:
+        elif self.to_ids is False or self.onlyids is False:
             body_dict['to_ids'] = False
         if self.published is True:
             body_dict['published'] = True
