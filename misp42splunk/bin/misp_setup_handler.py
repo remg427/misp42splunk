@@ -8,7 +8,7 @@
 # Feel free to use the code, but please share the changes you've made
 
 import splunk.admin as admin
-#import splunk.entity as en
+import splunk.entity as en
 import os
 import csv
 import logging

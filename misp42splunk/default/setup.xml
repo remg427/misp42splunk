@@ -1,28 +1,28 @@
 <setup>
-  <block title="Define MISP server parameters" endpoint="misp/customendpoint" entity="mispsetup">
+  <block title="Define MISP server parameters" endpoint="admin/misp42splunk/" entity="mispsetup">
     <input field="misp_url">
       <label>MISP url:</label>
       <type>text</type>
     </input>
-    <input field="misp_key" endpoint="misp/customendpoint" entity="mispsetup">
+    <input field="misp_key" endpoint="admin/misp42splunk/" entity="mispsetup">
       <label>Set the MISP auth key</label>
       <type>text</type>
     </input>
-    <input field="misp_verifycert" endpoint="misp/customendpoint" entity="mispsetup">
+    <input field="misp_verifycert" endpoint="admin/misp42splunk/" entity="mispsetup">
       <label>Check SSL certificate of MISP server</label>
       <type>bool</type>
     </input>
-    <input field="misp_use_proxy" endpoint="misp/customendpoint" entity="mispsetup">
+    <input field="misp_use_proxy" endpoint="admin/misp42splunk/" entity="mispsetup">
       <label>Use proxy settings (provided below) for default instance</label>
       <type>bool</type>
     </input>
   </block>
-  <block title="(Optional) proxy parameters if needed - leave empty if no proxy required. Use the syntax http://user:pass@proxyhost:port/" endpoint="misp/customendpoint" entity="mispsetup">
+  <block title="(Optional) proxy parameters if needed - leave empty if no proxy required. Use the syntax http://user:pass@proxyhost:port/" endpoint="admin/misp42splunk/" entity="mispsetup">
     <input field="http_proxy">
       <label>http url:</label>
       <type>text</type>
     </input>
-    <input field="https_proxy" endpoint="misp/customendpoint" entity="mispsetup">
+    <input field="https_proxy" endpoint="admin/misp42splunk/" entity="mispsetup">
       <label>https url</label>
       <type>text</type>
     </input>
