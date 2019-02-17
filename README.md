@@ -79,8 +79,12 @@ Search for attributes values/uuids in Splunk > alert to increment sighting count
 Several saved searches are provided to easily create KV store lookups which can be used later. THe default behaviour is to append new event attributes to the KV store but you may switch to replace it.
 Based on those searches, you can easily created local CSV files and feed intel to Enterprise Security App.
 
+# todo
+   [_] savedsearches to pull intel for domain ip and email address (for Enterprise Security)
+   [_] dashboard to see IOC available/pulled from MISP
+   
 # developer's corner
-switch to v3.0 branch where a MISP API wrapper under development 
+there is a MISP API wrapper under development 
     | mispapireport
 
 # Credits
