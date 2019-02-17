@@ -80,8 +80,8 @@ Several saved searches are provided to easily create KV store lookups which can 
 Based on those searches, you can easily created local CSV files and feed intel to Enterprise Security App.
 
 # todo
-   [ ] savedsearches to pull intel for domain ip and email address (for Enterprise Security)
-   [ ] dashboard to see IOC available/pulled from MISP
+   - [ ] savedsearches to pull intel for domain ip and email address (for Enterprise Security)
+   - [ ] dashboard to see IOC available/pulled from MISP
    
 # developer's corner
 there is a MISP API wrapper under development 
