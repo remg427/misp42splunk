@@ -9,6 +9,7 @@
 # Copyright: LGPLv3 (https://www.gnu.org/licenses/lgpl-3.0.txt)
 # Feel free to use the code, but please share the changes you've made
 #
+# "enforceWarninglist": "optional",
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 import sys
@@ -142,6 +143,11 @@ class mispgetioc(ReportingCommand):
         **Syntax:** **add_description=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
         **Description:**Boolean to return misp_description.''',
         require=False, validate=validators.Boolean())
+    warning_list = Option(
+        doc = '''
+        **Syntax:** **warning_list=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
+        **Description:**Boolean to filter out well known values.''',
+        require=False, validate=validators.Boolean())
 
 
     @Configuration()
@@ -220,10 +226,17 @@ class mispgetioc(ReportingCommand):
         #Search parameters: boolean and filter
         if self.to_ids is True or self.onlyids is True:
             body_dict['to_ids'] = True
+            body_dict['enforceWarninglist'] = True
         elif self.to_ids is False or self.onlyids is False:
             body_dict['to_ids'] = False
+        if self.warning_list is True:
+            body_dict['enforceWarninglist'] = True
+        elif self.warning_list is False:
+            body_dict['enforceWarninglist'] = False
         if self.published is True:
             body_dict['published'] = True
+        elif self.published is False:
+            body_dict['published'] = False
         if self.geteventtag is True:
             body_dict['includeEventTags'] = True
         if self.category is not None:
