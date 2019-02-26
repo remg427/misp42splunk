@@ -7,6 +7,11 @@ You can use as many MISP instances as you like!
 - Default instance: one instance is defined in app setup screen (together with proxy settings). You are invited to do it at setup time.
 - then edit the lookup table misp_instances.csv to add other instances that you can call in custom commands with field misp_instance=instance_name and in alert actions with the input text "misp_instance"
 
+You can register several MISP instances to use them in splunk searches and alert actions. Simply edit the file misp_instances.csv and add a row with your inputs
+If the file does not exists go to Splunk GUI > Manage Apps > MISP42 Setup
+
+headers are: misp_instance,misp_url,misp_key,misp_verifycert,misp_use_proxy,description
+
 The main use cases are:
 1. MISP to SPLUNK:
 | mispgetioc params | ... gets MISP event attributes into Splunk search pipeline.

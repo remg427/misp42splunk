@@ -32,7 +32,7 @@ The command syntax is as follow:
     Boolean: value can be <1|y|Y|t|true|True|0|n|N|f|false|False>
 ----
 - You must set either parameter 'eventid', 'last' or 'date_from'
-    + eventid is the numeric value on the instance. (if you think uuid should be an option introduce an issue or pull request)
+    + eventid is either a single value (event_id on the instance, uuid) or a comma-separated list of values. You can mix event_ids and event uuids.
     + last interval is a number followed by a letter d(ays), h(ours) or m(inutes)
     + date_from is a date "YYYY-mm-dd" (if date_to is not specify, default is until today)
 
