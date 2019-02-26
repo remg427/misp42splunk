@@ -62,7 +62,7 @@ class mispgetioc(ReportingCommand):
         doc = '''
         **Syntax:** **eventid=***id1(,id2,...)*
         **Description:**list of event ID(s). **eventid**, **last** and **date_from** are mutually exclusive''',
-        require=False, validate=validators.Match("eventid",r"^[0-9,]+$"))
+        require=False, validate=validators.Match("eventid",r"^[0-9a-f,\-]+$"))
     last            = Option(
         doc = '''
         **Syntax:** **last=***<int>d|h|m*
