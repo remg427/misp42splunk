@@ -23,7 +23,7 @@ import logging
 
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
-__version__    = "2.1.0"
+__version__    = "2.2.0"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
@@ -250,13 +250,16 @@ def process_misp_events(config, results, event_list):
     headers['Authorization'] = misp_key
     headers['Accept'] = 'application/json'
 
+    # client cert file
+    client_cert = config['client_cert_full_path']
+
     status = 200
     for eventkey in results:
         if event_list[eventkey] == "0": # create new event
             body = json.dumps(results[eventkey])
             logging.info("create body is %s", body)
             # POST json data to create events
-            r = requests.post(misp_url_create, headers=headers, data=body, verify=misp_verifycert, proxies=config['proxies'])
+            r = requests.post(misp_url_create, headers=headers, data=body, verify=misp_verifycert, cert=client_cert, proxies=config['proxies'])
             # check if status is anything other than 200; throw an exception if it is
             r.raise_for_status()
             # response is 200 by this point or we would have thrown an exception
@@ -327,6 +330,11 @@ def prepare_alert_config(config, filename):
                             misp_verifycert = False
                         if row['misp_use_proxy'] == 'False':
                             config_args['proxies'] = {}
+                        # get client cert parameters
+                        if row['client_use_cert'] == 'True':
+                            config_args['client_cert_full_path'] = row['client_cert_full_path']
+                        else:
+                            config_args['client_cert_full_path'] = None
         except IOError : # file misp_instances.csv not readable
             logging.error('file misp_instances.csv not readable')
         if found_instance is False:
@@ -341,6 +349,11 @@ def prepare_alert_config(config, filename):
             misp_verifycert = False
         if int(mispconf.get('misp_use_proxy')) == 0:
             config_args['proxies'] = {} 
+        # get client cert parameters
+        if int(mispconf.get('client_use_cert')) == 1:
+            config_args['client_cert_full_path'] = mispconf.get('client_cert_full_path')
+        else:
+            config_args['client_cert_full_path'] = None
 
     # check and complement config
     config_args['misp_url'] = misp_url

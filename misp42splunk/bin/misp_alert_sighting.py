@@ -32,7 +32,7 @@ import logging
 
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
-__version__    = "2.1.0"
+__version__    = "2.2.0"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
@@ -119,7 +119,12 @@ def create_alert(config, results):
                         else:
                             misp_verifycert = False
                         if row['misp_use_proxy'] == 'False':
-                            proxies = {}  
+                            proxies = {}
+                        # get client cert parameters
+                        if row['client_use_cert'] == 'True':
+                            client_cert = row['client_cert_full_path']
+                        else:
+                            client_cert = None
         except IOError : # file misp_instances.csv not readable
             logging.error('file misp_instances.csv not readable')
         if found_instance is False:
@@ -132,7 +137,13 @@ def create_alert(config, results):
         else:
             misp_verifycert = False
         if int(mispconf.get('misp_use_proxy')) == 0:
-            proxies = {} 
+            proxies = {}
+        # get client cert parameters
+        if int(mispconf.get('client_use_cert')) == 1:
+            client_cert = mispconf.get('client_cert_full_path')
+        else:
+            client_cert = None
+
 
     # Get mode set in alert settings; either byvalue or byuuid
     mode = config.get('mode', 'byvalue')
@@ -186,7 +197,7 @@ def create_alert(config, results):
 
         # byvalue: sighting contains {"timestamp": timestamp, "values":["value1", "value2,etc. "]}
         # byuuid:  sighting contains {"timestamp": timestamp, "uuid":"uuid_value"}
-        r = requests.post(misp_url, headers=headers, data=sighting, verify=misp_verifycert, proxies=proxies)
+        r = requests.post(misp_url, headers=headers, data=sighting, verify=misp_verifycert, cert=client_cert, proxies=proxies)
         # check if status is anything other than 200; throw an exception if it is
         r.raise_for_status()
         # response is 200 by this point or we would have thrown an exception

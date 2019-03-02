@@ -28,7 +28,7 @@ Description:  This skeleton python script handles the parameters in the configur
 
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
-__version__    = "2.1.0"
+__version__    = "2.2.0"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
@@ -39,7 +39,7 @@ class ConfigApp(admin.MConfigHandler):
   '''
   def setup(self):
     if self.requestedAction == admin.ACTION_EDIT:
-      for arg in ['misp_url', 'misp_key', 'misp_verifycert', 'misp_use_proxy', 'http_proxy', 'https_proxy']:
+      for arg in ['misp_url', 'misp_key', 'misp_verifycert', 'misp_use_proxy', 'client_use_cert', 'client_cert_full_path', 'http_proxy', 'https_proxy']:
         self.supportedArgs.addOptArg(arg)
 
   '''
@@ -63,12 +63,12 @@ class ConfigApp(admin.MConfigHandler):
     if None != confDict:
       for stanza, settings in confDict.items():
         for key, val in settings.items():
-          if key in ['misp_verifycert','misp_use_proxy']:
+          if key in ['misp_verifycert','client_use_cert','misp_use_proxy']:
             if int(val) == 1:
               val = '1'
             else:
               val = '0'
-          if key in ['misp_url', 'misp_key', 'http_proxy', 'https_proxy'] and val in [None, '']:
+          if key in ['misp_url', 'misp_key', 'client_cert_full_path', 'http_proxy', 'https_proxy'] and val in [None, '']:
             val = ''
           confInfo[stanza].append(key, val)
 
@@ -89,6 +89,12 @@ class ConfigApp(admin.MConfigHandler):
     else:
       self.callerArgs.data['misp_verifycert'][0] = '0'
       misp_verifycert = False
+    if int(self.callerArgs.data['client_use_cert'][0]) == 1:
+      self.callerArgs.data['client_use_cert'][0] = '1'
+      client_use_cert = True
+    else:
+      self.callerArgs.data['client_use_cert'][0] = '0'
+      client_use_cert = False
     if int(self.callerArgs.data['misp_use_proxy'][0]) == 1:
       self.callerArgs.data['misp_use_proxy'][0] = '1'
       misp_use_proxy = True
@@ -101,6 +107,9 @@ class ConfigApp(admin.MConfigHandler):
 
     if self.callerArgs.data['misp_key'][0] in [None, '']:
       self.callerArgs.data['misp_key'][0] = ''
+
+    if self.callerArgs.data['client_cert_full_path'][0] in [None, '']:
+      self.callerArgs.data['client_cert_full_path'][0] = ''
 
     if self.callerArgs.data['http_proxy'][0] in [None, '']:
       self.callerArgs.data['http_proxy'][0] = ''
@@ -115,22 +124,28 @@ class ConfigApp(admin.MConfigHandler):
     self.writeConf('misp', 'mispsetup', self.callerArgs.data)
 
 #   Write also parameters under misp42splunk/lookups/misp_instances.csv
-#   header row: misp_instance,misp_url,misp_key,misp_verifycert,misp_use_proxy,description
+#   header row: misp_instance,misp_url,misp_key,misp_verifycert,misp_use_proxy,description,client_use_cert,client_cert_full_path
     _SPLUNK_PATH = os.environ['SPLUNK_HOME']
     misp_instances = _SPLUNK_PATH + os.sep + 'etc' + os.sep + 'apps' + os.sep + 'misp42splunk' + os.sep + 'lookups' + os.sep + 'misp_instances.csv'
     try:
         with open(misp_instances, 'rb') as file_object:  # open misp_instances.csv if exists and load content.
             csv_reader = csv.reader(file_object)
             header_row = next(csv_reader)
+            extend_misp_instances = False
+            if 'client_use_cert' not in header_row:
+              header_row = ['misp_instance','misp_url','misp_key','misp_verifycert','misp_use_proxy','description','client_use_cert','client_cert_full_path']
+              extend_misp_instances = True
             instances = []
             for row in csv_reader:
               if 'default' in row:
-                instances.append(['default', self.callerArgs.data['misp_url'][0], self.callerArgs.data['misp_key'][0], misp_verifycert, misp_use_proxy, 'default MISP instance defined at MISP42 app setup'])
+                instances.append(['default', self.callerArgs.data['misp_url'][0], self.callerArgs.data['misp_key'][0], misp_verifycert, misp_use_proxy, 'default MISP instance defined at MISP42 app setup', client_use_cert, self.callerArgs.data['client_cert_full_path'][0]])
               else:
+                if extend_misp_instances is True:
+                  row.extend((False,''))
                 instances.append(row)
     except IOError : # file misp_instances.csv doesn't exists so create empty instances
-        header_row = ['misp_instance','misp_url','misp_key','misp_verifycert','misp_use_proxy','description']
-        instance = ['default', self.callerArgs.data['misp_url'][0], self.callerArgs.data['misp_key'][0], misp_verifycert, misp_use_proxy, 'default MISP instance defined at MISP42 app setup']
+        header_row = ['misp_instance','misp_url','misp_key','misp_verifycert','misp_use_proxy','description','client_use_cert','client_cert_full_path']
+        instance = ['default', self.callerArgs.data['misp_url'][0], self.callerArgs.data['misp_key'][0], misp_verifycert, misp_use_proxy, 'default MISP instance defined at MISP42 app setup', client_use_cert, self.callerArgs.data['client_cert_full_path'][0]]
         instances = []
         instances.append(instance)
 
