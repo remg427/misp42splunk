@@ -19,7 +19,7 @@ from misp_common import prepare_config
 
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
-__version__    = "2.1.0"
+__version__    = "2.2.0"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
@@ -135,7 +135,7 @@ class mispsight(StreamingCommand):
                         'last_event_id': 0
                     }
                     # search
-                    r = requests.post(search_url, headers=headers, data=search_body, verify=my_args['misp_verifycert'], proxies=my_args['proxies'])
+                    r = requests.post(search_url, headers=headers, data=search_body, verify=my_args['misp_verifycert'], cert=my_args['client_cert_full_path'], proxies=my_args['proxies'])
                     # check if status is anything other than 200; throw an exception if it is
                     r.raise_for_status()
                     # response is 200 by this point or we would have thrown an exception
@@ -149,7 +149,7 @@ class mispsight(StreamingCommand):
                                 if misp_fp == False:
                                     sight_dict['id'] = str(a['id'])
                                     sight_body = json.dumps(sight_dict)
-                                    s = requests.post(sight_url, headers=headers, data=sight_body, verify=my_args['misp_verifycert'], proxies=my_args['proxies'])
+                                    s = requests.post(sight_url, headers=headers, data=sight_body, verify=my_args['misp_verifycert'], cert=my_args['client_cert_full_path'], proxies=my_args['proxies'])
                                     # check if status is anything other than 200; throw an exception if it is
                                     s.raise_for_status()
                                     # response is 200 by this point or we would have thrown an exception

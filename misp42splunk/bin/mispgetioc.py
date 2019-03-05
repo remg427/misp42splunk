@@ -22,7 +22,7 @@ from misp_common import prepare_config
 
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
-__version__    = "2.1.0"
+__version__    = "2.2.0"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
@@ -288,7 +288,7 @@ class mispgetioc(ReportingCommand):
             body = json.dumps(body_dict)
             logging.info('INFO MISP REST API REQUEST: %s', body)
             # search
-            r = requests.post(my_args['misp_url'], headers=headers, data=body, verify=my_args['misp_verifycert'], proxies=my_args['proxies'])
+            r = requests.post(my_args['misp_url'], headers=headers, data=body, verify=my_args['misp_verifycert'], cert=my_args['client_cert_full_path'], proxies=my_args['proxies'])
             # check if status is anything other than 200; throw an exception if it is
             r.raise_for_status()
             # response is 200 by this point or we would have thrown an exception

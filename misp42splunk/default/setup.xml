@@ -17,6 +17,17 @@
       <type>bool</type>
     </input>
   </block>
+  <block title="(Optional) use a client certificate as a single file (containing the private key and the certificate) 
+" endpoint="admin/misp42splunk/" entity="mispsetup">
+    <input field="client_use_cert" endpoint="admin/misp42splunk/" entity="mispsetup">
+      <label>Use a client certificate to authenticate on default instance</label>
+      <type>bool</type>
+    </input>
+    <input field="client_cert_full_path" endpoint="admin/misp42splunk/" entity="mispsetup">
+      <label>Provide full path to client certificate file </label>
+      <type>text</type>
+    </input>
+  </block>
   <block title="(Optional) proxy parameters if needed - leave empty if no proxy required. Use the syntax http://user:pass@proxyhost:port/" endpoint="admin/misp42splunk/" entity="mispsetup">
     <input field="http_proxy">
       <label>http url:</label>
