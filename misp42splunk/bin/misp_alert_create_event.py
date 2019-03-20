@@ -23,7 +23,7 @@ import logging
 
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
-__version__    = "2.2.0"
+__version__    = "2.2.1"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
@@ -274,7 +274,7 @@ def process_misp_events(config, results, event_list):
             body = json.dumps(edit_body)
             logging.info("edit body is %s", body)
             # POST json data to create events
-            r = requests.post(misp_url_edit, headers=headers, data=body, verify=misp_verifycert, proxies=config['proxies'])
+            r = requests.post(misp_url_edit, headers=headers, data=body, verify=misp_verifycert, cert=client_cert, proxies=config['proxies'])
             # check if status is anything other than 200; throw an exception if it is
             r.raise_for_status()
             # response is 200 by this point or we would have thrown an exception
