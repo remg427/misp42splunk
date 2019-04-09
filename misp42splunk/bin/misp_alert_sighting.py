@@ -173,6 +173,7 @@ def create_alert(config, results):
             if 'uuid' in row:
                 value = row['uuid']
                 if value != "":
+                    value = value.splitlines()[0]
                     sightings[value] = timestamp
 
     # set proper headers
@@ -191,7 +192,7 @@ def create_alert(config, results):
         else:
             sighting = json.dumps(dict(
                 timestamp=int(data),
-                id=key,
+                uuid=key,
                 type=sighting_type
             ))
 
