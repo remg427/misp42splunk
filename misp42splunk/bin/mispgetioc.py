@@ -22,7 +22,7 @@ from misp_common import prepare_config
 
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
-__version__    = "2.2.0"
+__version__    = "2.2.2"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
@@ -113,11 +113,16 @@ class mispgetioc(ReportingCommand):
         **Syntax:** **not_tags=***CSV string*
         **Description:**Comma(,)-separated string of tags to exclude from results. Wildcard is %.''',
         require=False)
+    threat_level_id = Option(
+        doc = '''
+        **Syntax:** **threat_level=***<int>*
+        **Description:**define the threat_level_id''',
+        require=False, validate=validators.Match("threat_level_id", r"^[1-4]$"))
     limit         = Option(
         doc = '''
         **Syntax:** **limit=***<int>*
         **Description:**define the limit for each MISP search; default 10000. 0 = no pagination.''',
-        require=False, validate=validators.Match("limit",     r"^[0-9]+$"))
+        require=False, validate=validators.Match("limit", r"^[0-9]+$"))
     getuuid         = Option(
         doc = '''
         **Syntax:** **getuuid=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
@@ -258,6 +263,8 @@ class mispgetioc(ReportingCommand):
                 tags_list = self.not_tags.split(",")
                 tags_criteria['NOT'] = tags_list
             body_dict['tags'] = tags_criteria
+        if self.threat_level_id is not None:
+            body_dict['threat_level_id'] = int(self.threat_level_id)
 
         # output filter parameters
         if self.getuuid is True:
