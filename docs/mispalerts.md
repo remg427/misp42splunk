@@ -56,6 +56,8 @@ Build your search with as many fields as you want. One field should contain a va
 Save your search as alert. Select "Alert for sighting MISP attribute(s)" as action
 Fill in the form to tune your alert to your needs.
 
+IMPORTANT: for mode **byuuid** , only first uuid is kept. If the field is a multivalue field other entries are lost. If needed you may prepare uuid list in Splunk using mvdedup and mvexpand commands.
+
 * Global event parameters: the parameters will apply for all events created by this alert unless overwritten (see above)
     - Unique ID: indicate the field containing timestamps. If not defined, defaults is now()
     - mode; indicate if sighting is by __value__ or __by attribute uuid__
