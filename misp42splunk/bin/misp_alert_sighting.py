@@ -30,11 +30,11 @@ import requests
 from splunk.clilib import cli_common as cli
 import logging
 
-__author__     = "Remi Seguy"
-__license__    = "LGPLv3"
-__version__    = "2.2.0"
-__maintainer__ = "Remi Seguy"
-__email__      = "remg427@gmail.com"
+__author__      = "Remi Seguy"
+__license__     = "LGPLv3"
+__version__     = "2.2.3"
+__maintainer__  = "Remi Seguy"
+__email__       = "remg427@gmail.com"
 
 
 def group_values(r,tslabel,ds):
@@ -62,9 +62,16 @@ def group_values(r,tslabel,ds):
 
         # now we take remaining KV pairs on the line to add data to list
         for key, value in row.iteritems():
-            if value != "":
-                print >> sys.stderr, "DEBUG key %s value %s" % (key, value)
-                data.append(str(value))
+            if value != "": 
+                if '\n' in value: # was a multivalue field
+                    logging.debug('value is not a simple string %s', value)
+                    values = value.splitlines()
+                    for val in values:
+                        if val != "" and val not in data: 
+                            data.append(str(val))            
+                else:
+                    logging.debug('key %s value %s' % (key, value) )
+                    data.append(str(value))
 
         sightings[timestamp] = data
 
@@ -72,7 +79,7 @@ def group_values(r,tslabel,ds):
 
 
 def create_alert(config, results):
-    print >> sys.stderr, "DEBUG Creating alert with config %s" % json.dumps(config)
+    logging.debug('Creating alert with config %s' % json.dumps(config))
 
     # get the misp_url we need to connect to MISP
     # this can be passed as params of the alert. Defaults to values set in misp.conf
@@ -173,7 +180,7 @@ def create_alert(config, results):
             if 'uuid' in row:
                 value = row['uuid']
                 if value != "":
-                    value = value.splitlines()[0]
+                    value = value.splitlines()[0] #keep only first uuid in mv field (see #74)
                     sightings[value] = timestamp
 
     # set proper headers
@@ -239,13 +246,13 @@ if __name__ == "__main__":
                 sys.exit(0)
             # something went wrong with opening the results file
             except IOError as e:
-                print >> sys.stderr, "FATAL Results file exists but could not be opened/read"
+                logging.error("FATAL Results file exists but could not be opened/read")
                 sys.exit(3)
         # somehow the results file does not exist
         else:
-            print >> sys.stderr, "FATAL Results file does not exist"
+            logging.error("FATAL Results file does not exist")
             sys.exit(2)
     # somehow we received the wrong number of arguments
     else:
-        print >> sys.stderr, "FATAL Unsupported execution mode (expected --execute flag)"
+        logging.error("FATAL Unsupported execution mode (expected --execute flag)")
         sys.exit(1)
