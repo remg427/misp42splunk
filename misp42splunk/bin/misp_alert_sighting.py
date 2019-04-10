@@ -199,7 +199,7 @@ def create_alert(config, results):
         else:
             sighting = json.dumps(dict(
                 timestamp=int(data),
-                id=key,
+                uuid=key,
                 type=sighting_type
             ))
 
