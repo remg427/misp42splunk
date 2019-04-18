@@ -23,7 +23,7 @@ import logging
 
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
-__version__    = "2.2.1"
+__version__    = "2.2.4"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
@@ -133,7 +133,6 @@ def prepare_misp_events(config, results, event_list):
         else:
             event_list[eventkey] = eventid
             event = event_baseline.copy()
-            tags = event['Tag']
             if 'misp_time' in row:
                 event['date'] = datetime.datetime.fromtimestamp(int(row.pop('misp_time'))).strftime('%Y-%m-%d')
             else:
@@ -212,6 +211,7 @@ def prepare_misp_events(config, results, event_list):
         if fo_attribute:
             new_object = {
                 'name': 'file',
+                'distribution': 5,
                 'Attribute': fo_attribute
             }
             objects.append(new_object)
@@ -219,6 +219,7 @@ def prepare_misp_events(config, results, event_list):
         if eo_attribute:
             new_object = {
                 'name': 'email',
+                'distribution': 5,
                 'Attribute': eo_attribute
             }
             objects.append(new_object)
@@ -226,6 +227,7 @@ def prepare_misp_events(config, results, event_list):
         if no_attribute:
             new_object = {
                 'name': 'domain-ip',
+                'distribution': 5,
                 'Attribute': no_attribute
             }
             objects.append(new_object)
