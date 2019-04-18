@@ -1,0 +1,8 @@
+release notes - 2.2.4 - 16/04/2019
+# new features
+- api key and proxy password are stored in encrypted form.
+
+# bug fix
+## misp_alert_create_event.py
+- fix distribution inheritance for objects set to distribution=5 (= "inherit")
+

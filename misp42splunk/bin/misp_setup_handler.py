@@ -81,7 +81,9 @@ class ConfigApp(admin.MConfigHandler):
     #args = self.callerArgs
     # set up logging suitable for splunkd consumption
     logging.root
-    logging.root.setLevel(logging.ERROR)
+    logging.root.setLevel(logging.DEBUG)
+
+    logging.debug("PASSWORD: %s", self.PASSWORD)
 
     if int(self.callerArgs.data['misp_verifycert'][0]) == 1:
       self.callerArgs.data['misp_verifycert'][0] = '1'
