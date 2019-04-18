@@ -28,7 +28,7 @@ Description:  This skeleton python script handles the parameters in the configur
 
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
-__version__    = "2.2.0"
+__version__    = "2.2.4"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
@@ -82,8 +82,6 @@ class ConfigApp(admin.MConfigHandler):
     # set up logging suitable for splunkd consumption
     logging.root
     logging.root.setLevel(logging.DEBUG)
-
-    logging.debug("PASSWORD: %s", self.PASSWORD)
 
     if int(self.callerArgs.data['misp_verifycert'][0]) == 1:
       self.callerArgs.data['misp_verifycert'][0] = '1'
