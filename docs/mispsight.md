@@ -8,15 +8,12 @@ The command syntax is as follow:
 
     search something... | mispsight field=<field_containing_value_to_search_for> 
                 [misp_instance=instance_name] 
-                [misp_url=https://host:port] 
-                [misp_key=misp-authorization-key]
-                [misp_verifycert=y|n]                 
                 
 **WARNING**: if the field contains null value, you may get a server error 500. You can use the splunk command **|fillnull field** to avoid those errors (Thanks @jlachesk for solving this #54).
 
 one simple example:
 
-    ... | field clientip | mispsight field=clientip | dedup misp_json
+    ... | field clientip | mispsight field=clientip misp_instance=default_misp 
 
 will add following fields 
 
@@ -30,12 +27,3 @@ will add following fields
     misp_sight_first_event_id
     misp_sight_last
     misp_sight_last_event_id
-
-- If you need to fecth from another MISP instance different from the default one defined in the setup of the app, you may overwrite the misp server parameters for this search by setting either:
-    + misp_instance=instance_name
-
-    or (deprecated)
-
-    + misp_url: set the url to the MISP instance
-    + misp_key: misp-authorization-key for this instance
-    + misp_verifycert: you may check ssl certificate (default no)  

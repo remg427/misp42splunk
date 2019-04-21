@@ -22,7 +22,7 @@ from misp_common import prepare_config
 
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
-__version__    = "2.2.2"
+__version__    = "3.0.0"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
@@ -40,23 +40,8 @@ class mispgetioc(ReportingCommand):
     misp_instance = Option(
         doc='''
         **Syntax:** **misp_instance=instance_name*
-        **Description:**MISP instance parameters as decibed in lookup/misp_instances.csv.''',
-        require=False)
-    misp_url = Option(
-        doc='''
-        **Syntax:** **misp_url=***<MISP URL>*
-        **Description:**URL of MISP instance.''',
-        require=False, validate=validators.Match("misp_url", r"^https?:\/\/[0-9a-zA-Z\-\.]+(?:\:\d+)?$"))
-    misp_key = Option(
-        doc='''
-        **Syntax:** **misp_key=***<AUTH_KEY>*
-        **Description:**MISP API AUTH KEY.''',
-        require=False, validate=validators.Match("misp_key", r"^[0-9a-zA-Z]{40}$"))
-    misp_verifycert = Option(
-        doc = '''
-        **Syntax:** **misp_verifycert=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
-        **Description:**Verify or not MISP certificate.''',
-        require=False, validate=validators.Boolean())
+        **Description:**MISP instance parameters as described in local/inputs.conf.''',
+        require=True)
     # MANDATORY: eventid XOR last
     eventid         = Option(
         doc = '''
@@ -78,11 +63,6 @@ class mispgetioc(ReportingCommand):
         **Syntax:** **date_to=***date_string"*
         **Description:**(optional)ending date in searches with date_from. if not set default is now''',
         require=False)
-    onlyids         = Option(
-        doc = '''
-        **Syntax:** **onlyids=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
-        **Description:**deprecated use to_ids option instead.''',
-        require=False, validate=validators.Boolean())
     to_ids          = Option(
         doc = '''
         **Syntax:** **to_ids=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
@@ -229,10 +209,10 @@ class mispgetioc(ReportingCommand):
             limit = 10000
 
         #Search parameters: boolean and filter
-        if self.to_ids is True or self.onlyids is True:
+        if self.to_ids is True:
             body_dict['to_ids'] = True
             body_dict['enforceWarninglist'] = True
-        elif self.to_ids is False or self.onlyids is False:
+        elif self.to_ids is False:
             body_dict['to_ids'] = False
         if self.warning_list is True:
             body_dict['enforceWarninglist'] = True

@@ -1,0 +1,87 @@
+<%!
+# retrieve settings
+isLite = (cherrypy.config['product_type'] == 'lite' or cherrypy.config['product_type'] == 'lite_free')
+
+if cherrypy.config['product_type'] == 'hunk':
+    faviconFile = 'favicon_hunk.ico'
+elif isLite:
+    faviconFile = 'favicon_lite.ico'
+else:
+    faviconFile = 'favicon.ico'
+
+faviconFilePath = '/static/img/' + faviconFile
+
+config_qs = dict(autoload=1)
+if hasattr(cherrypy.request, 'embed') and cherrypy.request.embed:
+    config_qs['embed'] = 1
+%>\
+
+<%
+app_name = app
+
+splk_root = "/static"
+app_root = "/".join([splk_root,"app",app_name])
+
+app_js = app_root + '/js'
+
+app_js_build = app_root + '/js/build'
+app_css_build = app_root + '/css'
+
+pageJSName = page+'_page'
+
+# optimized js and css
+common_css = "%s/common.css" % app_css_build
+page_css ="%s/%s.css" % (app_css_build, page)
+bootstrap_enterprise_css = "%s/bootstrap-enterprise.css" % app_css_build
+
+page_js = "%s/%s.js" % (app_js_build ,pageJSName)
+%>\
+
+<!doctype html>
+<!--[if lt IE 7]> <html lang="${i18n.current_lang()[0]|h}" class="no-js ie  lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>    <html lang="${i18n.current_lang()[0]|h}" class="no-js ie7 lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>    <html lang="${i18n.current_lang()[0]|h}" class="no-js ie8 lt-ie9"> <![endif]-->
+<!--[if IE 9]>    <html lang="${i18n.current_lang()[0]|h}" class="no-js ie9"> <![endif]-->
+<!--[if gt IE 9]><!-->
+<html lang="${i18n.current_lang()[0]|h}" class="no-js"> <!--<![endif]-->
+    <head>
+        <meta charset="utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <title>${_('Loading...')}</title>
+        <meta name="description" content="listen to your data" />
+        <meta name="author" content="Splunk Inc." />
+        <meta name="viewport" content="width=1024, initial-scale=1.0" />
+        <link rel="shortcut icon" href="${make_url(faviconFilePath)}" />
+        <link rel="apple-touch-icon-precomposed" sizes="57x57" href="${make_url('/static/img/bookmark/apple-icon-57x57-precomposed.png')}" />
+        <link rel="apple-touch-icon-precomposed" sizes="72x72" href="${make_url('/static/img/bookmark/apple-icon-72x72-precomposed.png')}" />
+        <link rel="apple-touch-icon-precomposed" sizes="114x114" href="${make_url('/static/img/bookmark/apple-icon-114x114-precomposed.png')}" />
+        <link rel="apple-touch-icon-precomposed" sizes="144x144" href="${make_url('/static/img/bookmark/apple-icon-144x144-precomposed.png')}" />
+        <meta name="msapplication-TileColor" content="#65A637">
+        <meta name="msapplication-TileImage" content="${make_url('/static/img/bookmark/ms-tileicon-144x144.png')}">
+
+        <link rel="stylesheet" type="text/css" media="all" href="${make_url(bootstrap_enterprise_css)}" />
+        <link rel="stylesheet" type="text/css" media="all" href="${make_url(common_css)}" />
+        <link rel="stylesheet" type="text/css" media="all" href="${make_url(page_css)}" />
+        <script src="${make_url('/static/js/i18n.js')}"></script>
+    </head>
+    <body s:app="${app_name}">
+        <div class="preload">
+            <div id="placeholder-splunk-bar">
+                <a href="/app/launcher/home" class="brand" title="splunk &gt; listen to your data">splunk<strong>
+                    &gt;</strong></a>
+            </div>
+            <div id="placeholder-app-bar">
+            </div>
+        </div>
+
+        <div class="addonContainer"></div>
+        <div class="dialog-placeholder"></div>
+        <script src="${make_url('/config', _qs=config_qs)}"></script>
+        <script src="${make_url('/i18ncatalog?autoload=1')}"></script>
+        <script>
+            __splunkd_partials__ = ${json_decode(splunkd)};
+        </script>
+        <script src="${make_url(app_js_build + '/common.js')}"></script>
+        <script src="${make_url(page_js)}"></script>
+    </body>
+</html>

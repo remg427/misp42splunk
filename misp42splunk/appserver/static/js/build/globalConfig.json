@@ -1,0 +1,435 @@
+{
+    "meta": {
+        "name": "misp42splunk", 
+        "restRoot": "misp42splunk", 
+        "displayName": "misp42", 
+        "version": "3.0.0", 
+        "apiVersion": "3.0.0"
+    }, 
+    "pages": {
+        "configuration": {
+            "title": "Configuration", 
+            "description": "Set up your add-on", 
+            "tabs": [
+                {
+                    "entity": [
+                        {
+                            "required": true, 
+                            "label": "Account name", 
+                            "field": "name", 
+                            "validators": [
+                                {
+                                    "minLength": 1, 
+                                    "errorMsg": "Length of Account name should be between 1 and 50", 
+                                    "maxLength": 50, 
+                                    "type": "string"
+                                }, 
+                                {
+                                    "pattern": "^[a-zA-Z]\\w*$", 
+                                    "errorMsg": "Account name must start with a letter and followed by alphabetic letters, digits or underscores.", 
+                                    "type": "regex"
+                                }
+                            ], 
+                            "help": "Enter a unique name for this account.", 
+                            "type": "text"
+                        }, 
+                        {
+                            "validators": [
+                                {
+                                    "minLength": 1, 
+                                    "errorMsg": "Length of username should be between 1 and 200", 
+                                    "maxLength": 200, 
+                                    "type": "string"
+                                }
+                            ], 
+                            "required": true, 
+                            "label": "Username", 
+                            "field": "username", 
+                            "options": {
+                                "placeholder": "Enter the username here"
+                            }, 
+                            "help": "Enter the username for this account.", 
+                            "type": "text"
+                        }, 
+                        {
+                            "field": "password", 
+                            "encrypted": true, 
+                            "label": "Password", 
+                            "required": true, 
+                            "validators": [
+                                {
+                                    "minLength": 1, 
+                                    "errorMsg": "Length of password should be between 1 and 8192", 
+                                    "maxLength": 8192, 
+                                    "type": "string"
+                                }
+                            ], 
+                            "help": "Enter the password for this account.", 
+                            "type": "text"
+                        }
+                    ], 
+                    "name": "account", 
+                    "table": {
+                        "header": [
+                            {
+                                "field": "name", 
+                                "label": "Account name"
+                            }, 
+                            {
+                                "field": "username", 
+                                "label": "Username"
+                            }
+                        ], 
+                        "actions": [
+                            "edit", 
+                            "delete", 
+                            "clone"
+                        ]
+                    }, 
+                    "title": "Account"
+                }, 
+                {
+                    "options": {
+                        "saveValidator": "function(formData) { if(!formData.proxy_enabled || formData.proxy_enabled === '0') {return true; } if(!formData.proxy_url) { return 'Proxy Host can not be empty'; } if(!formData.proxy_port) { return 'Proxy Port can not be empty'; } return true; }"
+                    }, 
+                    "name": "proxy", 
+                    "entity": [
+                        {
+                            "field": "proxy_enabled", 
+                            "label": "Enable", 
+                            "type": "checkbox"
+                        }, 
+                        {
+                            "options": {
+                                "disableSearch": true, 
+                                "autoCompleteFields": [
+                                    {
+                                        "label": "http", 
+                                        "value": "http"
+                                    }, 
+                                    {
+                                        "label": "socks4", 
+                                        "value": "socks4"
+                                    }, 
+                                    {
+                                        "label": "socks5", 
+                                        "value": "socks5"
+                                    }
+                                ]
+                            }, 
+                            "field": "proxy_type", 
+                            "defaultValue": "http", 
+                            "label": "Proxy Type", 
+                            "type": "singleSelect"
+                        }, 
+                        {
+                            "validators": [
+                                {
+                                    "minLength": 0, 
+                                    "errorMsg": "Max host length is 4096", 
+                                    "maxLength": 4096, 
+                                    "type": "string"
+                                }
+                            ], 
+                            "field": "proxy_url", 
+                            "label": "Host", 
+                            "type": "text"
+                        }, 
+                        {
+                            "validators": [
+                                {
+                                    "range": [
+                                        1, 
+                                        65535
+                                    ], 
+                                    "type": "number"
+                                }
+                            ], 
+                            "field": "proxy_port", 
+                            "label": "Port", 
+                            "type": "text"
+                        }, 
+                        {
+                            "validators": [
+                                {
+                                    "minLength": 0, 
+                                    "errorMsg": "Max length of username is 50", 
+                                    "maxLength": 50, 
+                                    "type": "string"
+                                }
+                            ], 
+                            "field": "proxy_username", 
+                            "label": "Username", 
+                            "type": "text"
+                        }, 
+                        {
+                            "encrypted": true, 
+                            "validators": [
+                                {
+                                    "minLength": 0, 
+                                    "errorMsg": "Max length of password is 8192", 
+                                    "maxLength": 8192, 
+                                    "type": "string"
+                                }
+                            ], 
+                            "field": "proxy_password", 
+                            "label": "Password", 
+                            "type": "text"
+                        }, 
+                        {
+                            "field": "proxy_rdns", 
+                            "label": "Remote DNS resolution", 
+                            "type": "checkbox"
+                        }
+                    ], 
+                    "title": "Proxy"
+                }, 
+                {
+                    "name": "logging", 
+                    "entity": [
+                        {
+                            "options": {
+                                "disableSearch": true, 
+                                "autoCompleteFields": [
+                                    {
+                                        "label": "DEBUG", 
+                                        "value": "DEBUG"
+                                    }, 
+                                    {
+                                        "label": "INFO", 
+                                        "value": "INFO"
+                                    }, 
+                                    {
+                                        "label": "WARNING", 
+                                        "value": "WARNING"
+                                    }, 
+                                    {
+                                        "label": "ERROR", 
+                                        "value": "ERROR"
+                                    }, 
+                                    {
+                                        "label": "CRITICAL", 
+                                        "value": "CRITICAL"
+                                    }
+                                ]
+                            }, 
+                            "field": "loglevel", 
+                            "defaultValue": "INFO", 
+                            "label": "Log level", 
+                            "type": "singleSelect"
+                        }
+                    ], 
+                    "title": "Logging"
+                }
+            ]
+        }, 
+        "inputs": {
+            "table": {
+                "moreInfo": [
+                    {
+                        "field": "name", 
+                        "label": "Name"
+                    }, 
+                    {
+                        "field": "interval", 
+                        "label": "Interval"
+                    }, 
+                    {
+                        "field": "index", 
+                        "label": "Index"
+                    }, 
+                    {
+                        "field": "disabled", 
+                        "label": "Status"
+                    }, 
+                    {
+                        "field": "misp_url", 
+                        "label": "MISP url"
+                    }, 
+                    {
+                        "field": "misp_key", 
+                        "label": "MISP API key"
+                    }, 
+                    {
+                        "field": "misp_verifycert", 
+                        "label": "Check MISP certificate"
+                    }, 
+                    {
+                        "field": "misp_use_proxy", 
+                        "label": "Use proxy settings"
+                    }, 
+                    {
+                        "field": "client_use_cert", 
+                        "label": "Use a client certificate"
+                    }, 
+                    {
+                        "field": "client_cert_full_path", 
+                        "label": "Client certificate file "
+                    } 
+                ], 
+                "header": [
+                    {
+                        "field": "name", 
+                        "label": "Name"
+                    }, 
+                    {
+                        "field": "interval", 
+                        "label": "Interval"
+                    }, 
+                    {
+                        "field": "index", 
+                        "label": "Index"
+                    }, 
+                    {
+                        "field": "disabled", 
+                        "label": "Status"
+                    }
+                ], 
+                "actions": [
+                    "edit", 
+                    "enable", 
+                    "delete", 
+                    "clone"
+                ]
+            }, 
+            "title": "Inputs", 
+            "services": [
+                {
+                    "name": "misp", 
+                    "entity": [
+                        {
+                            "required": true, 
+                            "label": "Name", 
+                            "field": "name", 
+                            "validators": [
+                                {
+                                    "pattern": "^[a-zA-Z]\\w*$", 
+                                    "errorMsg": "Input Name must start with a letter and followed by alphabetic letters, digits or underscores.", 
+                                    "type": "regex"
+                                }, 
+                                {
+                                    "minLength": 1, 
+                                    "errorMsg": "Length of input name should be between 1 and 100", 
+                                    "maxLength": 100, 
+                                    "type": "string"
+                                }
+                            ], 
+                            "help": "Enter a unique name for the data input", 
+                            "type": "text"
+                        }, 
+                        {
+                            "required": true, 
+                            "label": "Interval", 
+                            "field": "interval", 
+                            "validators": [
+                                {
+                                    "pattern": "^\\-[1-9]\\d*$|^\\d*$", 
+                                    "errorMsg": "Interval must be an integer.", 
+                                    "type": "regex"
+                                }
+                            ], 
+                            "help": "Time interval of input in seconds.", 
+                            "type": "text"
+                        }, 
+                        {
+                            "validators": [
+                                {
+                                    "minLength": 1, 
+                                    "errorMsg": "Length of index name should be between 1 and 80.", 
+                                    "maxLength": 80, 
+                                    "type": "string"
+                                }
+                            ], 
+                            "required": true, 
+                            "field": "index", 
+                            "options": {
+                                "endpointUrl": "data/indexes", 
+                                "blackList": "^_.*$", 
+                                "createSearchChoice": true
+                            }, 
+                            "defaultValue": "default", 
+                            "label": "Index", 
+                            "type": "singleSelect"
+                        }, 
+                        {
+                            "required": true, 
+                            "label": "MISP url", 
+                            "options": {
+                                "placeholder": "https://mymisp.instance.org:port"
+                            }, 
+                            "field": "misp_url", 
+                            "validators": [
+                                {
+                                    "minLength": 0, 
+                                    "errorMsg": "Max length of text input is 8192", 
+                                    "maxLength": 8192, 
+                                    "type": "string"
+                                }
+                            ], 
+                            "help": "provide MISP URL. Do not end with a /", 
+                            "type": "text"
+                        }, 
+                        {
+                            "field": "misp_key", 
+                            "required": true, 
+                            "label": "MISP API key", 
+                            "options": {
+                                "placeholder": "***AUTH KEY***"
+                            }, 
+                            "encrypted": true, 
+                            "validators": [
+                                {
+                                    "minLength": 0, 
+                                    "errorMsg": "Max length of password is 8192", 
+                                    "maxLength": 8192, 
+                                    "type": "string"
+                                }
+                            ], 
+                            "help": "provide one authkey for the instance", 
+                            "type": "text"
+                        }, 
+                        {
+                            "required": false, 
+                            "label": "Check MISP certificate", 
+                            "field": "misp_verifycert", 
+                            "defaultValue": true, 
+                            "help": "", 
+                            "type": "checkbox"
+                        }, 
+                        {
+                            "required": false, 
+                            "field": "misp_use_proxy", 
+                            "help": "Use proxy settings for default instance", 
+                            "label": "Use proxy settings", 
+                            "type": "checkbox"
+                        }, 
+                        {
+                            "required": false, 
+                            "field": "client_use_cert", 
+                            "help": "Use a client certificate to authenticate on default instance", 
+                            "label": "Use a client certificate", 
+                            "type": "checkbox"
+                        }, 
+                        {
+                            "required": false, 
+                            "label": "Client certificate file ", 
+                            "field": "client_cert_full_path", 
+                            "validators": [
+                                {
+                                    "minLength": 0, 
+                                    "errorMsg": "Max length of text input is 8192", 
+                                    "maxLength": 8192, 
+                                    "type": "string"
+                                }
+                            ], 
+                            "help": "Provide full path to client certificate file ", 
+                            "type": "text"
+                        } 
+                    ], 
+                    "title": "misp"
+                }
+            ], 
+            "description": "Manage your data inputs"
+        }
+    }
+}
