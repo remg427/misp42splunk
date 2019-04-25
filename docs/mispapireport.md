@@ -9,11 +9,11 @@ There are 2 main modes:
 
    1. mode=p : in this mode individual parameters are passed to build a JSON request on the fly. This mode is the **default one**. You can use almost all available options to build the request i.e "page", "limit", "value", "type", "category", "org", "tags" (and "not_tags"), "date_from", "date_to", "last", "eventid", "uuid", "enforceWarninglist", "to_ids", "deleted", "includeEventUuid", "includeEventTags", "threat_level_id", "eventinfo".
 
-		| mispapireport mode=p type="domain,ip-src" date_from="2019-01-01"
+		| mispapireport misp_instance=default_misp mode=p type="domain,ip-src" date_from="2019-01-01"
 
    2. mode=j : in this mode a complete JSON request is passed as parameter using field json_request
 
-		| mispapireport mode=j json_request="{\"type\": {\"OR\": [\"domain\",\"ip-dst\"]}, \"from\": \"2019-01-01\"}"
+		| mispapireport misp_instance=default_misp mode=j json_request="{\"type\": {\"OR\": [\"domain\",\"ip-dst\"]}, \"from\": \"2019-01-01\"}"
 
 The 2 examples should return the same results as they result in the same request at the end.  
 

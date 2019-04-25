@@ -19,7 +19,7 @@ from misp_common import prepare_config
 
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
-__version__    = "2.2.0"
+__version__    = "3.0.0"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
@@ -71,31 +71,11 @@ class mispsight(StreamingCommand):
         **Syntax:** **field=***<fieldname>*
         **Description:**Name of the field containing the value to search for.''',
         require=True, validate=validators.Fieldname())
-
-# Superseede MISP instance for this search
     misp_instance = Option(
         doc='''
         **Syntax:** **misp_instance=instance_name*
-        **Description:**MISP instance parameters as decibed in lookup/misp_instances.csv.''',
-        require=False)
-    misp_url = Option(
-        doc='''
-        **Syntax:** **misp_url=***<MISP URL>*
-        **Description:**URL of MISP instance.''',
-        require=False, validate=validators.Match("misp_url", r"^https?:\/\/[0-9a-zA-Z\-\.]+(?:\:\d+)?$"))
-
-    misp_key = Option(
-        doc='''
-        **Syntax:** **misp_key=***<AUTH_KEY>*
-        **Description:**MISP API AUTH KEY.''',
-        require=False, validate=validators.Match("misp_key", r"^[0-9a-zA-Z]{40}$"))
-
-    misp_verifycert = Option(
-        doc = '''
-        **Syntax:** **misp_verifycert=***<y|n>*
-        **Description:**Verify or not MISP certificate.''',
-        require=False, validate=validators.Boolean())
-
+        **Description:**MISP instance parameters as described in local/inputs.conf.''',
+        require=True)
 
     def stream(self, records):
         # self.logger.debug('mispgetioc.reduce')
