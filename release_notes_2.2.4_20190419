@@ -1,5 +1,0 @@
-release notes - 2.2.4 - 16/04/2019
-# bug fix
-## misp_alert_create_event.py
-- fix distribution inheritance for objects set to distribution=5 (= "inherit")
-
