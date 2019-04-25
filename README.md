@@ -1,30 +1,24 @@
 # Overview
-misp42splunk app connects [MISP](http://www.misp-project.org/) and [Splunk](www.splunk.com).
-
-The app is designed to be easy to install, set up and maintain using the Splunk GUI.
-
+misp42splunk app connects [MISP](http://www.misp-project.org/) and [Splunk](www.splunk.com).  
+The app is designed to be easy to install, set up and maintain using the Splunk GUI.  
 MISP instances must be version 2.4.98 or above (new REST API).
 
 **misp42splunk version >=3.0.0**: this is a major update; after installation, restart splunk, launch the app and create one misp instance under inputs. It is recommended to name it default_misp. If you need **several instances**, create additional inputs.
 
-# Usage
+# Usage  
+1. MISP to SPLUNK:  
+ **`| mispgetioc misp_instance=default_misp _params_ | ...`** gets MISP event attributes into Splunk search pipeline.  
+ **`| mispapireport misp_instance=default_misp _params_ | ...`** gets MISP event attributes into Splunk search pipeline.   
+ **`search ... |mispsearch misp_instance=default_misp field=myvalue | ...`** searches for matching attributes in MISP.  
+ **`search ... |mispsight  misp_instance=default_misp field=myvalue | ...`** gets sighting information for a specific value (note that if there is FP, only first hit is returned)
 
-1. MISP to SPLUNK:
-
-    - **| mispgetioc misp_instance=default_misp _params_ | ...** gets MISP event attributes into Splunk search pipeline. 
-    - **| mispapireport misp_instance=default_misp _params_ | ...** gets MISP event attributes into Splunk search pipeline. 
-	- **search ... |mispsearch misp_instance=default_misp field=myvalue | ...** searches for matching attributes in MISP.
-	- **search ... |mispsight  misp_instance=default_misp field=myvalue | ...** gets sighting information for a specific value (note that if there is FP, only first hit is returned)
-
-2. MISP for SPLUNK: 2 Splunk alert actions are available
-        
-	- one action to create new events or **edit** existing ones if you provide an eventid (or UUID). This allows to contribute to misp event(s) across several alert triggers.
-	- one action to increment attribute sighting in a MISP instance. 
+2. MISP for SPLUNK: 2 Splunk alert actions are available          
+ * one action to create new events or **edit** existing ones if you provide an eventid (or UUID). This allows to contribute to misp event(s) across several alert triggers.
+ * one action to increment attribute sighting in a MISP instance. 
 
 
 # Installation
-This app is designed to run on **Splunk Search Head(s)** on Linux plateforms (not tested on Windows but it could work)
-
+This app is designed to run on **Splunk Search Head(s)** on Linux plateforms (not tested on Windows but it could work)  
 1. **working with master** Download this [file](misp42splunk.tar.gz) which is the Splunk app
 1. **working with other branches** Download the ZIP file and extract the folder misp42splunk which actually contains the Splunk app. You have to compress that folder as misp42splunk.tar.gz
 3. Install the app on your Splunk Search Head(s): "Manage Apps" -> "Install app from file"
