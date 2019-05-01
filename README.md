@@ -1,3 +1,7 @@
+## IMPORTANT
+With version 3.0.0 you need FIRST to create input(s) to point to your MISP instance(s)  
+and SECOND adapt all saved searches to add misp_instance=<myMISP>
+
 ## Overview
 misp42splunk app connects [MISP](http://www.misp-project.org/) and [Splunk](www.splunk.com).  
 The app is designed to be easy to install, set up and maintain using the Splunk GUI.  
