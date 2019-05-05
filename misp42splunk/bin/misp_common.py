@@ -61,7 +61,7 @@ def prepare_config(self):
     logging.info("config_args['misp_verifycert'] {}".format(config_args['misp_verifycert']))
     config_args['proxies'] = dict()
     if int(mispconf['misp_use_proxy']) == 1:
-        inputs_conf_file = _SPLUNK_PATH + os.sep + 'etc' + os.sep + 'apps' + os.sep + app_name + os.sep + 'local' + os.sep + 'misp42splunk_settings.conf'
+        settings_file = _SPLUNK_PATH + os.sep + 'etc' + os.sep + 'apps' + os.sep + app_name + os.sep + 'local' + os.sep + 'misp42splunk_settings.conf'
         if os.path.exists(settings_file):
             misp42splunk_settings = cli.readConfFile(settings_file)
             for name, content in misp42splunk_settings.items():
