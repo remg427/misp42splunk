@@ -5,16 +5,16 @@
     "id": {
       "group": null,
       "name": "misp42splunk",
-      "version": "3.0.0"
+      "version": "3.0.2"
     },
     "author": [
       {
         "name": "Remi Seguy",
-        "email": null,
+        "email": "remg427@gmail.com",
         "company": null
       }
     ],
-    "releaseDate": null,
+    "releaseDate": "2019-05-07",
     "description": "",
     "classification": {
       "intendedAudience": null,
