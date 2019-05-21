@@ -1,5 +1,5 @@
 ## IMPORTANT
-With version 3.0.0 you need FIRST to create input(s) to point to your MISP instance(s)  
+With version >3.0.0 you need FIRST to create input(s) to point to your MISP instance(s)  
 and SECOND adapt all saved searches to add misp_instance=one-of-the-input-name
 
 ## Overview
@@ -9,6 +9,7 @@ MISP instances must be version 2.4.98 or above (new REST API).
 
 **misp42splunk version >=3.0.0**: this is a major update;  
 after installation, restart splunk, launch the app and create one misp instance under inputs. It is recommended to name it default_misp. If you need **several instances**, create additional inputs.
+![inputs](doc/misp42_create_inputs.png)
 
 ## Usage  
 1. MISP to SPLUNK:  
@@ -36,6 +37,10 @@ This app is designed to run on **Splunk Search Head(s)** on Linux plateforms (no
     - provide client certificate if required (and check the box to use it)
 
 ## Use Cases
+### Build a dashboard
+You may get fresh attributes from a MISP instance and save them under an index (for example index=misp).
+Then a dashboard can be build by using [this template](docs/misp_charts.xml). The result should be similar to [this video](https://www.youtube.com/watch?v=H2Z3gwJW7Fc&feature=youtu.be)
+Thanks to @ran2 for sharing! 
 
 ### Hunting in Splunk logs
 Fresh IOC from MISP > saved searches in Splunk 
