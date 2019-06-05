@@ -9,7 +9,7 @@ import os
 from splunk.clilib import cli_common as cli
 
 __license__    = "LGPLv3"
-__version__    = "3.0.0"
+__version__    = "3.0.4"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
@@ -27,14 +27,18 @@ def prepare_config(self):
     inputs_conf_file = _SPLUNK_PATH + os.sep + 'etc' + os.sep + 'apps' + os.sep + app_name + os.sep + 'local' + os.sep + 'inputs.conf'
     if os.path.exists(inputs_conf_file):
         inputsConf = cli.readConfFile(inputs_conf_file)
+        foundStanza = False
         for name, content in inputsConf.items():
             if stanza_name in name:
                 mispconf = content
+                foundStanza = True
                 logging.info(json.dumps(mispconf))
-        if not mispconf:
+        if not foundStanza:
             logging.error("local/inputs.conf does not contain settings for stanza: {}".format(stanza_name)) 
+            raise Exception('local/inputs.conf does not contain any stanza %s ', str(stanza_name))
     else:
         logging.error("local/inputs.conf does not exist. Please configure misp instances first.") 
+        raise Exception('local/inputs.conf does not exist. Please configure an inputs entry for %s', misp_instance)
     # get clear version of misp_key
     storage_passwords = self.service.storage_passwords
     config_args['misp_key'] = None
@@ -49,7 +53,8 @@ def prepare_config(self):
             logging.info('proxy_password found for misp42splunk')
 
     if config_args['misp_key'] is None:
-        logging.error('misp_key NOT found for instance  {}'.format(misp_instance))         
+        logging.error('misp_key NOT found for instance  {}'.format(misp_instance))
+        raise Exception('misp_key NOT found for instance  %s ', misp_instance)         
     #settings
     # get MISP settings stored in inputs.conf
     config_args['misp_url'] = mispconf['misp_url']
@@ -64,14 +69,18 @@ def prepare_config(self):
         settings_file = _SPLUNK_PATH + os.sep + 'etc' + os.sep + 'apps' + os.sep + app_name + os.sep + 'local' + os.sep + 'misp42splunk_settings.conf'
         if os.path.exists(settings_file):
             misp42splunk_settings = cli.readConfFile(settings_file)
+            foundProxy = False
             for name, content in misp42splunk_settings.items():
                 if 'proxy' in name:
                     proxy= content
+                    foundProxy = True
                     logging.info(json.dumps(proxy))
-            if not mispconf:
-                logging.error("local/misp42splunk_settings.conf does not contain settings for proxy") 
+            if not foundProxy:
+                logging.error("misp_use_proxy is True and local/misp42splunk_settings.conf does not contain settings for proxy") 
+                raise Exception('misp_use_proxy is True and local/misp42splunk_settings.conf does not contain settings for proxy')
         else:
-            logging.error("local/misp42splunk_settings.conf does not exist. Please configure misp42splunk first.") 
+            logging.error("misp_use_proxy is True and local/misp42splunk_settings.conf does not exist. Please configure misp42splunk first.") 
+            raise Exception("misp_use_proxy is True and local/misp42splunk_settings.conf does not exist. Please configure misp42splunk first.") 
         if proxy:
             proxy_url = '://'
             if proxy['proxy_username'] is not '':
