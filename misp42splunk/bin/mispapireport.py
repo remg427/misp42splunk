@@ -33,7 +33,7 @@ class mispapireport(ReportingCommand):
     ##Syntax
     use paramater names to set values in the POST request body below.
     .. code-block::
-        | mispapireport page=<int> limit=<int> value=string type=CSVstring category=CSVstring org=string 
+        | mispapireport misp_instance=<input> page=<int> limit=<int> value=string type=CSVstring category=CSVstring org=string 
                         tags=CSVstring not_tags=CSVstrings date_from=date_string date_to=date_string last=<int>(d|h|m)
                         eventid=CSVint uuid=CSVuuid_string enforceWarninglist=True|False 
                         to_ids=True|False deleted=True|False includeEventUuid=True|False includeEventTags==True|False
@@ -73,7 +73,35 @@ class mispapireport(ReportingCommand):
         "includeEventTags": "optional",
         "event_timestamp": "optional",
         "threat_level_id": "optional",
-        "eventinfo": "optional"
+        "eventinfo": "optional",
+        "includeProposals": "optional"
+    }
+    # status for mode=p
+        "returnFormat": forced to json,
+        "page": param,
+        "limit": param,
+        "value": param,
+        "type": param, CSV string,
+        "category": param, CSV string,
+        "org": param, CSV string,
+        "tags": param with not_tags,
+        "from": param,
+        "to": param,
+        "last": param,
+        "eventid": param,
+        "withAttachments": forced to false,
+        "uuid": param,
+        "publish_timestamp": not managed,
+        "timestamp": not managed,
+        "enforceWarninglist": param,
+        "to_ids": param,
+        "deleted": param,
+        "includeEventUuid": param,
+        "includeEventTags": param,
+        "event_timestamp":  not managed,
+        "threat_level_id":  param,
+        "eventinfo": param,
+        "includeProposals": not managed
     }
 
     """

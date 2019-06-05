@@ -32,9 +32,64 @@ class mispgetioc(ReportingCommand):
     """ get the attributes from a MISP instance.
     ##Syntax
     .. code-block::
-        | mispgetioc last=<int>(d|h|m)
-        | mispgetioc event=<id1>(,<id2>,...)
+        | mispgetioc misp_instance=<input> last=<int>(d|h|m)
+        | mispgetioc misp_instance=<input> event=<id1>(,<id2>,...)
+        | mispgetioc misp_instance=<input> date_from=<<YYYY-MM-DD> (date_to=<YYYY-MM-DD>)
     ##Description
+    {
+        "returnFormat": "mandatory",
+        "page": "optional",
+        "limit": "optional",
+        "value": "optional",
+        "type": "optional",
+        "category": "optional",
+        "org": "optional",
+        "tags": "optional",
+        "from": "optional",
+        "to": "optional",
+        "last": "optional",
+        "eventid": "optional",
+        "withAttachments": "optional",
+        "uuid": "optional",
+        "publish_timestamp": "optional",
+        "timestamp": "optional",
+        "enforceWarninglist": "optional",
+        "to_ids": "optional",
+        "deleted": "optional",
+        "includeEventUuid": "optional",
+        "includeEventTags": "optional",
+        "event_timestamp": "optional",
+        "threat_level_id": "optional",
+        "eventinfo": "optional",
+        "includeProposals": "optional"
+    }
+    # status
+        "returnFormat": forced to json,
+        "page": not managed,
+        "limit": param,
+        "value": not managed,
+        "type": param, CSV string,
+        "category": param, CSV string,
+        "org": not managed,
+        "tags": param,
+        "from": param,
+        "to": param,
+        "last": param,
+        "eventid": param,
+        "withAttachments": forced to false,
+        "uuid": not managed,
+        "publish_timestamp": not managed,
+        "timestamp": not managed,
+        "enforceWarninglist": param,
+        "to_ids": param,
+        "deleted": forced to False,
+        "includeEventUuid": param,
+        "includeEventTags": param,
+        "event_timestamp":  not managed,
+        "threat_level_id":  param,
+        "eventinfo": not managed,
+        "includeProposals": not managed
+    }
     """
     # Superseede MISP instance for this search
     misp_instance = Option(
