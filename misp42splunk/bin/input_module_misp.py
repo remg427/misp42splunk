@@ -2,6 +2,7 @@
 # encoding = utf-8
 
 import os
+import re
 import sys
 import time
 import datetime
@@ -27,7 +28,13 @@ def validate_input(helper, definition):
     # misp_use_proxy = definition.parameters.get('misp_use_proxy', None)
     # client_use_cert = definition.parameters.get('client_use_cert', None)
     # client_cert_full_path = definition.parameters.get('client_cert_full_path', None)
-    pass
+    misp_url = definition.parameters.get('misp_url', None)
+    match = re.match("^https:\/\/[0-9a-zA-Z\-\.]+(?:\:\d+)?$",misp_url)
+    if match is None:
+        helper.log_error("Invalid URL. Please provide TLS URL without ending / e.g. https://misp.example.com:8080 ")
+        raise Exception, "Invalid URL: %s. Please provide TLS URL without ending / e.g. https://misp.example.com:8080 " % misp_url
+    else:
+        pass
 
 def collect_events(helper, ew):
     """Implement your data collection logic here

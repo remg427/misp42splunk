@@ -19,7 +19,7 @@ from misp_common import prepare_config
 
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
-__version__    = "3.0.0"
+__version__    = "3.0.5"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
@@ -115,12 +115,14 @@ class mispsight(StreamingCommand):
                         'last_event_id': 0
                     }
                     # search
+                    logging.debug('mispsight request body: %s', body)
                     r = requests.post(search_url, headers=headers, data=search_body, verify=my_args['misp_verifycert'], cert=my_args['client_cert_full_path'], proxies=my_args['proxies'])
                     # check if status is anything other than 200; throw an exception if it is
                     r.raise_for_status()
                     # response is 200 by this point or we would have thrown an exception
                     response = r.json()
-                    logging.info("INFO MISP REST API %s has response: %s" % (search_url, r.json()))
+                    logging.info("MISP REST API %s has got a response with status code 200", search_url)
+                    logging.debug("MISP REST API %s has got a response: %s" % (search_url, r.json()))
                     if 'response' in response:
                         if 'Attribute' in response['response']:
                             for a in response['response']['Attribute']:
@@ -134,7 +136,8 @@ class mispsight(StreamingCommand):
                                     s.raise_for_status()
                                     # response is 200 by this point or we would have thrown an exception
                                     sight = s.json()
-                                    logging.info("INFO MISP REST API %s has response: %s" % (sight_url, s.json()))
+                                    logging.info("MISP REST API %s has got a response with status code 200", sight_url)
+                                    logging.debug("MISP REST API %s has got a response: %s" % (sight_url, s.json()))
                                     if 'response' in sight:
                                         for se in sight['response']:
                                             if 'Sighting' in se:

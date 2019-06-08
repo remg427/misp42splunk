@@ -21,7 +21,7 @@ from misp_common import prepare_config
 
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
-__version__    = "3.0.0"
+__version__    = "3.0.5"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
@@ -256,7 +256,7 @@ class mispapireport(ReportingCommand):
             pagination = True
             other_page = True
             body_dict = json.loads(self.json_request)
-            logging.info('Option "json_request" set with %s', self.json_request)
+            logging.info('Option "json_request" set')
             body_dict['returnFormat'] = 'json'
             body_dict['withAttachments'] = False
             if 'limit' in body_dict:
@@ -298,7 +298,7 @@ class mispapireport(ReportingCommand):
 
             if self.org is not None:
                 body_dict['org'] = self.org
-                logging.info('Option "org" set with %s', body_dict['org'])
+                logging.info('Option "org" set')
 
             if self.eventid:
                 if "," in self.eventid:
@@ -308,15 +308,15 @@ class mispapireport(ReportingCommand):
                     body_dict['eventid'] = event_criteria
                 else:
                     body_dict['eventid'] = self.eventid
-                logging.info('Option "eventid" set with %s', body_dict['eventid'])
+                logging.info('Option "eventid" set')
 
             if self.value is not None:
                 body_dict['value'] = self.value
-                logging.info('Option "value" set with %s', body_dict['value'])
+                logging.info('Option "value" set')
 
             if self.eventinfo is not None:
                 body_dict['eventinfo'] = self.eventinfo
-                logging.info('Option "eventinfo" set with %s', body_dict['eventinfo'])
+                logging.info('Option "eventinfo" set')
 
             # CSV strings       
             if self.category is not None:
@@ -393,7 +393,7 @@ class mispapireport(ReportingCommand):
                 body_dict['limit'] = limit
 
             body = json.dumps(body_dict)
-            logging.error('INFO MISP REST API REQUEST: %s', body)
+            logging.debug('mispapireport request body: %s', body)
             # search
             r = requests.post(my_args['misp_url'], headers=headers, data=body, verify=my_args['misp_verifycert'], cert=my_args['client_cert_full_path'], proxies=my_args['proxies'])
             # check if status is anything other than 200; throw an exception if it is
@@ -457,7 +457,6 @@ class mispapireport(ReportingCommand):
         
         for k,v in output_dict.items():
             yield v
-#            logging.debug(json.dumps(v))
 
 
 if __name__ == "__main__":

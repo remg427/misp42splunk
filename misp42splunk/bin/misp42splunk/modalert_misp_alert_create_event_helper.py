@@ -8,7 +8,7 @@
 # Feel free to use the code, but please share the changes you've made
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
-__version__    = "3.0.0"
+__version__    = "3.0.5"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
@@ -353,7 +353,7 @@ def process_misp_events(helper, config, results, event_list):
     for eventkey in results:
         if event_list[eventkey] == "0": # create new event
             body = json.dumps(results[eventkey])
-            helper.log_info("create body is {}".format(body))
+            helper.log_info("create body has been prepared for eventkey {}".format(eventkey))
             # POST json data to create events
             r = requests.post(misp_url_create, headers=headers, data=body, verify=misp_verifycert, cert=client_cert, proxies=config['proxies'])
             # check if status is anything other than 200; throw an exception if it is
@@ -361,14 +361,13 @@ def process_misp_events(helper, config, results, event_list):
             # response is 200 by this point or we would have thrown an exception
             response = r.json()
             helper.log_info("event created")
-            helper.log_debug("event created {}".format(json.dumps(response)))
         else: # edit existing eventid with Attribute and Object
             misp_url_edit = config['misp_url'] + '/events/edit/' + event_list[eventkey]
             edit_body = {}
             edit_body['Attribute'] = results[eventkey]['Attribute']
             edit_body['Object'] = results[eventkey]['Object']
             body = json.dumps(edit_body)
-            helper.log_info("edit body is {}".format(body))
+            helper.log_info("edit body has been prepared for eventid {}".format(event_list[eventkey]))
             # POST json data to create events
             r = requests.post(misp_url_edit, headers=headers, data=body, verify=misp_verifycert, cert=client_cert, proxies=config['proxies'])
             # check if status is anything other than 200; throw an exception if it is
@@ -376,7 +375,6 @@ def process_misp_events(helper, config, results, event_list):
             # response is 200 by this point or we would have thrown an exception
             response = r.json()
             helper.log_info("event edited")
-            helper.log_debug("event edited {}".format(json.dumps(response)))
     return status
 
 
@@ -450,12 +448,13 @@ def process_event(helper, *args, **kwargs):
     [sample_code_macro:end]
     """
 
+    helper.set_log_level(helper.log_level)
     helper.log_info("Alert action misp_alert_create_event started.")
-
+    
     # TODO: Implement your alert action logic here
     Config = prepare_alert_config(helper)
-    helper.log_debug("config_dict{}".format(Config))
-
+    helper.log_info("Config dict is ready to use")
+    
     filename = Config['filename']
     if os.path.exists(filename):
         # file exists - try to open and if successful add path to configuration
@@ -472,8 +471,7 @@ def process_event(helper, *args, **kwargs):
                 helper.log_debug("Reader is {}".format(Reader))
                 event_list = {}
                 Events = prepare_misp_events(helper, Config, Reader, event_list)
-                helper.log_debug('Events contains {}'.format(json.dumps(Events)))
-                #print(json.dumps(Events))
+                helper.log_info("Events dict is ready to use")
                 status = process_misp_events(helper, Config, Events, event_list)
         # something went wrong with opening the results file
         except IOError as e:

@@ -19,7 +19,7 @@
 '''
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
-__version__    = "3.0.0"
+__version__    = "3.0.5"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
@@ -270,11 +270,12 @@ def process_event(helper, *args, **kwargs):
     [sample_code_macro:end]
     """
 
+    helper.set_log_level(helper.log_level)
     helper.log_info("Alert action misp_alert_sighting started.")
 
     # TODO: Implement your alert action logic here
     Config = prepare_alert_config(helper)
-    helper.log_debug("config_dict{}".format(Config))
+    helper.log_info("Config dict is ready to use")
 
     filename = Config['filename']
     if os.path.exists(filename):

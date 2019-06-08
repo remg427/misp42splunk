@@ -9,7 +9,7 @@ import os
 from splunk.clilib import cli_common as cli
 
 __license__    = "LGPLv3"
-__version__    = "3.0.4"
+__version__    = "3.0.5"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
@@ -47,13 +47,13 @@ def prepare_config(self):
         if misp_instance in credential.content.get('username') and 'misp_key' in credential.content.get('clear_password'):
             misp_instance_key = json.loads(credential.content.get('clear_password'))
             config_args['misp_key'] = str(misp_instance_key['misp_key'])
-            logging.info('misp_key found for instance  {}'.format(misp_instance))
+            logging.info('misp_key found for instance {}'.format(misp_instance))
         if 'proxy' in credential.content.get('username') and 'proxy_password' in credential.content.get('clear_password'):
             proxy_password = str(json.loads(credential.content.get('clear_password')))
             logging.info('proxy_password found for misp42splunk')
 
     if config_args['misp_key'] is None:
-        logging.error('misp_key NOT found for instance  {}'.format(misp_instance))
+        logging.error('misp_key NOT found for instance {}'.format(misp_instance))
         raise Exception('misp_key NOT found for instance  %s ', misp_instance)         
     #settings
     # get MISP settings stored in inputs.conf
@@ -74,7 +74,7 @@ def prepare_config(self):
                 if 'proxy' in name:
                     proxy= content
                     foundProxy = True
-                    logging.info(json.dumps(proxy))
+                    logging.info("Successfully found proxy settings")
             if not foundProxy:
                 logging.error("misp_use_proxy is True and local/misp42splunk_settings.conf does not contain settings for proxy") 
                 raise Exception('misp_use_proxy is True and local/misp42splunk_settings.conf does not contain settings for proxy')
@@ -97,7 +97,6 @@ def prepare_config(self):
     else:
         config_args['client_cert_full_path'] = None
     logging.info("config_args['client_cert_full_path'] {}".format(config_args['client_cert_full_path']))
-    # get proxy parameters if any
 
     # test if client certificate file is readable
     if config_args['client_cert_full_path'] is not None:
