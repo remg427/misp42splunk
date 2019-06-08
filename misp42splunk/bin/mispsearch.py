@@ -18,7 +18,7 @@ from misp_common import prepare_config
 
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
-__version__    = "3.0.0"
+__version__    = "3.0.5"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
@@ -129,7 +129,7 @@ class MispSearchCommand(StreamingCommand):
                     misp_value = []
                     misp_uuid = []
                     # search 
-                    logging.info('INFO MISP REST API REQUEST: %s', body)
+                    logging.debug('mispsearch request body: %s', body)
                     r = requests.post(my_args['misp_url'], headers=headers, data=body, verify=my_args['misp_verifycert'], cert=my_args['client_cert_full_path'],proxies=my_args['proxies'])
                     # check if status is anything other than 200; throw an exception if it is
                     r.raise_for_status()

@@ -22,7 +22,7 @@ from misp_common import prepare_config
 
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
-__version__    = "3.0.0"
+__version__    = "3.0.5"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
@@ -232,7 +232,7 @@ class mispgetioc(ReportingCommand):
                 body_dict['eventid'] = event_criteria
             else:
                 body_dict['eventid'] = self.eventid
-            logging.info('Option "eventid" set with %s', body_dict['eventid'])
+            logging.info('Option "eventid" set')
         elif self.last:
             body_dict['last'] = self.last
             logging.info('Option "last" set with %s', body_dict['last'])
@@ -328,7 +328,7 @@ class mispgetioc(ReportingCommand):
                 body_dict['limit'] = limit
 
             body = json.dumps(body_dict)
-            logging.info('INFO MISP REST API REQUEST: %s', body)
+            logging.debug('mispgetioc request body: %s', body)
             # search
             r = requests.post(my_args['misp_url'], headers=headers, data=body, verify=my_args['misp_verifycert'], cert=my_args['client_cert_full_path'], proxies=my_args['proxies'])
             # check if status is anything other than 200; throw an exception if it is
@@ -467,7 +467,6 @@ class mispgetioc(ReportingCommand):
                     misp_value = r['misp_value'] + '|' + v['misp_value']
                     v['misp_value'] = misp_value
                 output_dict[key] = dict(v)
-            logging.debug(json.dumps(output_dict))
         
         for k,v in output_dict.items():
             yield v
