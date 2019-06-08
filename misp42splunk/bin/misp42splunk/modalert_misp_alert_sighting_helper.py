@@ -275,7 +275,7 @@ def process_event(helper, *args, **kwargs):
 
     # TODO: Implement your alert action logic here
     Config = prepare_alert_config(helper)
-    helper.log_info"Config dict is ready to use")
+    helper.log_info("Config dict is ready to use")
 
     filename = Config['filename']
     if os.path.exists(filename):

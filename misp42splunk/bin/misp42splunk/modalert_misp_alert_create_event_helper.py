@@ -453,7 +453,7 @@ def process_event(helper, *args, **kwargs):
     
     # TODO: Implement your alert action logic here
     Config = prepare_alert_config(helper)
-    helper.log_info"Config dict is ready to use")
+    helper.log_info("Config dict is ready to use")
     
     filename = Config['filename']
     if os.path.exists(filename):
@@ -471,7 +471,7 @@ def process_event(helper, *args, **kwargs):
                 helper.log_debug("Reader is {}".format(Reader))
                 event_list = {}
                 Events = prepare_misp_events(helper, Config, Reader, event_list)
-                helper.log_info"Events dict is ready to use")
+                helper.log_info("Events dict is ready to use")
                 status = process_misp_events(helper, Config, Events, event_list)
         # something went wrong with opening the results file
         except IOError as e:
