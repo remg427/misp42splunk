@@ -29,9 +29,12 @@ def validate_input(helper, definition):
     # client_use_cert = definition.parameters.get('client_use_cert', None)
     # client_cert_full_path = definition.parameters.get('client_cert_full_path', None)
     misp_url = definition.parameters.get('misp_url', None)
-    if re.match("^https:\/\/[0-9a-zA-Z\-\.]+(?:\:\d+)?$",misp_url):
+    match = re.match("^https:\/\/[0-9a-zA-Z\-\.]+(?:\:\d+)?$",misp_url)
+    if match is None:
         helper.log_error("Invalid URL. Please provide TLS URL without ending / e.g. https://misp.example.com:8080 ")
-    pass
+        raise Exception, "Invalid URL: %s. Please provide TLS URL without ending / e.g. https://misp.example.com:8080 " % misp_url
+    else:
+        pass
 
 def collect_events(helper, ew):
     """Implement your data collection logic here
