@@ -34,6 +34,7 @@ This app is designed to run on **Splunk Search Head(s)** on Linux plateforms (no
     - check (or not) the certificate of the MISP server,
     - use (or not) the proxy for this instance,
     - provide client certificate if required (and check the box to use it)
+6. Important: Role(s)/user(s) using this app must have the capability to "list_storage_passwords" (as API KEYs and proxy password(s) are safely stored encrypted )
 
 ## Use Cases
 ### Build a dashboard
@@ -80,6 +81,22 @@ you can also use this example (thanks @xg-simon for sharing):
 | eval registry_value_name=coalesce(misp_regkey,mvindex(misp_regkey_p_value,0))
 | eval registry_value_text=mvindex(misp_regkey_p_value,1)
 | eval description = "MISP Event " + misp_event_id + " - " + misp_event_info
+| table domain,description,file_hash,file_name,http_user_agent,ip,registry_value_name,registry_value_text,src_user,subject,url,weight
+```
+or using mispgetioc (which has the option pipesplit=True)
+```conf
+| mispgetioc misp_instance=default_misp pipesplit=true  add_description=true category="External analysis,Financial fraud,Internal reference,Network activity,Other,Payload delivery,Payload installation,Payload type,Persistence mechanism,Person,Social network,Support Tool,Targeting data" last=90d to_ids=true geteventtag=true warning_list=true not_tags="osint:source-type=\"block-or-filter-list\""
+| eval ip=coalesce(misp_ip_dst, misp_ip_src,misp_ip)
+| eval domain=misp_domain
+| eval src_user=coalesce(misp_email_src, misp_email_src_display_name)
+| eval subject=misp_email_subject
+| eval file_name=misp_filename
+| eval file_hash=coalesce(misp_sha1, misp_sha256, misp_sha512, misp_md5, misp_ssdeep)
+| eval url=coalesce(misp_url,misp_hostname)
+| eval http_user_agent=misp_user_agent
+| eval registry_value_name=misp_regkey
+| eval registry_value_text=if(isnotnull(misp_regkey),misp_value,null)
+| eval description = misp_description
 | table domain,description,file_hash,file_name,http_user_agent,ip,registry_value_name,registry_value_text,src_user,subject,url,weight
 ```
 
