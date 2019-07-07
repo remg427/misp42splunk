@@ -3,7 +3,7 @@
   "uuid": "a0c666e0-fc65-4be8-b48f-3423d788b552",
   "meta-category": "network",
   "description": "Email object describing an email with meta-information",
-  "version": 12,
+  "version": 13,
   "attributes": {
     "reply-to": {
       "description": "Email address the reply will be sent to",
@@ -75,6 +75,18 @@
       "categories": [
         "Payload delivery"
       ],
+      "multiple": true
+    },
+    "received-header-ip": {
+      "description": "Extracted IP address from parsed headers",
+      "misp-attribute": "ip-src",
+      "ui-priority": 0,
+      "multiple": true
+    },
+    "received-header-hostname": {
+      "description": "Extracted hostname from parsed headers",
+      "misp-attribute": "hostname",
+      "ui-priority": 0,
       "multiple": true
     },
     "x-mailer": {

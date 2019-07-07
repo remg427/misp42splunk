@@ -1,4 +1,3 @@
-
 # encoding = utf-8
 # Always put this line at the beginning of this file
 import misp42splunk_declare
@@ -8,6 +7,7 @@ import sys
 
 from alert_actions_base import ModularAlertBase
 import modalert_misp_alert_sighting_helper
+
 
 class AlertActionWorkermisp_alert_sighting(ModularAlertBase):
 
