@@ -23,6 +23,12 @@
       "ui-priority": 0,
       "misp-attribute": "datetime"
     },
+    "registration-date": {
+      "description": "Registration date of domain",
+      "disable_correlation": false,
+      "ui-priority": 0,
+      "misp-attribute": "datetime"
+    },
     "domain": {
       "description": "Domain name",
       "categories": [

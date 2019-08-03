@@ -19,11 +19,11 @@ import logging
 from misp_common import prepare_config
 
 
-__author__     = "Remi Seguy"
-__license__    = "LGPLv3"
-__version__    = "3.0.5"
+__author__ = "Remi Seguy"
+__license__ = "LGPLv3"
+__version__ = "3.0.6"
 __maintainer__ = "Remi Seguy"
-__email__      = "remg427@gmail.com"
+__email__ = "remg427@gmail.com"
 
 
 @Configuration(requires_preop=False)
@@ -119,119 +119,119 @@ class mispapireport(ReportingCommand):
         **Description:**mode to build the JSON request.''',
         require=False, validate=validators.Match("mode", r"^(p|j)$"))
     # if mode=j a complete JSON request has to be provided
-    json_request     = Option(
-        doc = '''
+    json_request=Option(
+        doc='''
         **Syntax:** **json_request=***valid JSON request*
         **Description:**Valid JSON request''',
         require=False)
     # specific formats
-    last             = Option(
-        doc = '''
+    last = Option(
+        doc='''
         **Syntax:** **last=***<int>d|h|m*
         **Description:**publication duration in day(s), hour(s) or minute(s).''',
-        require=False, validate=validators.Match("last",        r"^[0-9]+[hdm]$"))
-    date_from        = Option(
-        doc = '''
+        require=False, validate=validators.Match("last", r"^[0-9]+[hdm]$"))
+    date_from = Option(
+        doc='''
         **Syntax:** **date_from=***date_string"*
         **Description:**starting date.''',
         require=False)
-    date_to          = Option(
-        doc = '''
+    date_to = Option(
+        doc='''
         **Syntax:** **date_to=***date_string"*
         **Description:**(optional)ending date in searches with date_from. if not set default is now''',
         require=False)
     threat_level_id = Option(
-        doc = '''
+        doc='''
         **Syntax:** **threat_level_id=***1-4*
         **Description:**Threat level.''',
-        require=False, validate=validators.Match("threat_level_id",     r"^[1-4]$"))
-    org           = Option(
-        doc = '''
+        require=False, validate=validators.Match("threat_level_id", r"^[1-4]$"))
+    org = Option(
+        doc='''
         **Syntax:** **org=***CSV string*
         **Description:**Comma(,)-separated string of org name(s), id(s), uuid(s).''',
         require=False)
     # CSV numeric list
-    eventid          = Option(
-        doc = '''
+    eventid = Option(
+        doc='''
         **Syntax:** **eventid=***id1(,id2,...)*
         **Description:**list of event ID(s).''',
-        require=False, validate=validators.Match("eventid",     r"^[0-9,]+$"))
+        require=False, validate=validators.Match("eventid", r"^[0-9,]+$"))
     # strings
-    value            = Option(
-        doc = '''
+    value = Option(
+        doc='''
         **Syntax:** **value=***string*
         **Description:**value.''',
         require=False)
-    eventinfo        = Option(
-        doc = '''
+    eventinfo = Option(
+        doc='''
         **Syntax:** **eventinfo=***string*
         **Description:**eventinfo string''',
         require=False)
     # numeric values
-    limit         = Option(
-        doc = '''
+    limit = Option(
+        doc='''
         **Syntax:** **limit=***<int>*
         **Description:**define the limit for each MISP search; default 10000. 0 = no pagination.''',
-        require=False, validate=validators.Match("limit",     r"^[0-9]+$"))
-    page          = Option(
-        doc = '''
+        require=False, validate=validators.Match("limit", r"^[0-9]+$"))
+    page = Option(
+        doc='''
         **Syntax:** **page=***<int>*
         **Description:**define the page of result to get.''',
-        require=False, validate=validators.Match("limit",     r"^[0-9]+$"))
+        require=False, validate=validators.Match("limit", r"^[0-9]+$"))
     # CSV strings       
-    uuid            = Option(
-        doc = '''
+    uuid = Option(
+        doc='''
         **Syntax:** **uuid=***id1(,id2,...)*
         **Description:**list of event UUID(s).''',
         require=False)
-    type            = Option(
-        doc = '''
+    type = Option(
+        doc='''
         **Syntax:** **type=***CSV string*
         **Description:**Comma(,)-separated string of categories to search for. Wildcard is %.''',
         require=False)
-    category        = Option(
-        doc = '''
+    category = Option(
+        doc='''
         **Syntax:** **category=***CSV string*
         **Description:**Comma(,)-separated string of categories to search for. Wildcard is %.''',
         require=False)
-    tags            = Option(
-        doc = '''
+    tags = Option(
+        doc='''
         **Syntax:** **tags=***CSV string*
         **Description:**Comma(,)-separated string of tags to search for. Wildcard is %.''',
         require=False)
-    not_tags        = Option(
-        doc = '''
+    not_tags = Option(
+        doc='''
         **Syntax:** **not_tags=***CSV string*
         **Description:**Comma(,)-separated string of tags to exclude from results. Wildcard is %.''',
         require=False)
     # Booleans
-    to_ids            = Option(
-        doc = '''
+    to_ids = Option(
+        doc='''
         **Syntax:** **to_ids=***y|Y|1|true|True|n|N|0|false|False*
         **Description:**Boolean to search only attributes with the flag "to_ids" set to true.''',
         require=False, validate=validators.Boolean())
-    enforceWarninglist= Option(
-        doc = '''
+    enforceWarninglist = Option(
+        doc='''
         **Syntax:** **enforceWarninglist=***y|Y|1|true|True|n|N|0|false|False*
         **Description:**Boolean to apply warning lists to results.''',
         require=False, validate=validators.Boolean())
-    deleted           = Option(
-        doc = '''
+    deleted = Option(
+        doc='''
         **Syntax:** **deleted=***y|Y|1|true|True|n|N|0|false|False*
         **Description:**Boolean to include deleted attributes to results.''',
         require=False, validate=validators.Boolean())
-    includeEventUuid  = Option(
-        doc = '''
+    includeEventUuid = Option(
+        doc='''
         **Syntax:** **includeEventUuid=***y|Y|1|true|True|n|N|0|false|False*
         **Description:**Boolean to include event UUID(s) to results.''',
         require=False, validate=validators.Boolean())
-    includeEventTags  = Option(
-        doc = '''
+    includeEventTags = Option(
+        doc='''
         **Syntax:** **includeEventTags=***y|Y|1|true|True|n|N|0|false|False*
         **Description:**Boolean to include event UUID(s) to results.''',
         require=False, validate=validators.Boolean())
-    pipesplit     = Option(
-        doc = '''
+    pipesplit = Option(
+        doc='''
         **Syntax:** **pipesplit=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
         **Description:**Boolean to split multivalue attributes into 2 attributes.''',
         require=False, validate=validators.Boolean())
@@ -243,7 +243,7 @@ class mispapireport(ReportingCommand):
 
     def reduce(self, records):
 
-         # Phase 1: Preparation
+        # Phase 1: Preparation
         my_args = prepare_config(self)
         my_args['misp_url'] = my_args['misp_url'] + '/attributes/restSearch'
 
@@ -270,12 +270,12 @@ class mispapireport(ReportingCommand):
                 page = body_dict['page']
             else:
                 page = 1
-            l = 0
+            page_length = 0
         else:
             # build search JSON object
-            body_dict = { "returnFormat": "json",
-                          "withAttachments": False
-                        }
+            body_dict = {"returnFormat": "json",
+                         "withAttachments": False
+                         }
 
             # add provided parameters to JSON request body
             # specific formats
@@ -318,7 +318,7 @@ class mispapireport(ReportingCommand):
                 body_dict['eventinfo'] = self.eventinfo
                 logging.info('Option "eventinfo" set')
 
-            # CSV strings       
+            # CSV strings
             if self.category is not None:
                 cat_criteria = {}
                 cat_list = self.category.split(",")
@@ -371,7 +371,7 @@ class mispapireport(ReportingCommand):
                 page = self.page
             else:
                 page = 1
-            l = 0
+            page_length = 0
             if self.limit is not None:
                 if int(self.limit) == 0:
                     pagination = False
@@ -388,7 +388,7 @@ class mispapireport(ReportingCommand):
         results = []
         # add colums for each type in results
         while other_page:
-            if pagination == True:
+            if pagination is True:
                 body_dict['page'] = page
                 body_dict['limit'] = limit
 
@@ -402,7 +402,7 @@ class mispapireport(ReportingCommand):
             response = r.json()
             if 'response' in response:
                 if 'Attribute' in response['response']:
-                    l = len(response['response']['Attribute'])
+                    page_length = len(response['response']['Attribute'])
                     for a in response['response']['Attribute']:
                         v = {}
                         v['misp_Object'] = "-"
@@ -427,8 +427,8 @@ class mispapireport(ReportingCommand):
                                 v[vkey] = av
                         results.append(v)
 
-            if pagination == True:
-                if l < limit:
+            if pagination is True:
+                if page_length < limit:
                     other_page = False
                 else:
                     page = page + 1
@@ -445,17 +445,17 @@ class mispapireport(ReportingCommand):
         increment = 1
         for r in results:
             key = str(r['misp_event_id']) + '_' + str(increment)
-            increment = increment + 1           
+            increment = increment + 1
             v = r
             for t in typelist:
-                misp_t = 'misp_' + t.replace('-', '_').replace('|','_p_')
+                misp_t = 'misp_' + t.replace('-', '_').replace('|', '_p_')
                 if t == r['misp_type']:
                     v[misp_t] = r['misp_value']
                 else:
                     v[misp_t] = ''
             output_dict[key] = v
-        
-        for k,v in output_dict.items():
+
+        for k, v in output_dict.items():
             yield v
 
 
