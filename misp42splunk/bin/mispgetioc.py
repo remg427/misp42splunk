@@ -190,6 +190,10 @@ class mispgetioc(ReportingCommand):
         require=False, validate=validators.Boolean())
 
     @Configuration()
+    def map(self, records):
+        # self.logger.debug('mispgetioc.map')
+        return records
+        
     def reduce(self, records):
 
         # Phase 1: Preparation
