@@ -64,7 +64,14 @@ def prepare_config(self):
         config_args['misp_verifycert'] = True
     else:
         config_args['misp_verifycert'] = False
+
+    if config_args['misp_verifycert']:
+        misp_ca_full_path = mispconf.get('misp_ca_full_path', '')
+        if misp_ca_full_path != '':
+            config_args['misp_verifycert'] = misp_ca_full_path
     logging.info("config_args['misp_verifycert'] {}".format(config_args['misp_verifycert']))
+    logging.info("config_args['misp_ca_full_path'] {}".format(config_args['misp_ca_full_path']))
+
     config_args['proxies'] = dict()
     if int(mispconf['misp_use_proxy']) == 1:
         settings_file = _SPLUNK_PATH + os.sep + 'etc' + os.sep + 'apps' \

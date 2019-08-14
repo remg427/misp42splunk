@@ -61,6 +61,16 @@ fields = [
         validator=None
     ), 
     field.RestField(
+        'misp_ca_full_path',
+        required=False,
+        encrypted=False,
+        default=None,
+        validator=validator.String(
+            max_len=8192,
+            min_len=0,
+        )
+    ),
+    field.RestField(
         'misp_use_proxy',
         required=False,
         encrypted=False,
