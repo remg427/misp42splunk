@@ -18,7 +18,7 @@ from misp_common import prepare_config
 
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
-__version__    = "3.0.6"
+__version__    = "3.0.8"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
@@ -100,12 +100,23 @@ class MispSearchCommand(StreamingCommand):
         **Syntax:** **includeEventTags=***y|Y|1|true|True|n|N|0|false|False*
         **Description:**Boolean to include event UUID(s) to results.''',
         require=False, validate=validators.Boolean())
+    last = Option(
+        doc='''
+        **Syntax:** **last=***<int>d|h|m*
+        **Description:**publication duration in day(s), hour(s) or minute(s). **eventid**, **last** and **date_from** are mutually exclusive''',
+        require=False, validate=validators.Match("last", r"^[0-9]+[hdm]$"))
+    limit = Option(
+        doc='''
+        **Syntax:** **limit=***<int>*
+        **Description:**define the limit for each MISP search; default 10000. 0 = no pagination.''',
+        require=False, validate=validators.Match("limit", r"^[0-9]+$"))
     json_request = Option(
         doc='''
         **Syntax:** **json_request=***valid JSON request*
         **Description:**Valid JSON request''',
         require=False)
 
+ 
     def stream(self, records):
         # Generate args
         my_args = prepare_config(self)
@@ -123,7 +134,10 @@ class MispSearchCommand(StreamingCommand):
 
         pagination = True
         other_page = True
-        limit = 10000
+        if self.limit is not None:
+            limit = int(self.limit)
+        else:
+            limit = 10000
         page = 1
         page_length = 0
         if self.json_request is not None:
@@ -149,7 +163,8 @@ class MispSearchCommand(StreamingCommand):
                 body_dict['includeEventUuid'] = self.includeEventUuid
             if self.includeEventTags is not None:
                 body_dict['includeEventTags'] = self.includeEventTags
-
+            if self.last is not None:
+                body_dict['last'] = self.last
         for record in records:
             if fieldname in record:
                 value = record.get(fieldname, None)
@@ -215,10 +230,10 @@ class MispSearchCommand(StreamingCommand):
                                 record['misp_tag'] = misp_tag
                         # check if additional request required
                         if pagination is True:
-                            if page_length < limit:
-                                loop_other_page = False
-                            else:
+                            if page_length == limit:
                                 loop_page = loop_page + 1
+                            else:
+                                loop_other_page = False
                         else:
                             loop_other_page = False
 
