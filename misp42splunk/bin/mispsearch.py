@@ -164,9 +164,11 @@ class MispSearchCommand(StreamingCommand):
                     misp_value = []
                     misp_uuid = []
                     # search
-                    while other_page:
+                    loop_page = page
+                    loop_other_page = other_page
+                    while loop_other_page:
                         if pagination is True:
-                            body_dict['page'] = page
+                            body_dict['page'] = loop_page
                             body_dict['limit'] = limit
                         body = json.dumps(body_dict)
                         logging.debug('mispsearch request body: %s', body)
@@ -214,11 +216,11 @@ class MispSearchCommand(StreamingCommand):
                         # check if additional request required
                         if pagination is True:
                             if page_length < limit:
-                                other_page = False
+                                loop_other_page = False
                             else:
-                                page = page + 1
+                                loop_page = loop_page + 1
                         else:
-                            other_page = False
+                            loop_other_page = False
 
             yield record
 
