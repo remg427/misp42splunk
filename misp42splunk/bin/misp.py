@@ -58,6 +58,10 @@ class ModInputmisp(modinput_wrapper.base_modinput.BaseModInput):
                                          description="",
                                          required_on_create=False,
                                          required_on_edit=False))
+        scheme.add_argument(smi.Argument("misp_ca_full_path", title="MISP CA path",
+                                         description="Provide full path to CA file (pem, crt)",
+                                         required_on_create=False,
+                                         required_on_edit=False))
         scheme.add_argument(smi.Argument("misp_use_proxy", title="Use proxy settings",
                                          description="Use proxy settings for default instance",
                                          required_on_create=False,

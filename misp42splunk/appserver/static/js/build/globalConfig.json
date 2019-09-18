@@ -253,7 +253,10 @@
                     {
                         "field": "misp_verifycert", 
                         "label": "Check MISP certificate"
-                    }, 
+                    },
+                    {   "field": "misp_ca_full_path",
+                        "label": "MISP CA path"
+                    },
                     {
                         "field": "misp_use_proxy", 
                         "label": "Use proxy settings"
@@ -396,6 +399,21 @@
                             "help": "", 
                             "type": "checkbox"
                         }, 
+                        {
+                            "required": false,
+                            "label": "MISP CA path",
+                            "field": "misp_ca_full_path",
+                            "validators": [
+                                {
+                                    "minLength": 0,
+                                    "errorMsg": "Max length of text input is 8192",
+                                    "maxLength": 8192,
+                                    "type": "string"
+                                }
+                            ],
+                            "help": "Provide full path to CA file (pem, crt)",
+                            "type": "text"
+                        },
                         {
                             "required": false, 
                             "field": "misp_use_proxy", 
