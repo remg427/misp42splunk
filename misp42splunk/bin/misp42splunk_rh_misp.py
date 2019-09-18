@@ -38,9 +38,8 @@ fields = [
         required=True,
         encrypted=False,
         default=None,
-        validator=validator.String(
-            max_len=8192, 
-            min_len=0, 
+        validator=validator.Pattern(
+            regex=r"""^https:\/\/[0-9a-zA-Z\-\.]+(?:\:\d+)?$""", 
         )
     ), 
     field.RestField(

@@ -7,7 +7,7 @@ import os
 from splunk.clilib import cli_common as cli
 
 __license__ = "LGPLv3"
-__version__ = "3.0.6"
+__version__ = "3.0.8"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 

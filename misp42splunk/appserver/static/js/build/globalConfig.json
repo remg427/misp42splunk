@@ -363,10 +363,9 @@
                             "field": "misp_url", 
                             "validators": [
                                 {
-                                    "minLength": 0, 
-                                    "errorMsg": "Max length of text input is 8192", 
-                                    "maxLength": 8192, 
-                                    "type": "string"
+                                    "pattern": "^https:\/\/[0-9a-zA-Z\\-\\.]+(?:\\:\\d+)?$", 
+                                    "errorMsg": "Invalid URL; it must start with https and do not add ending /", 
+                                    "type": "regex"
                                 }
                             ], 
                             "help": "provide MISP URL. Do not end with a /", 
