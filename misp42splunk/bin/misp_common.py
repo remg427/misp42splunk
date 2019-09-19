@@ -61,17 +61,15 @@ def prepare_config(self):
     config_args['misp_url'] = mispconf['misp_url']
     logging.info("config_args['misp_url'] {}".format(config_args['misp_url']))
     if int(mispconf['misp_verifycert']) == 1:
-        config_args['misp_verifycert'] = True
-    else:
-        config_args['misp_verifycert'] = False
-
-    if config_args['misp_verifycert']:
         misp_ca_full_path = mispconf.get('misp_ca_full_path', '')
-        config_args['misp_ca_full_path'] = misp_ca_full_path
         if misp_ca_full_path != '':
             config_args['misp_verifycert'] = misp_ca_full_path
+            logging.info("config_args['misp_ca_full_path'] {}".format(config_args['misp_ca_full_path']))
+        else:
+            config_args['misp_verifycert'] = True
+    else:
+        config_args['misp_verifycert'] = False
     logging.info("config_args['misp_verifycert'] {}".format(config_args['misp_verifycert']))
-    logging.info("config_args['misp_ca_full_path'] {}".format(config_args['misp_ca_full_path']))
 
     config_args['proxies'] = dict()
     if int(mispconf['misp_use_proxy']) == 1:
