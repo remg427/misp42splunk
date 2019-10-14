@@ -22,7 +22,7 @@ from misp_common import prepare_config
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "3.0.6"
+__version__ = "3.0.10"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -45,8 +45,7 @@ class mispgetioc(ReportingCommand):
         "category": "optional",
         "org": "optional",
         "tags": "optional",
-        "from": "optional",
-        "to": "optional",
+        "date": "optional",
         "last": "optional",
         "eventid": "optional",
         "withAttachments": "optional",
@@ -61,19 +60,22 @@ class mispgetioc(ReportingCommand):
         "event_timestamp": "optional",
         "threat_level_id": "optional",
         "eventinfo": "optional",
-        "includeProposals": "optional"
+        "includeProposals": "optional",
+        "includeDecayScore": "optional",
+        "includeFullModel": "optional",
+        "decayingModel": "optional",
+        "excludeDecayed": "optional",
+        "score": "optional"
     }
     # status
         "returnFormat": forced to json,
-        "page": not managed,
+        "page": param,
         "limit": param,
         "value": not managed,
         "type": param, CSV string,
         "category": param, CSV string,
         "org": not managed,
         "tags": param,
-        "from": param,
-        "to": param,
         "last": param,
         "eventid": param,
         "withAttachments": forced to false,
@@ -86,9 +88,14 @@ class mispgetioc(ReportingCommand):
         "includeEventUuid": param,
         "includeEventTags": param,
         "event_timestamp":  not managed,
-        "threat_level_id":  param,
+        "threat_level_id":  not managed,
         "eventinfo": not managed,
         "includeProposals": not managed
+        "includeDecayScore": "optional",
+        "includeFullModel": "optional",
+        "decayingModel": "optional",
+        "excludeDecayed": "optional",
+        "score": "optional"
     }
     """
     # Superseede MISP instance for this search
@@ -148,15 +155,15 @@ class mispgetioc(ReportingCommand):
         **Syntax:** **not_tags=***CSV string*
         **Description:**Comma(,)-separated string of tags to exclude from results. Wildcard is %.''',
         require=False)
-    threat_level_id = Option(
-        doc='''
-        **Syntax:** **threat_level=***<int>*
-        **Description:**define the threat_level_id''',
-        require=False, validate=validators.Match("threat_level_id", r"^[1-4]$"))
     limit = Option(
         doc='''
         **Syntax:** **limit=***<int>*
-        **Description:**define the limit for each MISP search; default 10000. 0 = no pagination.''',
+        **Description:**define the limit for each MISP search; default 1000. 0 = no pagination.''',
+        require=False, validate=validators.Match("limit", r"^[0-9]+$"))
+    page = Option(
+        doc='''
+        **Syntax:** **page=***<int>*
+        **Description:**define the page for each MISP search; default 1.''',
         require=False, validate=validators.Match("limit", r"^[0-9]+$"))
     getuuid = Option(
         doc='''
@@ -251,16 +258,17 @@ class mispgetioc(ReportingCommand):
 
         # Search pagination
         pagination = True
-        other_page = True
-        page = 1
-        page_length = 0
         if self.limit is not None:
             if int(self.limit) == 0:
                 pagination = False
             else:
                 limit = int(self.limit)
         else:
-            limit = 10000
+            limit = 1000
+        if self.page is not None:
+            page = int(self.page)
+        else:
+            page = 1
 
         # Search parameters: boolean and filter
         if self.to_ids is True:
@@ -297,8 +305,6 @@ class mispgetioc(ReportingCommand):
                 tags_list = self.not_tags.split(",")
                 tags_criteria['NOT'] = tags_list
             body_dict['tags'] = tags_criteria
-        if self.threat_level_id is not None:
-            body_dict['threat_level_id'] = int(self.threat_level_id)
 
         # output filter parameters
         if self.getuuid is True:
@@ -321,90 +327,81 @@ class mispgetioc(ReportingCommand):
         results = []
         # add colums for each type in results
         typelist = []
-        while other_page:
-            if pagination is True:
-                body_dict['page'] = page
-                body_dict['limit'] = limit
 
-            body = json.dumps(body_dict)
-            logging.debug('mispgetioc request body: %s', body)
-            # search
-            r = requests.post(my_args['misp_url'], headers=headers, data=body, verify=my_args['misp_verifycert'], cert=my_args['client_cert_full_path'], proxies=my_args['proxies'])
-            # check if status is anything other than 200; throw an exception if it is
-            r.raise_for_status()
-            # response is 200 by this point or we would have thrown an exception
-            response = r.json()
-            if 'response' in response:
-                if 'Attribute' in response['response']:
-                    page_lenth = len(response['response']['Attribute'])
-                    for a in response['response']['Attribute']:
-                        v = {}
-                        v['misp_category'] = str(a['category'])
-                        v['misp_attribute_id'] = str(a['id'])
-                        v['misp_event_id'] = str(a['event_id'])
-                        v['misp_timestamp'] = str(a['timestamp'])
-                        v['misp_to_ids'] = str(a['to_ids'])
-                        tag_list = []
-                        if 'Tag' in a:
-                            for tag in a['Tag']:
-                                try:
-                                    tag_list.append(str(tag['name']))
-                                except Exception:
-                                    pass
-                        v['misp_tag'] = tag_list
-                        # include ID of the organisation that created the attribute if requested
-                        # in previous version this was the ORG name ==> create lookup
-                        if 'Event' in a and my_args['getorg']:
-                            v['misp_orgc_id'] = str(a['Event']['orgc_id'])
-                        # include attribute UUID if requested
-                        if my_args['getuuid']:
-                            v['misp_attribute_uuid'] = str(a['uuid'])
-                        # handle object and multivalue attributes
-                        v['misp_object_id'] = str(a['object_id'])
-                        if my_args['add_desc'] is True:
-                            if int(a['object_id']) == 0:
-                                v['misp_description'] = 'MISP e' + str(a['event_id']) + ' attribute ' \
-                                    + str(a['uuid']) + ' of type "' + str(a['type']) \
-                                    + '" in category "' + str(a['category']) \
-                                    + '" (to_ids:' + str(a['to_ids']) + ')'
-                            else:
-                                v['misp_description'] = 'MISP e' + str(a['event_id']) \
-                                    + ' attribute ' + str(a['uuid']) + ' of type "' \
-                                    + str(a['type']) + '" in category "' \
-                                    + str(a['category']) \
-                                    + '" (to_ids:' + str(a['to_ids']) \
-                                    + ' - o' + str(a['object_id']) + ' )'
-                        current_type = str(a['type'])
-                        # combined: not part of an object AND multivalue attribute QND to be split
-                        if int(a['object_id']) == 0 and '|' in current_type and my_args['pipe'] is True:
-                            mv_type_list = current_type.split('|')
-                            mv_value_list = str(a['value']).split('|')
-                            left_v = v.copy()
-                            left_v['misp_type'] = mv_type_list.pop()
-                            left_v['misp_value'] = mv_value_list.pop()
-                            results.append(left_v)
-                            if left_v['misp_type'] not in typelist:
-                                typelist.append(left_v['misp_type'])
-                            right_v = v.copy()
-                            right_v['misp_type'] = mv_type_list.pop()
-                            right_v['misp_value'] = mv_value_list.pop()
-                            results.append(right_v)
-                            if right_v['misp_type'] not in typelist:
-                                typelist.append(right_v['misp_type'])
+        if pagination is True:
+            body_dict['page'] = page
+            body_dict['limit'] = limit
+
+        body = json.dumps(body_dict)
+        logging.debug('mispgetioc request body: %s', body)
+        # search
+        r = requests.post(my_args['misp_url'], headers=headers, data=body, verify=my_args['misp_verifycert'], cert=my_args['client_cert_full_path'], proxies=my_args['proxies'])
+        # check if status is anything other than 200; throw an exception if it is
+        r.raise_for_status()
+        # response is 200 by this point or we would have thrown an exception
+        response = r.json()
+        if 'response' in response:
+            if 'Attribute' in response['response']:
+                for a in response['response']['Attribute']:
+                    v = {}
+                    v['misp_category'] = str(a['category'])
+                    v['misp_attribute_id'] = str(a['id'])
+                    v['misp_event_id'] = str(a['event_id'])
+                    v['misp_timestamp'] = str(a['timestamp'])
+                    v['misp_to_ids'] = str(a['to_ids'])
+                    tag_list = []
+                    if 'Tag' in a:
+                        for tag in a['Tag']:
+                            try:
+                                tag_list.append(str(tag['name']))
+                            except Exception:
+                                pass
+                    v['misp_tag'] = tag_list
+                    # include ID of the organisation that created the attribute if requested
+                    # in previous version this was the ORG name ==> create lookup
+                    if 'Event' in a and my_args['getorg']:
+                        v['misp_orgc_id'] = str(a['Event']['orgc_id'])
+                    # include attribute UUID if requested
+                    if my_args['getuuid']:
+                        v['misp_attribute_uuid'] = str(a['uuid'])
+                    # handle object and multivalue attributes
+                    v['misp_object_id'] = str(a['object_id'])
+                    if my_args['add_desc'] is True:
+                        if int(a['object_id']) == 0:
+                            v['misp_description'] = 'MISP e' + str(a['event_id']) + ' attribute ' \
+                                + str(a['uuid']) + ' of type "' + str(a['type']) \
+                                + '" in category "' + str(a['category']) \
+                                + '" (to_ids:' + str(a['to_ids']) + ')'
                         else:
-                            v['misp_type'] = current_type
-                            v['misp_value'] = str(a['value'])
-                            results.append(v)
-                            if current_type not in typelist:
-                                typelist.append(current_type)
-
-            if pagination is True:
-                if page_length < limit:
-                    other_page = False
-                else:
-                    page = page + 1
-            else:
-                other_page = False
+                            v['misp_description'] = 'MISP e' + str(a['event_id']) \
+                                + ' attribute ' + str(a['uuid']) + ' of type "' \
+                                + str(a['type']) + '" in category "' \
+                                + str(a['category']) \
+                                + '" (to_ids:' + str(a['to_ids']) \
+                                + ' - o' + str(a['object_id']) + ' )'
+                    current_type = str(a['type'])
+                    # combined: not part of an object AND multivalue attribute QND to be split
+                    if int(a['object_id']) == 0 and '|' in current_type and my_args['pipe'] is True:
+                        mv_type_list = current_type.split('|')
+                        mv_value_list = str(a['value']).split('|')
+                        left_v = v.copy()
+                        left_v['misp_type'] = mv_type_list.pop()
+                        left_v['misp_value'] = mv_value_list.pop()
+                        results.append(left_v)
+                        if left_v['misp_type'] not in typelist:
+                            typelist.append(left_v['misp_type'])
+                        right_v = v.copy()
+                        right_v['misp_type'] = mv_type_list.pop()
+                        right_v['misp_value'] = mv_value_list.pop()
+                        results.append(right_v)
+                        if right_v['misp_type'] not in typelist:
+                            typelist.append(right_v['misp_type'])
+                    else:
+                        v['misp_type'] = current_type
+                        v['misp_value'] = str(a['value'])
+                        results.append(v)
+                        if current_type not in typelist:
+                            typelist.append(current_type)
 
         logging.info(json.dumps(typelist))
 

@@ -125,7 +125,7 @@ def group_values(helper, r, tslabel, ds):
 
         # Get the timestamp as string to group values and remove from row
         if tslabel in row:
-            timestamp = str(row.pop(tslabel))
+            timestamp = str(int(row.pop(tslabel)))
         else:
             timestamp = ds
 
@@ -180,7 +180,7 @@ def create_alert(helper, config, results):
         sightings = {}
         for row in results:
             if tslabel in row:
-                timestamp = str(row.pop(tslabel))
+                timestamp = str(int(row.pop(tslabel)))
             else:
                 timestamp = defaulttimestamp
 
