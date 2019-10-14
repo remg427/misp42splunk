@@ -18,7 +18,7 @@ from misp_common import prepare_config
 
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
-__version__    = "3.0.8"
+__version__    = "3.0.10"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
@@ -70,16 +70,16 @@ class MispSearchCommand(StreamingCommand):
 
     """
 
-    field = Option(
-        doc='''
-        **Syntax:** **field=***<fieldname>*
-        **Description:**Name of the field containing the value to search for.''',
-        require=True, validate=validators.Fieldname())
     misp_instance = Option(
         doc='''
         **Syntax:** **misp_instance=instance_name*
         **Description:**MISP instance parameters as described in local/inputs.conf''',
         require=True)
+    field = Option(
+        doc='''
+        **Syntax:** **field=***<fieldname>*
+        **Description:**Name of the field containing the value to search for.''',
+        require=True, validate=validators.Fieldname())
     onlyids = Option(
         doc='''
         **Syntax:** **onlyids=***<y|n>*
@@ -108,7 +108,12 @@ class MispSearchCommand(StreamingCommand):
     limit = Option(
         doc='''
         **Syntax:** **limit=***<int>*
-        **Description:**define the limit for each MISP search; default 10000. 0 = no pagination.''',
+        **Description:**define the limit for each MISP search; default 1000. 0 = no pagination.''',
+        require=False, validate=validators.Match("limit", r"^[0-9]+$"))
+    page = Option(
+        doc='''
+        **Syntax:** **page=***<int>*
+        **Description:**define the page for each MISP search; default 1.''',
         require=False, validate=validators.Match("limit", r"^[0-9]+$"))
     json_request = Option(
         doc='''
@@ -133,13 +138,18 @@ class MispSearchCommand(StreamingCommand):
             get_tag = False
 
         pagination = True
-        other_page = True
         if self.limit is not None:
-            limit = int(self.limit)
+            if int(self.limit) == 0:
+                pagination = False
+            else:
+                limit = int(self.limit)
         else:
-            limit = 10000
-        page = 1
-        page_length = 0
+            limit = 1000
+        if self.page is not None:
+            page = int(self.page)
+        else:
+            page = 1
+
         if self.json_request is not None:
             body_dict = json.loads(self.json_request)
             logging.info('Option "json_request" set')
@@ -173,69 +183,61 @@ class MispSearchCommand(StreamingCommand):
                     misp_category = []
                     misp_event_id = []
                     misp_event_uuid = []
+                    misp_orgc_id = []
                     misp_to_ids = []
                     misp_tag = []
                     misp_type = []
                     misp_value = []
                     misp_uuid = []
                     # search
-                    loop_page = page
-                    loop_other_page = other_page
-                    while loop_other_page:
-                        if pagination is True:
-                            body_dict['page'] = loop_page
-                            body_dict['limit'] = limit
-                        body = json.dumps(body_dict)
-                        logging.debug('mispsearch request body: %s', body)
-                        r = requests.post(my_args['misp_url'], headers=headers,
-                                          data=body,
-                                          verify=my_args['misp_verifycert'],
-                                          cert=my_args['client_cert_full_path'],
-                                          proxies=my_args['proxies'])
-    # check if status is anything other than 200; throw an exception if it is
-                        r.raise_for_status()
-    # response is 200 by this point or we would have thrown an exception
-    # print >> sys.stderr, "DEBUG MISP REST API response: %s" % response.json()
-                        response = r.json()
-                        if 'response' in response:
-                            if 'Attribute' in response['response']:
-                                page_length = len(response['response']['Attribute'])
-                                for a in response['response']['Attribute']:
-                                    if str(a['type']) not in misp_type:
-                                        misp_type.append(str(a['type']))
-                                    if str(a['value']) not in misp_value:
-                                        misp_value.append(str(a['value']))
-                                    if str(a['to_ids']) not in misp_to_ids:
-                                        misp_to_ids.append(str(a['to_ids']))
-                                    if str(a['category']) not in misp_category:
-                                        misp_category.append(str(a['category']))
-                                    if str(a['uuid']) not in misp_uuid:
-                                        misp_uuid.append(str(a['uuid']))
-                                    if str(a['event_id']) not in misp_event_id:
-                                        misp_event_id.append(str(a['event_id']))
-                                    if 'Tag' in a:
-                                        for tag in a['Tag']:
-                                            if str(tag['name']) not in misp_tag:
-                                                misp_tag.append(str(tag['name']))
-                                    if 'Event' in a:
-                                        if a['Event']['uuid'] not in misp_event_uuid:
-                                            misp_event_uuid.append(str(a['Event']['uuid']))
-                                record['misp_type'] = misp_type
-                                record['misp_value'] = misp_value
-                                record['misp_to_ids'] = misp_to_ids
-                                record['misp_category'] = misp_category
-                                record['misp_attribute_uuid'] = misp_uuid
-                                record['misp_event_id'] = misp_event_id
-                                record['misp_event_uuid'] = misp_event_uuid
-                                record['misp_tag'] = misp_tag
-                        # check if additional request required
-                        if pagination is True:
-                            if page_length == limit:
-                                loop_page = loop_page + 1
-                            else:
-                                loop_other_page = False
-                        else:
-                            loop_other_page = False
+                    if pagination is True:
+                        body_dict['page'] = page
+                        body_dict['limit'] = limit
+                    body = json.dumps(body_dict)
+                    logging.debug('mispsearch request body: %s', body)
+                    r = requests.post(my_args['misp_url'], headers=headers,
+                                      data=body,
+                                      verify=my_args['misp_verifycert'],
+                                      cert=my_args['client_cert_full_path'],
+                                      proxies=my_args['proxies'])
+# check if status is anything other than 200; throw an exception if it is
+                    r.raise_for_status()
+# response is 200 by this point or we would have thrown an exception
+# print >> sys.stderr, "DEBUG MISP REST API response: %s" % response.json()
+                    response = r.json()
+                    if 'response' in response:
+                        if 'Attribute' in response['response']:
+                            for a in response['response']['Attribute']:
+                                if str(a['type']) not in misp_type:
+                                    misp_type.append(str(a['type']))
+                                if str(a['value']) not in misp_value:
+                                    misp_value.append(str(a['value']))
+                                if str(a['to_ids']) not in misp_to_ids:
+                                    misp_to_ids.append(str(a['to_ids']))
+                                if str(a['category']) not in misp_category:
+                                    misp_category.append(str(a['category']))
+                                if str(a['uuid']) not in misp_uuid:
+                                    misp_uuid.append(str(a['uuid']))
+                                if str(a['event_id']) not in misp_event_id:
+                                    misp_event_id.append(str(a['event_id']))
+                                if 'Tag' in a:
+                                    for tag in a['Tag']:
+                                        if str(tag['name']) not in misp_tag:
+                                            misp_tag.append(str(tag['name']))
+                                if 'Event' in a:
+                                    if a['Event']['uuid'] not in misp_event_uuid:
+                                        misp_event_uuid.append(str(a['Event']['uuid']))
+                                    if a['Event']['orgc_id'] not in misp_orgc_id:
+                                        misp_orgc_id.append(str(a['Event']['orgc_id']))
+                            record['misp_type'] = misp_type
+                            record['misp_value'] = misp_value
+                            record['misp_to_ids'] = misp_to_ids
+                            record['misp_category'] = misp_category
+                            record['misp_attribute_uuid'] = misp_uuid
+                            record['misp_event_id'] = misp_event_id
+                            record['misp_event_uuid'] = misp_event_uuid
+                            record['misp_orgc_id'] = misp_orgc_id
+                            record['misp_tag'] = misp_tag
 
             yield record
 
