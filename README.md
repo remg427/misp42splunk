@@ -5,16 +5,17 @@ and SECOND adapt all saved searches to add misp_instance=one-of-the-input-name
 ## Overview
 misp42splunk app connects [MISP](http://www.misp-project.org/) and [Splunk](www.splunk.com).  
 The app is designed to be easy to install, set up and maintain using the Splunk GUI.  
-MISP instances must be version 2.4.98 or above (new REST API).
+MISP instances must be version 2.4.117 or above (new REST API).
 
 **misp42splunk version >=3.0.0**: this is a major update;  
 after installation, restart splunk, launch the app and create one misp instance under inputs. It is recommended to name it default_misp. If you need **several instances**, create additional inputs.
 ![inputs](docs/misp42_create_inputs.png)
+**misp42splunk version >=3.1.0**: requires version 2.4.116
 
 ## Usage  
 1. MISP to SPLUNK:  
  **`| mispgetioc misp_instance=default_misp _params_ | ...`** gets MISP event attributes into Splunk search pipeline.  
- **`| mispapireport misp_instance=default_misp _params_ | ...`** gets MISP event attributes into Splunk search pipeline using direct calls of the API.   
+ **`| mispgetevent misp_instance=default_misp _params_ | ...`** gets MISP events into Splunk search pipeline using direct calls of the API.   
  **`search ... |mispsearch misp_instance=default_misp field=myvalue | ...`** searches for matching attributes in MISP.  
  **`search ... |mispsight  misp_instance=default_misp field=myvalue | ...`** gets sighting information for a specific value (note that if there is FP, only first hit is returned)
 
