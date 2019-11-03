@@ -14,11 +14,11 @@ import requests
 import json
 from splunklib.searchcommands import dispatch, StreamingCommand, Configuration, Option, validators
 import logging
-from misp_common import prepare_config
+from misp_common import prepare_config, logging_level
 
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
-__version__    = "3.0.10"
+__version__    = "3.1.0"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
@@ -85,11 +85,6 @@ class MispSearchCommand(StreamingCommand):
         **Syntax:** **onlyids=***<y|n>*
         **Description:** Boolean to search only attributes with to_ids set''',
         require=False, validate=validators.Boolean())
-    gettag = Option(
-        doc='''
-        **Syntax:** **gettag=***<y|n>*
-        **Description:** Boolean to return attribute tags''',
-        require=False, validate=validators.Boolean())
     includeEventUuid = Option(
         doc='''
         **Syntax:** **includeEventUuid=***y|Y|1|true|True|n|N|0|false|False*
@@ -121,7 +116,7 @@ class MispSearchCommand(StreamingCommand):
         **Description:**Valid JSON request''',
         require=False)
 
- 
+
     def stream(self, records):
         # Generate args
         my_args = prepare_config(self)
@@ -132,11 +127,6 @@ class MispSearchCommand(StreamingCommand):
         headers['Accept'] = 'application/json'
 
         fieldname = str(self.field)
-        if self.gettag is True:
-            get_tag = True
-        else:
-            get_tag = False
-
         pagination = True
         if self.limit is not None:
             if int(self.limit) == 0:
@@ -238,12 +228,13 @@ class MispSearchCommand(StreamingCommand):
                             record['misp_event_uuid'] = misp_event_uuid
                             record['misp_orgc_id'] = misp_orgc_id
                             record['misp_tag'] = misp_tag
-
             yield record
 
 
 if __name__ == "__main__":
     # set up logging suitable for splunkd consumption
     logging.root
-    logging.root.setLevel(logging.ERROR)
+    loglevel = logging_level()
+    logging.error('logging level is set to %s', loglevel)
+    logging.root.setLevel(loglevel)
     dispatch(MispSearchCommand, sys.argv, sys.stdin, sys.stdout, __name__)

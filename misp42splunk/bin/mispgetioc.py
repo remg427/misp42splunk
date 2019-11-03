@@ -9,20 +9,18 @@
 # Copyright: LGPLv3 (https://www.gnu.org/licenses/lgpl-3.0.txt)
 # Feel free to use the code, but please share the changes you've made
 #
-# "enforceWarninglist": "optional",
-
+# "warning_list": "optional",
 from __future__ import absolute_import, division, print_function, unicode_literals
-import sys
-import requests
 import json
-
-from splunklib.searchcommands import dispatch, ReportingCommand, Configuration, Option, validators
 import logging
-from misp_common import prepare_config
+import requests
+import sys
+from splunklib.searchcommands import dispatch, ReportingCommand, Configuration, Option, validators
+from misp_common import prepare_config, logging_level
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "3.0.10"
+__version__ = "3.1.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -34,7 +32,7 @@ class mispgetioc(ReportingCommand):
     .. code-block::
         | mispgetioc misp_instance=<input> last=<int>(d|h|m)
         | mispgetioc misp_instance=<input> event=<id1>(,<id2>,...)
-        | mispgetioc misp_instance=<input> date_from=<<YYYY-MM-DD> (date_to=<YYYY-MM-DD>)
+        | mispgetioc misp_instance=<input> date=<<YYYY-MM-DD> (date_to=<YYYY-MM-DD>)
     ##Description
     {
         "returnFormat": "mandatory",
@@ -75,74 +73,77 @@ class mispgetioc(ReportingCommand):
         "type": param, CSV string,
         "category": param, CSV string,
         "org": not managed,
-        "tags": param,
+        "tags": param, see also not_tags
+        "date": param,        
         "last": param,
         "eventid": param,
         "withAttachments": forced to false,
         "uuid": not managed,
-        "publish_timestamp": not managed,
+        "publish_timestamp": managed via param last
         "timestamp": not managed,
         "enforceWarninglist": param,
         "to_ids": param,
         "deleted": forced to False,
-        "includeEventUuid": param,
+        "includeEventUuid": set to True,
         "includeEventTags": param,
         "event_timestamp":  not managed,
         "threat_level_id":  not managed,
         "eventinfo": not managed,
         "includeProposals": not managed
-        "includeDecayScore": "optional",
-        "includeFullModel": "optional",
-        "decayingModel": "optional",
-        "excludeDecayed": "optional",
-        "score": "optional"
+        "includeDecayScore": not managed,
+        "includeFullModel": not managed,
+        "decayingModel": not managed,
+        "excludeDecayed": not managed,
+        "score": not managed
     }
     """
-    # Superseede MISP instance for this search
+    # MANDATORY MISP instance for this search
     misp_instance = Option(
         doc='''
         **Syntax:** **misp_instance=instance_name*
         **Description:**MISP instance parameters as described in local/inputs.conf.''',
         require=True)
-    # MANDATORY: eventid XOR last XOR date_from
+    # MANDATORY: json_request XOR eventid XOR last XOR date
+    json_request=Option(
+        doc='''
+        **Syntax:** **json_request=***valid JSON request*
+        **Description:**Valid JSON request''',
+        require=False)    
     eventid = Option(
         doc='''
         **Syntax:** **eventid=***id1(,id2,...)*
-        **Description:**list of event ID(s). **eventid**, **last** and **date_from** are mutually exclusive''',
+        **Description:**list of event ID(s) or event UUID(s).''',
         require=False, validate=validators.Match("eventid", r"^[0-9a-f,\-]+$"))
     last = Option(
         doc='''
         **Syntax:** **last=***<int>d|h|m*
-        **Description:**publication duration in day(s), hour(s) or minute(s). **eventid**, **last** and **date_from** are mutually exclusive''',
+        **Description:** publication duration in day(s), hour(s) or minute(s).
+        **nota bene:** last is an alias of published_timestamp''',
         require=False, validate=validators.Match("last", r"^[0-9]+[hdm]$"))
-    date_from = Option(
+    date = Option(
         doc='''
-        **Syntax:** **date_from=***date_string"*
-        **Description:**starting date. **eventid**, **last** and **date_from** are mutually exclusive''',
+        **Syntax:** **date=***The user set event date field - any of valid time related filters"*
+        **Description:**starting date. **eventid**, **last** and **date** are mutually exclusive''',
         require=False)
-    date_to = Option(
+    # Other params
+    page = Option(
         doc='''
-        **Syntax:** **date_to=***date_string"*
-        **Description:**(optional)ending date in searches with date_from. if not set default is now''',
-        require=False)
-    to_ids = Option(
+        **Syntax:** **page=***<int>*
+        **Description:**define the page for each MISP search; default 1.''',
+        require=False, validate=validators.Match("limit", r"^[0-9]+$"))
+    limit = Option(
         doc='''
-        **Syntax:** **to_ids=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
-        **Description:**Boolean to search only attributes with the flag "to_ids" set to true.''',
-        require=False, validate=validators.Boolean())
-    published = Option(
-        doc='''
-        **Syntax:** **published=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
-        **Description:**select only published events (for option from to) .''',
-        require=False, validate=validators.Boolean())
-    category = Option(
-        doc='''
-        **Syntax:** **category=***CSV string*
-        **Description:**Comma(,)-separated string of categories to search for. Wildcard is %.''',
-        require=False)
+        **Syntax:** **limit=***<int>*
+        **Description:**define the limit for each MISP search; default 1000. 0 = no pagination.''',
+        require=False, validate=validators.Match("limit", r"^[0-9]+$"))
     type = Option(
         doc='''
         **Syntax:** **type=***CSV string*
+        **Description:**Comma(,)-separated string of categories to search for. Wildcard is %.''',
+        require=False)
+    category = Option(
+        doc='''
+        **Syntax:** **category=***CSV string*
         **Description:**Comma(,)-separated string of categories to search for. Wildcard is %.''',
         require=False)
     tags = Option(
@@ -155,16 +156,21 @@ class mispgetioc(ReportingCommand):
         **Syntax:** **not_tags=***CSV string*
         **Description:**Comma(,)-separated string of tags to exclude from results. Wildcard is %.''',
         require=False)
-    limit = Option(
+    warning_list = Option(
         doc='''
-        **Syntax:** **limit=***<int>*
-        **Description:**define the limit for each MISP search; default 1000. 0 = no pagination.''',
-        require=False, validate=validators.Match("limit", r"^[0-9]+$"))
-    page = Option(
+        **Syntax:** **warning_list=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
+        **Description:**Boolean to filter out well known values.''',
+        require=False, validate=validators.Boolean())
+    to_ids = Option(
         doc='''
-        **Syntax:** **page=***<int>*
-        **Description:**define the page for each MISP search; default 1.''',
-        require=False, validate=validators.Match("limit", r"^[0-9]+$"))
+        **Syntax:** **to_ids=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
+        **Description:**Boolean to search only attributes with the flag "to_ids" set to true.''',
+        require=False, validate=validators.Boolean())
+    geteventtag = Option(
+        doc='''
+        **Syntax:** **geteventtag=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
+        **Description:**Boolean includeEventTags. By default only attribute tag(s) are returned.''',
+        require=False, validate=validators.Boolean())
     getuuid = Option(
         doc='''
         **Syntax:** **getuuid=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
@@ -175,11 +181,6 @@ class mispgetioc(ReportingCommand):
         **Syntax:** **getorg=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
         **Description:**Boolean to return the ID of the organisation that created the event.''',
         require=False, validate=validators.Boolean())
-    geteventtag = Option(
-        doc='''
-        **Syntax:** **geteventtag=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
-        **Description:**Boolean to return also event tag(s). By default only attribute tag(s) are returned.''',
-        require=False, validate=validators.Boolean())
     pipesplit = Option(
         doc='''
         **Syntax:** **pipesplit=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
@@ -189,11 +190,6 @@ class mispgetioc(ReportingCommand):
         doc='''
         **Syntax:** **add_description=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
         **Description:**Boolean to return misp_description.''',
-        require=False, validate=validators.Boolean())
-    warning_list = Option(
-        doc='''
-        **Syntax:** **warning_list=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
-        **Description:**Boolean to filter out well known values.''',
         require=False, validate=validators.Boolean())
 
     @Configuration()
@@ -207,30 +203,30 @@ class mispgetioc(ReportingCommand):
         my_args = prepare_config(self)
         my_args['misp_url'] = my_args['misp_url'] + '/attributes/restSearch'
 
-        # build search JSON object
-        body_dict = {"returnFormat": "json",
-                     "withAttachments": False,
-                     "deleted": False
-                     }
-
         # check that ONE of mandatory fields is present
         mandatory_arg = 0
+        if self.json_request is not None:
+            mandatory_arg = mandatory_arg + 1
         if self.eventid:
             mandatory_arg = mandatory_arg + 1
         if self.last:
             mandatory_arg = mandatory_arg + 1
-        if self.date_from:
+        if self.date:
             mandatory_arg = mandatory_arg + 1
 
         if mandatory_arg == 0:
-            logging.error('Missing "eventid", "last" or "date_from" argument')
-            raise Exception('Missing "eventid", "last" or "date_from" argument')
+            logging.error('Missing "json_request", eventid", "last" or "date" argument')
+            raise Exception('Missing "json_request", "eventid", "last" or "date" argument')
         elif mandatory_arg > 1:
-            logging.error('Options "eventid", "last" and "date_from" are mutually exclusive')
-            raise Exception('Options "eventid", "last" and "date_from" are mutually exclusive')
+            logging.error('Options "json_request", eventid", "last" and "date" are mutually exclusive')
+            raise Exception('Options "json_request", "eventid", "last" and "date" are mutually exclusive')
 
+        body_dict = dict()
         # Only ONE combination was provided
-        if self.eventid:
+        if self.json_request is not None:
+            body_dict = json.loads(self.json_request)
+            logging.info('Option "json_request" set')
+        elif self.eventid:
             if "," in self.eventid:
                 event_criteria = {}
                 event_list = self.eventid.split(",")
@@ -238,19 +234,19 @@ class mispgetioc(ReportingCommand):
                 body_dict['eventid'] = event_criteria
             else:
                 body_dict['eventid'] = self.eventid
-            logging.info('Option "eventid" set')
+            logging.info('Option "eventid" set with %s', json.dumps(body_dict['eventid']))
         elif self.last:
             body_dict['last'] = self.last
-            logging.info('Option "last" set with %s', body_dict['last'])
+            logging.info('Option "last" set with %s', str(body_dict['last']))
         else:
-            body_dict['from'] = self.date_from
-            logging.info('Option "date_from" set with %s', body_dict['from'])
-            if self.date_to:
-                body_dict['to'] = self.date_to
-                logging.info('Option "date_to" set with %s', body_dict['to'])
-            else:
-                logging.info('Option "date_to" will be set to now().')
+            body_dict['date'] = self.date.split()
+            logging.info('Option "date" set with %s', json.dumps(body_dict['date']))
 
+        # Force some values on JSON request
+        body_dict['returnFormat'] = 'json'
+        body_dict['withAttachments'] = False
+        body_dict['deleted'] = False
+        body_dict['includeEventUuid'] = True
         # set proper headers
         headers = {'Content-type': 'application/json'}
         headers['Authorization'] = my_args['misp_key']
@@ -259,31 +255,30 @@ class mispgetioc(ReportingCommand):
         # Search pagination
         pagination = True
         if self.limit is not None:
-            if int(self.limit) == 0:
-                pagination = False
-            else:
-                limit = int(self.limit)
+            limit = int(self.limit)
+        elif 'limit' in body_dict:
+            limit = int(body_dict['limit'])
         else:
             limit = 1000
+        if limit == 0:
+            pagination = False
         if self.page is not None:
             page = int(self.page)
+        elif 'page' in body_dict:
+            page = body_dict['page']
         else:
             page = 1
 
         # Search parameters: boolean and filter
         if self.to_ids is True:
             body_dict['to_ids'] = True
-            body_dict['enforceWarninglist'] = True
+            body_dict['warning_list'] = True  # protection
         elif self.to_ids is False:
             body_dict['to_ids'] = False
         if self.warning_list is True:
-            body_dict['enforceWarninglist'] = True
+            body_dict['warning_list'] = True
         elif self.warning_list is False:
-            body_dict['enforceWarninglist'] = False
-        if self.published is True:
-            body_dict['published'] = True
-        elif self.published is False:
-            body_dict['published'] = False
+            body_dict['warning_list'] = False
         if self.geteventtag is True:
             body_dict['includeEventTags'] = True
         if self.category is not None:
@@ -359,8 +354,12 @@ class mispgetioc(ReportingCommand):
                     v['misp_tag'] = tag_list
                     # include ID of the organisation that created the attribute if requested
                     # in previous version this was the ORG name ==> create lookup
-                    if 'Event' in a and my_args['getorg']:
-                        v['misp_orgc_id'] = str(a['Event']['orgc_id'])
+                    if 'Event' in a:
+                        v['misp_event_uuid'] = str(a['Event']['uuid'])
+                        if my_args['getorg']:
+                            v['misp_orgc_id'] = str(a['Event']['orgc_id'])
+                        if my_args['add_desc'] is True:
+                            v['misp_event_info'] = str(a['Event']['info'])
                     # include attribute UUID if requested
                     if my_args['getuuid']:
                         v['misp_attribute_uuid'] = str(a['uuid'])
@@ -469,12 +468,14 @@ class mispgetioc(ReportingCommand):
                     v['misp_value'] = misp_value
                 output_dict[key] = dict(v)
 
-        for k, v in output_dict.items():
+        for k, v in list(output_dict.items()):
             yield v
 
 
 if __name__ == "__main__":
     # set up logging suitable for splunkd consumption
     logging.root
-    logging.root.setLevel(logging.ERROR)
+    loglevel = logging_level()
+    logging.error('logging level is set to %s', loglevel)
+    logging.root.setLevel(loglevel)
     dispatch(mispgetioc, sys.argv, sys.stdin, sys.stdout, __name__)

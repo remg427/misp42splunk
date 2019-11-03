@@ -5,11 +5,27 @@ import json
 import logging
 import os
 from splunk.clilib import cli_common as cli
+from io import open
 
 __license__ = "LGPLv3"
-__version__ = "3.0.8"
+__version__ = "3.1.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
+
+
+def logging_level():
+    _SPLUNK_PATH = os.environ['SPLUNK_HOME']
+    app_name = 'misp42splunk'
+    settings_file = _SPLUNK_PATH + os.sep + 'etc' + os.sep + 'apps' \
+        + os.sep + app_name + os.sep \
+        + 'local' + os.sep + 'misp42splunk_settings.conf'
+    if os.path.exists(settings_file):
+        misp42splunk_settings = cli.readConfFile(settings_file)
+        for name, content in list(misp42splunk_settings.items()):
+            if 'logging' in name:
+                loglevel = content
+    if loglevel is not None:
+        return loglevel['loglevel']
 
 
 def prepare_config(self):
@@ -27,7 +43,7 @@ def prepare_config(self):
     if os.path.exists(inputs_conf_file):
         inputsConf = cli.readConfFile(inputs_conf_file)
         foundStanza = False
-        for name, content in inputsConf.items():
+        for name, content in list(inputsConf.items()):
             if stanza_name in name:
                 mispconf = content
                 foundStanza = True
@@ -79,7 +95,7 @@ def prepare_config(self):
         if os.path.exists(settings_file):
             misp42splunk_settings = cli.readConfFile(settings_file)
             foundProxy = False
-            for name, content in misp42splunk_settings.items():
+            for name, content in list(misp42splunk_settings.items()):
                 if 'proxy' in name:
                     proxy = content
                     foundProxy = True
