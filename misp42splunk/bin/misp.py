@@ -2,8 +2,6 @@ import misp42splunk_declare
 
 import os
 import sys
-import time
-import datetime
 import json
 
 import modinput_wrapper.base_modinput
@@ -12,6 +10,7 @@ from solnlib.packages.splunklib import modularinput as smi
 
 
 import input_module_misp as input_module
+from io import open
 
 bin_dir = os.path.basename(__file__)
 

@@ -17,22 +17,21 @@
     "time": "optional"
 }
 '''
-__author__     = "Remi Seguy"
-__license__    = "LGPLv3"
-__version__    = "3.0.5"
-__maintainer__ = "Remi Seguy"
-__email__      = "remg427@gmail.com"
-
 import csv
-import datetime
 import gzip
 import json
 import os
 import requests
-import sys
 import time
 from splunk.clilib import cli_common as cli
 import splunklib.client as client
+
+__author__     = "Remi Seguy"
+__license__    = "LGPLv3"
+__version__    = "3.1.0"
+__maintainer__ = "Remi Seguy"
+__email__      = "remg427@gmail.com"
+
 
 # encoding = utf-8
 def prepare_alert_config(helper):
@@ -48,7 +47,7 @@ def prepare_alert_config(helper):
     inputs_conf_file = _SPLUNK_PATH + os.sep + 'etc' + os.sep + 'apps' + os.sep + app_name + os.sep + 'local' + os.sep + 'inputs.conf'
     if os.path.exists(inputs_conf_file):
         inputsConf = cli.readConfFile(inputs_conf_file)
-        for name, content in inputsConf.items():
+        for name, content in list(inputsConf.items()):
             if stanza_name in name:
                 mispconf = content
                 helper.log_info(json.dumps(mispconf))
@@ -121,7 +120,7 @@ def group_values(helper, r, tslabel, ds):
     for row in r:
 
         # Splunk makes a bunch of dumb empty multivalue fields - we filter those out here
-        row = {key: value for key, value in row.iteritems() if not key.startswith("__mv_")}
+        row = {key: value for key, value in list(row.items()) if not key.startswith("__mv_")}
 
         # Get the timestamp as string to group values and remove from row
         if tslabel in row:
@@ -137,7 +136,7 @@ def group_values(helper, r, tslabel, ds):
             data = []
 
         # now we take remaining KV pairs on the line to add data to list
-        for key, value in row.iteritems():
+        for key, value in list(row.items()):
             if value != "": 
                 if '\n' in value: # was a multivalue field
                     helper.log_debug('value is not a simple string {}'.format(value))
@@ -196,7 +195,7 @@ def create_alert(helper, config, results):
     headers['Accept'] = 'application/json'
 
     # iterate in dict events to create events
-    for key, data in sightings.items():
+    for key, data in list(sightings.items()):
         if mode == 'byvalue':
             sighting = json.dumps(dict(
                 timestamp=int(key),

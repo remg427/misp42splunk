@@ -14,12 +14,12 @@ import requests
 import json
 from splunklib.searchcommands import dispatch, StreamingCommand, Configuration, Option, validators
 import logging
-from misp_common import prepare_config
+from misp_common import prepare_config, logging_level
 
 
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
-__version__    = "3.0.5"
+__version__    = "3.1.0"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
@@ -56,7 +56,7 @@ class mispsight(StreamingCommand):
                 "event_timestamp": "optional",
                 "threat_level_id": "optional"
                 }
-    
+
     ##Example
 
     Search in MISP for value of fieldname r_ip (remote IP in proxy logs).
@@ -169,8 +169,11 @@ class mispsight(StreamingCommand):
                                 record['misp_sight_last_event_id'] = str(misp_sight['last_event_id'])
             yield record
 
+
 if __name__ == "__main__":
     # set up logging suitable for splunkd consumption
     logging.root
-    logging.root.setLevel(logging.ERROR)
+    loglevel = logging_level()
+    logging.error('logging level is set to %s', loglevel)
+    logging.root.setLevel(loglevel)
     dispatch(mispsight, sys.argv, sys.stdin, sys.stdout, __name__)

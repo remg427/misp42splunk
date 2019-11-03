@@ -6,15 +6,7 @@
 #
 # Copyright: LGPLv3 (https://www.gnu.org/licenses/lgpl-3.0.txt)
 # Feel free to use the code, but please share the changes you've made
-__author__     = "Remi Seguy"
-__license__    = "LGPLv3"
-__version__    = "3.0.5"
-__maintainer__ = "Remi Seguy"
-__email__      = "remg427@gmail.com"
-
-#
-# most of the code here was based on the following example on splunk custom alert event_list
-# http://docs.splunk.com/Documentation/Splunk/6.5.3/AdvancedDev/ModAlertsAdvancedExample
+from __future__ import print_function
 
 import csv
 import datetime
@@ -22,10 +14,20 @@ import gzip
 import json
 import os
 import requests
-import sys
 import time
 from splunk.clilib import cli_common as cli
 import splunklib.client as client
+from io import open
+
+__author__     = "Remi Seguy"
+__license__    = "LGPLv3"
+__version__    = "3.1.0"
+__maintainer__ = "Remi Seguy"
+__email__      = "remg427@gmail.com"
+
+#
+# most of the code here was based on the following example on splunk custom alert event_list
+# http://docs.splunk.com/Documentation/Splunk/6.5.3/AdvancedDev/ModAlertsAdvancedExample
 
 # encoding = utf-8
 def prepare_alert_config(helper):
@@ -41,7 +43,7 @@ def prepare_alert_config(helper):
     inputs_conf_file = _SPLUNK_PATH + os.sep + 'etc' + os.sep + 'apps' + os.sep + app_name + os.sep + 'local' + os.sep + 'inputs.conf'
     if os.path.exists(inputs_conf_file):
         inputsConf = cli.readConfFile(inputs_conf_file)
-        for name, content in inputsConf.items():
+        for name, content in list(inputsConf.items()):
             if stanza_name in name:
                 mispconf = content
                 helper.log_info(json.dumps(mispconf))
@@ -200,7 +202,7 @@ def prepare_misp_events(helper, config, results, event_list):
 
     for row in results:
         # Splunk makes a bunch of dumb empty multivalue fields - we filter those out here
-        row = {key: value for key, value in row.items() if not key.startswith("__mv_")}
+        row = {key: value for key, value in list(row.items()) if not key.startswith("__mv_")}
 
         # Get the specific eventkey if defined in Splunk search. Defaults to alert form value
         eventkey = config['eventkey']
@@ -272,7 +274,7 @@ def prepare_misp_events(helper, config, results, event_list):
             comment = None
 
         # now we take KV pairs starting by misp_ to add to event as single attribute(s)
-        for key, value in row.items():
+        for key, value in list(row.items()):
             if key.startswith("misp_") and value != "":
                 misp_key = str(key).replace('misp_', '').replace('_', '-')
                 attributes.append(store_attribute(misp_key, str(value), to_ids=to_ids, category=category, attribute_tag=attribute_tag, comment=comment))
@@ -285,7 +287,7 @@ def prepare_misp_events(helper, config, results, event_list):
         fo_attribute = []
         eo_attribute = []
         no_attribute = []
-        for key, value in row.items():
+        for key, value in list(row.items()):
             if key.startswith("fo_") and value != "":
                 fo_key = str(key).replace('fo_', '').replace('_', '-')
                 object_attribute = store_object_attribute('file',fo_key, str(value), attribute_tag=attribute_tag)
