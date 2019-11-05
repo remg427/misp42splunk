@@ -18,7 +18,7 @@ from misp_common import prepare_config, logging_level
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "3.1.0"
+__version__ = "3.1.1"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -290,8 +290,6 @@ class mispgetevent(ReportingCommand):
             type_list = self.type.split(",")
             type_criteria['OR'] = type_list
             body_dict['type'] = type_criteria
-        if self.threat_level is not None:
-            body_dict['threat_level_id'] = int(self.threat_level)
         if self.tags is not None or self.not_tags is not None:
             tags_criteria = {}
             if self.tags is not None:
