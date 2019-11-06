@@ -19,13 +19,16 @@ def logging_level():
     settings_file = _SPLUNK_PATH + os.sep + 'etc' + os.sep + 'apps' \
         + os.sep + app_name + os.sep \
         + 'local' + os.sep + 'misp42splunk_settings.conf'
+    run_level = 'ERROR'
     if os.path.exists(settings_file):
         misp42splunk_settings = cli.readConfFile(settings_file)
         for name, content in list(misp42splunk_settings.items()):
             if 'logging' in name:
-                loglevel = content
-    if loglevel is not None:
-        return loglevel['loglevel']
+                if 'loglevel' in content:
+                    set_level = content['loglevel']
+                    if set_level in ['DEBUG','INFO','WARNING','ERROR','CRITICAL']:
+                        run_level = set_level
+    return run_level        
 
 
 def prepare_config(self):
