@@ -3,14 +3,8 @@ With version >3.0.0 you need FIRST to create input(s) to point to your MISP inst
 and SECOND adapt all saved searches to add misp_instance=one-of-the-input-name
 
 ## Overview
-misp42splunk app connects [MISP](http://www.misp-project.org/) and [Splunk](www.splunk.com).  
+misp42splunk app connects one or several [MISP](http://www.misp-project.org/) instance(s) and your [Splunk](www.splunk.com) search head (cluster).  
 The app is designed to be easy to install, set up and maintain using the Splunk GUI.  
-MISP instances must be version 2.4.117 or above (new REST API).
-
-**misp42splunk version >=3.0.0**: this is a major update;  
-after installation, restart splunk, launch the app and create one misp instance under inputs. It is recommended to name it default_misp. If you need **several instances**, create additional inputs.
-![inputs](docs/misp42_create_inputs.png)
-**misp42splunk version >=3.1.0**: requires version 2.4.116
 
 ## Usage  
 1. MISP to SPLUNK (custom commands):  
@@ -32,7 +26,7 @@ This app is designed to run on **Splunk Search Head(s)** on Linux plateforms (no
 4. At next logon, you should be invited to configure the app (if not go to Manage Apps > misp42 > launch app)
 5. create at least one input for example "default_misp". Please note that mandatory fields "intervals" and "index" are not used. Just put a valid value
     - provide a name
-    - provide the url to your MISP instance,
+    - provide the url to your MISP instance (version > 2.4.117)
     - provide the authkey,
     - check (or not) the certificate of the MISP server,
     - use (or not) the proxy for this instance,
@@ -114,7 +108,6 @@ or using mispgetioc (which has the option pipesplit=True)
     *  Alert for attribute sighting in MISP.  
 
 ## todo
-   - [ ] savedsearches to pull intel for domain ip and email address (for Enterprise Security)
    - [ ] dashboard to see IOC available/pulled from MISP
    
 ## Credits
