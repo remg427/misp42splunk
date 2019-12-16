@@ -3,6 +3,17 @@ RELEASE NOTE
 
 for latest release check see more on https://github.com/remg427/misp42splunk
 
+Version 3.1.3
+Dec. 13, 2019
+
+- #127 fixed mvexpand X removes events when X is null (ip or file_hash)
+- mispgetioc and mispgetevent return attribute comment as misp_comment
+
+Version 3.1.2
+Nov. 6, 2019
+
+- fix error related to default logging level (#123)
+
 
 Version 3.1.1
 Nov. 5, 2019
@@ -11,7 +22,7 @@ Nov. 5, 2019
 
 Version 3.1.0
 
-- new custom command mispgetvent leveraging /events/restSearch
+- new custom command mispgetevent leveraging /events/restSearch
 - modifiy mispgetioc
 	- to support param json_request
 	- replace date_from and date_to by date
