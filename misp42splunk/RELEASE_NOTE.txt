@@ -4,6 +4,11 @@ RELEASE NOTE
 for latest release check see more on https://github.com/remg427/misp42splunk
 
 Version 3.1.3
+Dec. 18, 2019
+
+- fix file open mopde
+
+Version 3.1.3
 Dec. 13, 2019
 
 - #127 fixed mvexpand X removes events when X is null (ip or file_hash)
