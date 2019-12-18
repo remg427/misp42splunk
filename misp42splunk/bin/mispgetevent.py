@@ -29,6 +29,7 @@ def mispgetioc(a_item, typelist, pipesplit=False, object_id=0 , object_name="", 
     misp_a['misp_attribute_uuid'] = str(a_item['uuid'])
     misp_a['misp_category'] = a_item['category']
     misp_a['misp_to_ids'] = str(a_item['to_ids'])
+    misp_a['misp_comment'] = str(a_item['comment'])
     misp_a['misp_attribute_timestamp'] = a_item['timestamp']
     misp_a['misp_attribute_sharing_group_id'] = str(a_item['sharing_group_id'])
     misp_a['misp_attribute_deleted'] = str(a_item['deleted'])
@@ -134,11 +135,11 @@ class mispgetevent(ReportingCommand):
         **Description:**MISP instance parameters as described in local/inputs.conf.''',
         require=True)
     # MANDATORY: json_request XOR eventid XOR last XOR date
-    json_request=Option(
+    json_request = Option(
         doc='''
         **Syntax:** **json_request=***valid JSON request*
         **Description:**Valid JSON request''',
-        require=False)    
+        require=False)
     eventid = Option(
         doc='''
         **Syntax:** **eventid=***id1(,id2,...)*

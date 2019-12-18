@@ -74,7 +74,7 @@ class mispgetioc(ReportingCommand):
         "category": param, CSV string,
         "org": not managed,
         "tags": param, see also not_tags
-        "date": param,        
+        "date": param,
         "last": param,
         "eventid": param,
         "withAttachments": forced to false,
@@ -104,11 +104,11 @@ class mispgetioc(ReportingCommand):
         **Description:**MISP instance parameters as described in local/inputs.conf.''',
         require=True)
     # MANDATORY: json_request XOR eventid XOR last XOR date
-    json_request=Option(
+    json_request = Option(
         doc='''
         **Syntax:** **json_request=***valid JSON request*
         **Description:**Valid JSON request''',
-        require=False)    
+        require=False)
     eventid = Option(
         doc='''
         **Syntax:** **eventid=***id1(,id2,...)*
@@ -344,6 +344,7 @@ class mispgetioc(ReportingCommand):
                     v['misp_event_id'] = str(a['event_id'])
                     v['misp_timestamp'] = str(a['timestamp'])
                     v['misp_to_ids'] = str(a['to_ids'])
+                    v['misp_comment'] = str(a['comment'])
                     tag_list = []
                     if 'Tag' in a:
                         for tag in a['Tag']:

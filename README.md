@@ -13,11 +13,12 @@ after installation, restart splunk, launch the app and create one misp instance 
 **misp42splunk version >=3.1.0**: requires version 2.4.116
 
 ## Usage  
-1. MISP to SPLUNK:  
+1. MISP to SPLUNK (custom commands):  
  **`| mispgetioc misp_instance=default_misp _params_ | ...`** gets MISP event attributes into Splunk search pipeline.  
  **`| mispgetevent misp_instance=default_misp _params_ | ...`** gets MISP events into Splunk search pipeline using direct calls of the API.   
  **`search ... |mispsearch misp_instance=default_misp field=myvalue | ...`** searches for matching attributes in MISP.  
  **`search ... |mispsight  misp_instance=default_misp field=myvalue | ...`** gets sighting information for a specific value (note that if there is FP, only first hit is returned)
+ ** IMPORTANT ** mispapireport has been replaced by mispgetioc (use json_request=)
 
 2. MISP for SPLUNK: 2 Splunk alert actions are available          
  * one action to create new events or **edit** existing ones if you provide an eventid (or UUID). This allows to contribute to misp event(s) across several alert triggers.

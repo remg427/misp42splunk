@@ -175,6 +175,7 @@ class MispSearchCommand(StreamingCommand):
                     misp_event_uuid = []
                     misp_orgc_id = []
                     misp_to_ids = []
+                    misp_comment = []
                     misp_tag = []
                     misp_type = []
                     misp_value = []
@@ -204,6 +205,8 @@ class MispSearchCommand(StreamingCommand):
                                     misp_value.append(str(a['value']))
                                 if str(a['to_ids']) not in misp_to_ids:
                                     misp_to_ids.append(str(a['to_ids']))
+                                if str(a['comment']) not in misp_comment:
+                                    misp_comment.append(str(a['comment']))
                                 if str(a['category']) not in misp_category:
                                     misp_category.append(str(a['category']))
                                 if str(a['uuid']) not in misp_uuid:
@@ -222,6 +225,7 @@ class MispSearchCommand(StreamingCommand):
                             record['misp_type'] = misp_type
                             record['misp_value'] = misp_value
                             record['misp_to_ids'] = misp_to_ids
+                            record['misp_comment'] = misp_comment
                             record['misp_category'] = misp_category
                             record['misp_attribute_uuid'] = misp_uuid
                             record['misp_event_id'] = misp_event_id
