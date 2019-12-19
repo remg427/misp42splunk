@@ -5,11 +5,7 @@ and SECOND adapt all saved searches to add misp_instance=one-of-the-input-name
 ## Overview
 misp42splunk app connects [MISP](http://www.misp-project.org/) and [Splunk](www.splunk.com).  
 The app is designed to be easy to install, set up and maintain using the Splunk GUI.  
-MISP instances must be version 2.4.117 or above (new REST API).
 
-**misp42splunk version >=3.0.0**: this is a major update;  
-after installation, restart Splunk, launch the app and create one misp instance under inputs. It is recommended to name it default_misp. If you need **several instances**, create additional inputs.
-![inputs](docs/misp42_create_inputs.png)
 **misp42splunk version >=3.1.0**: requires version 2.4.117
 
 ## Usage  
@@ -31,13 +27,15 @@ This app is designed to run on **Splunk Search Head(s)** on Linux plateforms (no
 3. Install the app on your Splunk Search Head(s): "Manage Apps" -> "Install app from file"
 4. At next logon, you should be invited to configure the app (if not go to Manage Apps > misp42 > launch app)
 5. create at least one input for example "default_misp". Please note that mandatory fields "intervals" and "index" are not used. Just put a valid value
-    - provide a name
+    - provide a name for example default_misp to follow the examples provided in this doc
     - provide the url to your MISP instance,
     - provide the authkey,
     - check (or not) the certificate of the MISP server,
     - use (or not) the proxy for this instance,
     - provide client certificate if required (and check the box to use it)
-6. Important: Role(s)/user(s) using this app must have the capability to "list_storage_passwords" (as API KEYs and proxy password(s) are safely stored encrypted )
+![inputs](docs/misp42_create_inputs.png)
+6. If you need **several instances**, create additional inputs.
+7. Important: Role(s)/user(s) using this app must have the capability to "list_storage_passwords" (as API KEYs and proxy password(s) are safely stored encrypted )
 
 ## Use Cases
 ### Build a dashboard
