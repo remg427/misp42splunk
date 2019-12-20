@@ -14,9 +14,9 @@ You may search and prepare the results as a table with the following command
 | eval misp_time=round(_time,0) | eval misp_info=<some string> |eval misp_tag=<some (CSV) string>  
 | table eventkey misp_time misp_info misp_tag to_ids misp_category misp_* fo_* eo_* no_* (etc.)
 ```
-CAUTION: Splunk syntax does not like field names containing '-'.
-
-Do not forget to check the [object attribute names](https://github.com/MISP/misp-objects/)
+CAUTION: Splunk syntax does not like field names containing '-'.  
+Do not forget to check the [object attribute names](https://github.com/MISP/misp-objects/). To use objects, you need to use an object prefix (fo_, no_, eo_) followed by the object attribute name as splunk field name.  
+For example eo_from for the sender address in an email object.
 
 * Optional fields:
     - misp_time: the timestamp will be converted to YYYY-MM-DD for event date. if not provided, it is set to localtime. for example | eval misp_time = round(_time,0)
@@ -44,6 +44,7 @@ Fill in the form to tune your alert to your needs.
             <option value="1">This community only</option>
             <option value="2">Connected communities</option>
             <option value="3">All communities</option>
+            <option value="4">Sharing Group</option>
     - **threatlevel**: Change the Threat Level. Defaults to Undefined
             <option value="1">High</option>
             <option value="2">Medium</option>

@@ -28,7 +28,7 @@ import splunklib.client as client
 
 __author__     = "Remi Seguy"
 __license__    = "LGPLv3"
-__version__    = "3.1.0"
+__version__    = "3.1.5"
 __maintainer__ = "Remi Seguy"
 __email__      = "remg427@gmail.com"
 
@@ -282,7 +282,7 @@ def process_event(helper, *args, **kwargs):
         try:
             # open the file with gzip lib, start making alerts
             # can with statements fail gracefully??
-            with gzip.open(filename, 'rt') as file:
+            with gzip.open(filename, 'rb') as file:
                 # DictReader lets us grab the first row as a header row and
                 # other lines will read as a dict mapping the header
                 # to the value instead of reading the first line with a
