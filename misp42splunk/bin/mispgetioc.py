@@ -13,14 +13,16 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 import json
 import logging
+import os
 import requests
 import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))
 from splunklib.searchcommands import dispatch, ReportingCommand, Configuration, Option, validators
 from misp_common import prepare_config, logging_level
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "3.1.0"
+__version__ = "3.1.6"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 

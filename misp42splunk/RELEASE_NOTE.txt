@@ -3,6 +3,14 @@ RELEASE NOTE
 
 for latest release check see more on https://github.com/remg427/misp42splunk
 
+Version 3.1.6 - Jan. 29, 2019
+- remove mako template for Python3 compatibility
+- moved splunklib under /lib
+- removed duplicate splunklib
+- fixed error to edit objects
+- fixed mispsight error in mode DEBUG
+- cleanup code
+
 Version 3.1.5 - Dec. 19, 2019
 - add distribution mode "sharing group"
 
