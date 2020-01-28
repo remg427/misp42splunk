@@ -19,27 +19,29 @@ from splunk.clilib import cli_common as cli
 import splunklib.client as client
 from io import open
 
-__author__     = "Remi Seguy"
-__license__    = "LGPLv3"
-__version__    = "3.1.0"
+__author__ = "Remi Seguy"
+__license__ = "LGPLv3"
+__version__ = "3.1.5"
 __maintainer__ = "Remi Seguy"
-__email__      = "remg427@gmail.com"
+__email__ = "remg427@gmail.com"
 
 #
-# most of the code here was based on the following example on splunk custom alert event_list
+# most of the code here was based on the following
+# example on splunk custom alert event_list
 # http://docs.splunk.com/Documentation/Splunk/6.5.3/AdvancedDev/ModAlertsAdvancedExample
+
 
 # encoding = utf-8
 def prepare_alert_config(helper):
     config_args = dict()
     # get MISP instance to be used
     misp_instance = helper.get_param("misp_instance")
-    stanza_name   = 'misp://' + misp_instance
+    stanza_name  = 'misp://' + misp_instance
     helper.log_info("stanza_name={}".format(stanza_name))
     # get MISP instance parameters
     # open local/inputs.conf
     _SPLUNK_PATH = os.environ['SPLUNK_HOME']
-    app_name     = 'misp42splunk'
+    app_name = 'misp42splunk'
     inputs_conf_file = _SPLUNK_PATH + os.sep + 'etc' + os.sep + 'apps' + os.sep + app_name + os.sep + 'local' + os.sep + 'inputs.conf'
     if os.path.exists(inputs_conf_file):
         inputsConf = cli.readConfFile(inputs_conf_file)
@@ -90,12 +92,13 @@ def prepare_alert_config(helper):
                 proxy_url = proxy_url + proxy['proxy_username'] + ':' + proxy['proxy_password'] + '@' 
             proxy_url = proxy_url + proxy['proxy_url'] + ':' + proxy['proxy_port'] + '/'
             config_args['proxies'] = {
-                "http":  "http"  + proxy_url,
+                "http": "http" + proxy_url,
                 "https": "https" + proxy_url
             }
     # Get string values from alert form
     config_args['tlp']= str(helper.get_param("tlp").replace('_',':'))
     config_args['pap']= str(helper.get_param("pap").replace('_',':'))
+    helper.log_debug("config_args['pap'] {}".format(config_args['pap']))
     if not helper.get_param("eventid"):
         config_args['eventid'] = "0"
     else:
@@ -117,7 +120,7 @@ def prepare_alert_config(helper):
     config_args['analysis']     = int(helper.get_param("analysis"))
     config_args['threatlevel']  = int(helper.get_param("threatlevel"))
     config_args['distribution'] = int(helper.get_param("distribution"))
-    
+
     # add filename of the file containing the result of the search
     config_args['filename'] = str(helper.settings['results_file'])
 
@@ -140,7 +143,7 @@ def store_attribute(t, v, to_ids=None, category=None, attribute_tag=None, commen
         att_tag_list = attribute_tag.split(',')
         for atag in att_tag_list:
             if atag not in att_tags:
-                new_tag = { 'name': atag }
+                new_tag = {'name': atag }
                 att_tags.append(new_tag)
         # update event tag list
         Attribute['Tag'] = att_tags
@@ -159,21 +162,21 @@ def store_object_attribute(ot, t, v, attribute_tag=None):
             Attribute = {}
             if t in object_attributes:
                 Attribute['type'] = object_attributes[t]['misp-attribute']
-                Attribute['object_relation'] =  t
+                Attribute['object_relation'] = t
                 Attribute['value'] = v
         if attribute_tag is not None:
             att_tags = []
             att_tag_list = attribute_tag.split(',')
             for atag in att_tag_list:
                 if atag not in att_tags:
-                    new_tag = { 'name': atag }
+                    new_tag = {'name': atag}
                     att_tags.append(new_tag)
             # update event tag list
-            Attribute['Tag'] = att_tags    
+            Attribute['Tag'] = att_tags
         return Attribute
     except IOError as e:
         print("FATAL %s object definition could not be opened/read" % ot)
-        exit(3)    
+        exit(3)
 
 
 def prepare_misp_events(helper, config, results, event_list):
@@ -190,13 +193,13 @@ def prepare_misp_events(helper, config, results, event_list):
         'Object': []
     }
     # tag the event with TLP level
-    tags = [{ 'name': config['tlp']}]
+    tags = [{'name': config['tlp']},{'name': config['pap']}]
     # Add tags set in alert definition
     if config['tags'] is not None:
         tag_list = config['tags'].split(',')
         for tag in tag_list:
             if tag not in tags:
-                new_tag = { 'name': tag }
+                new_tag = {'name': tag}
                 tags.append(new_tag)
     event_baseline['Tag'] = tags
 
@@ -212,8 +215,8 @@ def prepare_misp_events(helper, config, results, event_list):
         # Get the specific eventid if define in Splunk search. Defaults to alert form value
         # Value == 0: means create new event
         # Value <> 0: edit existing event
-        eventid = config['eventid'] # from the alert conf
-        if 'eventid' in row:        # from the result row (overwrites other values)
+        eventid = config['eventid']  # from the alert conf
+        if 'eventid' in row:         # from the result row (overwrites other values)
             eventid = str(row.pop('eventid'))
         helper.log_info("eventid is {}".format(eventid))
 
@@ -237,6 +240,11 @@ def prepare_misp_events(helper, config, results, event_list):
                 event['info'] = row.pop('misp_info')
             else:
                 event['info'] = config['info']
+        if config['distribution'] == 4:
+            if 'misp_sg_id' in row:
+                event['sharing_group_id'] = int(row.pop('misp_sg_id'))  # "sharing_group_id": "optional",
+            else:
+                helper.log_error("Distribution is set to Sharing Group but no field misp_sg_id is provided")
         attributes = list(event['Attribute'])
         objects = list(event['Object'])
         tags = list(event['Tag'])
@@ -246,7 +254,7 @@ def prepare_misp_events(helper, config, results, event_list):
             tag_list = row.pop('misp_tag').split(',')
             for tag in tag_list:
                 if tag not in tags:
-                    new_tag = { 'name': tag }
+                    new_tag = {'name': tag}
                     tags.append(new_tag)
 
         # update event tag list
@@ -273,7 +281,8 @@ def prepare_misp_events(helper, config, results, event_list):
         else:
             comment = None
 
-        # now we take KV pairs starting by misp_ to add to event as single attribute(s)
+        # now we take KV pairs starting by misp_
+        # to add to event as single attribute(s)
         for key, value in list(row.items()):
             if key.startswith("misp_") and value != "":
                 misp_key = str(key).replace('misp_', '').replace('_', '-')
@@ -282,7 +291,7 @@ def prepare_misp_events(helper, config, results, event_list):
         # update event attribute list
         event['Attribute'] = list(attributes)
 
-        # now we look for attribute belonging to a file email or network object i.e.
+        # now we look for attribute belonging to anobject i.e.
         # on the same row, field(s) start(s) with fo_, eo_ or no_
         fo_attribute = []
         eo_attribute = []
@@ -290,17 +299,17 @@ def prepare_misp_events(helper, config, results, event_list):
         for key, value in list(row.items()):
             if key.startswith("fo_") and value != "":
                 fo_key = str(key).replace('fo_', '').replace('_', '-')
-                object_attribute = store_object_attribute('file',fo_key, str(value), attribute_tag=attribute_tag)
+                object_attribute = store_object_attribute('file', fo_key, str(value), attribute_tag=attribute_tag)
                 if object_attribute:
                     fo_attribute.append(object_attribute)
             if key.startswith("eo_") and value != "":
                 eo_key = str(key).replace('eo_', '').replace('_', '-')
-                object_attribute = store_object_attribute('email',eo_key, str(value), attribute_tag=attribute_tag)
+                object_attribute = store_object_attribute('email', eo_key, str(value), attribute_tag=attribute_tag)
                 if object_attribute:
                     eo_attribute.append(object_attribute)
             if key.startswith("no_") and value != "":
                 no_key = str(key).replace('no_', '').replace('_', '-')
-                object_attribute = store_object_attribute('domain-ip',no_key, str(value), attribute_tag=attribute_tag)
+                object_attribute = store_object_attribute('domain-ip', no_key, str(value), attribute_tag=attribute_tag)
                 if object_attribute:
                     no_attribute.append(object_attribute)
 
@@ -353,17 +362,17 @@ def process_misp_events(helper, config, results, event_list):
 
     status = 200
     for eventkey in results:
-        if event_list[eventkey] == "0": # create new event
+        if event_list[eventkey] == "0":  # create new event
             body = json.dumps(results[eventkey])
             helper.log_info("create body has been prepared for eventkey {}".format(eventkey))
             # POST json data to create events
             r = requests.post(misp_url_create, headers=headers, data=body, verify=misp_verifycert, cert=client_cert, proxies=config['proxies'])
             # check if status is anything other than 200; throw an exception if it is
             r.raise_for_status()
-            # response is 200 by this point or we would have thrown an exception
-            response = r.json()
+            # response is 200 or we would have thrown an exception
+            # response = r.json()
             helper.log_info("event created")
-        else: # edit existing eventid with Attribute and Object
+        else:  # edit existing eventid with Attribute and Object
             misp_url_edit = config['misp_url'] + '/events/edit/' + event_list[eventkey]
             edit_body = {}
             edit_body['Attribute'] = results[eventkey]['Attribute']
@@ -374,8 +383,8 @@ def process_misp_events(helper, config, results, event_list):
             r = requests.post(misp_url_edit, headers=headers, data=body, verify=misp_verifycert, cert=client_cert, proxies=config['proxies'])
             # check if status is anything other than 200; throw an exception if it is
             r.raise_for_status()
-            # response is 200 by this point or we would have thrown an exception
-            response = r.json()
+            # response is 200 or we would have thrown an exception
+            # response = r.json()
             helper.log_info("event edited")
     return status
 
@@ -452,11 +461,11 @@ def process_event(helper, *args, **kwargs):
 
     helper.set_log_level(helper.log_level)
     helper.log_info("Alert action misp_alert_create_event started.")
-    
+
     # TODO: Implement your alert action logic here
     Config = prepare_alert_config(helper)
     helper.log_info("Config dict is ready to use")
-    
+
     filename = Config['filename']
     if os.path.exists(filename):
         # file exists - try to open and if successful add path to configuration
