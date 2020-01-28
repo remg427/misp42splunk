@@ -1,6 +1,12 @@
+from __future__ import print_function
 import csv
 import gzip
 import sys
+from cim_actions import ModularAction
+from logging_helper import get_logger
+import logging
+from splunk_aoblib.rest_helper import TARestHelper
+from splunk_aoblib.setup_util import Setup_Util
 
 try:
     from splunk.clilib.bundle_paths import make_splunkhome_path
@@ -8,13 +14,6 @@ except ImportError:
     from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path
 
 sys.path.insert(0, make_splunkhome_path(["etc", "apps", "Splunk_SA_CIM", "lib"]))
-
-import requests
-from cim_actions import ModularAction
-from logging_helper import get_logger
-import logging
-from splunk_aoblib.rest_helper import TARestHelper
-from splunk_aoblib.setup_util import Setup_Util
 
 
 class ModularAlertBase(ModularAction):
@@ -196,7 +195,7 @@ class ModularAlertBase(ModularAction):
         status = 0
         if len(argv) < 2 or argv[1] != "--execute":
             msg = 'Error: argv="{}", expected="--execute"'.format(argv)
-            print >> sys.stderr, msg
+            print(msg, file=sys.stderr)
             sys.exit(1)
 
         # prepare meta first for permission lack error handling: TAB-2455

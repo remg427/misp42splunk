@@ -329,7 +329,7 @@ class mispgetevent(ReportingCommand):
         if 'response' in response:
             for r_item in response['response']:
                 if 'Event' in r_item:
-                    for a in r_item.values():
+                    for a in list(r_item.values()):
                         v = {}
                         v['misp_event_id'] = str(a['id'])
                         v['misp_orgc_id'] = str(a['orgc_id'])

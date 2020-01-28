@@ -21,7 +21,7 @@ from io import open
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "3.1.0"
+__version__ = "3.1.5"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -98,6 +98,7 @@ def prepare_alert_config(helper):
     # Get string values from alert form
     config_args['tlp']= str(helper.get_param("tlp").replace('_',':'))
     config_args['pap']= str(helper.get_param("pap").replace('_',':'))
+    helper.log_debug("config_args['pap'] {}".format(config_args['pap']))
     if not helper.get_param("eventid"):
         config_args['eventid'] = "0"
     else:
@@ -192,7 +193,7 @@ def prepare_misp_events(helper, config, results, event_list):
         'Object': []
     }
     # tag the event with TLP level
-    tags = [{'name': config['tlp']}]
+    tags = [{'name': config['tlp']},{'name': config['pap']}]
     # Add tags set in alert definition
     if config['tags'] is not None:
         tag_list = config['tags'].split(',')
