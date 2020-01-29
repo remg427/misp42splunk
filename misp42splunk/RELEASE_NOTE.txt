@@ -3,7 +3,10 @@ RELEASE NOTE
 
 for latest release check see more on https://github.com/remg427/misp42splunk
 
-Version 3.1.6 - Jan. 29, 2019
+Version 3.1.7 - Jan. 30, 2020
+- update all python lib with latest versions in Add-on builder app 3.0.1
+
+Version 3.1.6 - Jan. 29, 2020
 - remove mako template for Python3 compatibility
 - moved splunklib under /lib
 - removed duplicate splunklib
