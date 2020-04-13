@@ -36,13 +36,14 @@ def prepare_alert_config(helper):
     config_args = dict()
     # get MISP instance to be used
     misp_instance = helper.get_param("misp_instance")
-    stanza_name  = 'misp://' + misp_instance
+    stanza_name = 'misp://' + misp_instance
     helper.log_info("stanza_name={}".format(stanza_name))
     # get MISP instance parameters
     # open local/inputs.conf
     _SPLUNK_PATH = os.environ['SPLUNK_HOME']
     app_name = 'misp42splunk'
-    inputs_conf_file = _SPLUNK_PATH + os.sep + 'etc' + os.sep + 'apps' + os.sep + app_name + os.sep + 'local' + os.sep + 'inputs.conf'
+    inputs_conf_file = _SPLUNK_PATH + os.sep + 'etc' + os.sep + 'apps' + \
+        os.sep + app_name + os.sep + 'local' + os.sep + 'inputs.conf'
     if os.path.exists(inputs_conf_file):
         inputsConf = cli.readConfFile(inputs_conf_file)
         for name, content in list(inputsConf.items()):
@@ -50,9 +51,11 @@ def prepare_alert_config(helper):
                 mispconf = content
                 helper.log_info(json.dumps(mispconf))
         if not mispconf:
-            helper.log_error("local/inputs.conf does not contain settings for stanza: {}".format(stanza_name)) 
+            helper.log_error("local/inputs.conf does not contain settings \
+                for stanza: {}".format(stanza_name))
     else:
-        helper.log_error("local/inputs.conf does not exist. Please configure misp instances first.") 
+        helper.log_error("local/inputs.conf does not exist. \
+            Please configure misp instances first.")
     # get clear version of misp_key
     # get session key
     sessionKey = helper.settings['session_key']
@@ -60,28 +63,37 @@ def prepare_alert_config(helper):
     storage_passwords = splunkService.storage_passwords
     config_args['misp_key'] = None
     for credential in storage_passwords:
-        usercreds = {'username':credential.content.get('username'),'password':credential.content.get('clear_password')}
-        if misp_instance in credential.content.get('username') and 'misp_key' in credential.content.get('clear_password'):
-            misp_instance_key = json.loads(credential.content.get('clear_password'))
+        # usercreds = {'username':credential.content.get('username'),
+        # 'password':credential.content.get('clear_password')}
+        if misp_instance in credential.content.get('username') and \
+                'misp_key' in credential.content.get('clear_password'):
+            misp_instance_key = json.loads(
+                credential.content.get('clear_password'))
             config_args['misp_key'] = str(misp_instance_key['misp_key'])
-            helper.log_info('misp_key found for instance  {}'.format(misp_instance))
+            helper.log_info('misp_key found for instance \
+                {}'.format(misp_instance))
     if config_args['misp_key'] is None:
-        helper.log_error('misp_key NOT found for instance  {}'.format(misp_instance))         
+        helper.log_error('misp_key NOT found for instance \
+            {}'.format(misp_instance))
 
     # get MISP settings stored in inputs.conf
     config_args['misp_url'] = mispconf['misp_url']
-    helper.log_info("config_args['misp_url'] {}".format(config_args['misp_url']))
+    helper.log_info("config_args['misp_url'] \
+        {}".format(config_args['misp_url']))
     if int(mispconf['misp_verifycert']) == 1:
         config_args['misp_verifycert'] = True
     else:
         config_args['misp_verifycert'] = False
-    helper.log_info("config_args['misp_verifycert'] {}".format(config_args['misp_verifycert']))
+    helper.log_info("config_args['misp_verifycert'] \
+        {}".format(config_args['misp_verifycert']))
     # get client cert parameters
     if int(mispconf['client_use_cert']) == 1:
-        config_args['client_cert_full_path'] = mispconf['client_cert_full_path']
+        config_args['client_cert_full_path'] = \
+            mispconf['client_cert_full_path']
     else:
         config_args['client_cert_full_path'] = None
-    helper.log_info("config_args['client_cert_full_path'] {}".format(config_args['client_cert_full_path']))
+    helper.log_info("config_args['client_cert_full_path'] \
+        {}".format(config_args['client_cert_full_path']))
     # get proxy parameters if any
     config_args['proxies'] = dict()
     if int(mispconf['misp_use_proxy']) == 1:
@@ -89,21 +101,23 @@ def prepare_alert_config(helper):
         if proxy:
             proxy_url = '://'
             if proxy['proxy_username'] is not '':
-                proxy_url = proxy_url + proxy['proxy_username'] + ':' + proxy['proxy_password'] + '@' 
-            proxy_url = proxy_url + proxy['proxy_url'] + ':' + proxy['proxy_port'] + '/'
+                proxy_url = proxy_url + proxy['proxy_username'] + \
+                    ':' + proxy['proxy_password'] + '@'
+            proxy_url = proxy_url + proxy['proxy_url'] + \
+                ':' + proxy['proxy_port'] + '/'
             config_args['proxies'] = {
                 "http": "http" + proxy_url,
                 "https": "https" + proxy_url
             }
     # Get string values from alert form
-    config_args['tlp']= str(helper.get_param("tlp").replace('_',':'))
-    config_args['pap']= str(helper.get_param("pap").replace('_',':'))
+    config_args['tlp'] = str(helper.get_param("tlp").replace('_', ':'))
+    config_args['pap'] = str(helper.get_param("pap").replace('_', ':'))
     helper.log_debug("config_args['pap'] {}".format(config_args['pap']))
     if not helper.get_param("eventid"):
         config_args['eventid'] = "0"
     else:
         config_args['eventid'] = str(helper.get_param("eventid"))
-    if not helper.get_param("unique"): 
+    if not helper.get_param("unique"):
         config_args['eventkey'] = "oneEvent"
     else:
         config_args['eventkey'] = str(helper.get_param("unique"))
@@ -117,8 +131,8 @@ def prepare_alert_config(helper):
     else:
         config_args['tags'] = None
     # Get numeric values from alert form
-    config_args['analysis']     = int(helper.get_param("analysis"))
-    config_args['threatlevel']  = int(helper.get_param("threatlevel"))
+    config_args['analysis'] = int(helper.get_param("analysis"))
+    config_args['threatlevel'] = int(helper.get_param("threatlevel"))
     config_args['distribution'] = int(helper.get_param("distribution"))
 
     # add filename of the file containing the result of the search
@@ -127,7 +141,8 @@ def prepare_alert_config(helper):
     return config_args
 
 
-def store_attribute(t, v, to_ids=None, category=None, attribute_tag=None, comment=None):
+def store_attribute(t, v, to_ids=None, category=None,
+                    attribute_tag=None, comment=None):
     Attribute = {}
     Attribute['type'] = t
     Attribute['value'] = v
@@ -143,45 +158,51 @@ def store_attribute(t, v, to_ids=None, category=None, attribute_tag=None, commen
         att_tag_list = attribute_tag.split(',')
         for atag in att_tag_list:
             if atag not in att_tags:
-                new_tag = {'name': atag }
+                new_tag = {'name': atag}
                 att_tags.append(new_tag)
         # update event tag list
         Attribute['Tag'] = att_tags
     return Attribute
 
 
-def store_object_attribute(ot, t, v, attribute_tag=None):
+def init_object_template(ot):
     try:
         # open object definition.json
         _SPLUNK_PATH = os.environ['SPLUNK_HOME']
         # open misp.conf
-        object_definition = _SPLUNK_PATH + os.sep + 'etc' + os.sep + 'apps' + os.sep + 'misp42splunk' + os.sep + 'bin' + os.sep + ot + '_definition.json'
+        object_definition = _SPLUNK_PATH + os.sep + 'etc' + \
+            os.sep + 'apps' + os.sep + 'misp42splunk' + os.sep + \
+            'bin' + os.sep + ot + '_definition.json'
         with open(object_definition) as json_object:
             od = json.load(json_object)
-            object_attributes = od['attributes']
-            Attribute = {}
-            if t in object_attributes:
-                Attribute['type'] = object_attributes[t]['misp-attribute']
-                Attribute['object_relation'] = t
-                Attribute['value'] = v
-        if attribute_tag is not None:
-            att_tags = []
-            att_tag_list = attribute_tag.split(',')
-            for atag in att_tag_list:
-                if atag not in att_tags:
-                    new_tag = {'name': atag}
-                    att_tags.append(new_tag)
-            # update event tag list
-            Attribute['Tag'] = att_tags
-        return Attribute
-    except IOError as e:
+        return od
+    except IOError:
         print("FATAL %s object definition could not be opened/read" % ot)
         exit(3)
 
 
+def store_object_attribute(object_attributes, t, v, attribute_tag=None):
+    Attribute = {}
+    if t in object_attributes:
+        Attribute['type'] = object_attributes[t]['misp-attribute']
+        Attribute['object_relation'] = t
+        Attribute['value'] = v
+    if attribute_tag is not None:
+        att_tags = []
+        att_tag_list = attribute_tag.split(',')
+        for atag in att_tag_list:
+            if atag not in att_tags:
+                new_tag = {'name': atag}
+                att_tags.append(new_tag)
+        # update event tag list
+        Attribute['Tag'] = att_tags
+    return Attribute
+
+
 def prepare_misp_events(helper, config, results, event_list):
     # print(config)
-    # iterate through each row, cleaning multivalue fields and then adding the attributes under same event key
+    # iterate through each row, cleaning multivalue fields and then adding
+    # the attributes under same event key
     # this builds the dict events
     events = {}
     event_baseline = {
@@ -193,7 +214,7 @@ def prepare_misp_events(helper, config, results, event_list):
         'Object': []
     }
     # tag the event with TLP level
-    tags = [{'name': config['tlp']},{'name': config['pap']}]
+    tags = [{'name': config['tlp']}, {'name': config['pap']}]
     # Add tags set in alert definition
     if config['tags'] is not None:
         tag_list = config['tags'].split(',')
@@ -204,25 +225,30 @@ def prepare_misp_events(helper, config, results, event_list):
     event_baseline['Tag'] = tags
 
     for row in results:
-        # Splunk makes a bunch of dumb empty multivalue fields - we filter those out here
-        row = {key: value for key, value in list(row.items()) if not key.startswith("__mv_")}
+        # Splunk makes a bunch of dumb empty multivalue fields
+        # - we filter those out here
+        row = {key: value for key, value in list(row.items())
+               if not key.startswith("__mv_")}
 
-        # Get the specific eventkey if defined in Splunk search. Defaults to alert form value
+        # Get the specific eventkey if defined in Splunk search.
+        # Defaults to alert form value
         eventkey = config['eventkey']
         if eventkey in row:
             eventkey = str(row[eventkey])
         helper.log_info("eventkey is {}".format(eventkey))
-        # Get the specific eventid if define in Splunk search. Defaults to alert form value
+        # Get the specific eventid if define in Splunk search.
+        # Defaults to alert form value
         # Value == 0: means create new event
         # Value <> 0: edit existing event
         eventid = config['eventid']  # from the alert conf
-        if 'eventid' in row:         # from the result row (overwrites other values)
+        if 'eventid' in row:         # overwrites from the result row
             eventid = str(row.pop('eventid'))
         helper.log_info("eventid is {}".format(eventid))
 
         # check if building event has been initiated
         # if yes simply add attribute entry otherwise collect other metadata
-        # remove fields misp_time and info from row and keep their values if this is a new event
+        # remove fields misp_time and info from row
+        # and keep their values if this is a new event
         if eventkey in events:
             event = events[eventkey]
             if 'misp_time' in row:
@@ -233,18 +259,22 @@ def prepare_misp_events(helper, config, results, event_list):
             event_list[eventkey] = eventid
             event = event_baseline.copy()
             if 'misp_time' in row:
-                event['date'] = datetime.datetime.fromtimestamp(int(row.pop('misp_time'))).strftime('%Y-%m-%d')
+                event['date'] = datetime.datetime.fromtimestamp(
+                    int(row.pop('misp_time'))).strftime('%Y-%m-%d')
             else:
-                event['date'] = datetime.datetime.fromtimestamp(int(time.time())).strftime('%Y-%m-%d')
+                event['date'] = datetime.datetime.fromtimestamp(
+                    int(time.time())).strftime('%Y-%m-%d')
             if 'misp_info' in row:
                 event['info'] = row.pop('misp_info')
             else:
                 event['info'] = config['info']
         if config['distribution'] == 4:
             if 'misp_sg_id' in row:
-                event['sharing_group_id'] = int(row.pop('misp_sg_id'))  # "sharing_group_id": "optional",
+                event['sharing_group_id'] = int(
+                    row.pop('misp_sg_id'))  # "sharing_group_id": "optional",
             else:
-                helper.log_error("Distribution is set to Sharing Group but no field misp_sg_id is provided")
+                helper.log_error("Distribution is set to Sharing Group \
+                    but no field misp_sg_id is provided")
         attributes = list(event['Attribute'])
         objects = list(event['Object'])
         tags = list(event['Tag'])
@@ -286,36 +316,52 @@ def prepare_misp_events(helper, config, results, event_list):
         for key, value in list(row.items()):
             if key.startswith("misp_") and value != "":
                 misp_key = str(key).replace('misp_', '').replace('_', '-')
-                attributes.append(store_attribute(misp_key, str(value), to_ids=to_ids, category=category, attribute_tag=attribute_tag, comment=comment))
+                attributes.append(store_attribute(misp_key, str(value),
+                                  to_ids=to_ids, category=category,
+                                  attribute_tag=attribute_tag,
+                                  comment=comment))
 
         # update event attribute list
         event['Attribute'] = list(attributes)
 
         # now we look for attribute belonging to anobject i.e.
-        # on the same row, field(s) start(s) with fo_, eo_ or no_
+        # on the same row, field(s) start(s) with no_, eo_ or no_
+        fo_template = init_object_template('file')
         fo_attribute = []
+        eo_template = init_object_template('email')
         eo_attribute = []
+        no_template = init_object_template('domain-ip')
         no_attribute = []
         for key, value in list(row.items()):
             if key.startswith("fo_") and value != "":
                 fo_key = str(key).replace('fo_', '').replace('_', '-')
-                object_attribute = store_object_attribute('file', fo_key, str(value), attribute_tag=attribute_tag)
+                object_attribute = store_object_attribute(
+                    fo_template['attributes'], fo_key, str(value),
+                    attribute_tag=attribute_tag)
                 if object_attribute:
                     fo_attribute.append(object_attribute)
             if key.startswith("eo_") and value != "":
                 eo_key = str(key).replace('eo_', '').replace('_', '-')
-                object_attribute = store_object_attribute('email', eo_key, str(value), attribute_tag=attribute_tag)
+                object_attribute = store_object_attribute(
+                    eo_template['attributes'], eo_key, str(value),
+                    attribute_tag=attribute_tag)
                 if object_attribute:
                     eo_attribute.append(object_attribute)
             if key.startswith("no_") and value != "":
                 no_key = str(key).replace('no_', '').replace('_', '-')
-                object_attribute = store_object_attribute('domain-ip', no_key, str(value), attribute_tag=attribute_tag)
+                object_attribute = store_object_attribute(
+                    no_template['attributes'], no_key, str(value),
+                    attribute_tag=attribute_tag)
                 if object_attribute:
                     no_attribute.append(object_attribute)
 
         if fo_attribute:
             new_object = {
-                'name': 'file',
+                'template_version': fo_template['version'],
+                'description': fo_template['description'],
+                'meta-category': fo_template['meta-category'],
+                'template_uuid': fo_template['uuid'],
+                'name': fo_template['name'],
                 'distribution': 5,
                 'Attribute': fo_attribute
             }
@@ -323,7 +369,11 @@ def prepare_misp_events(helper, config, results, event_list):
 
         if eo_attribute:
             new_object = {
-                'name': 'email',
+                'template_version': eo_template['version'],
+                'description': eo_template['description'],
+                'meta-category': eo_template['meta-category'],
+                'template_uuid': eo_template['uuid'],
+                'name': eo_template['name'],
                 'distribution': 5,
                 'Attribute': eo_attribute
             }
@@ -331,7 +381,11 @@ def prepare_misp_events(helper, config, results, event_list):
 
         if no_attribute:
             new_object = {
-                'name': 'domain-ip',
+                'template_version': no_template['version'],
+                'description': no_template['description'],
+                'meta-category': no_template['meta-category'],
+                'template_uuid': no_template['uuid'],
+                'name': no_template['name'],
                 'distribution': 5,
                 'Attribute': no_attribute
             }
@@ -364,24 +418,33 @@ def process_misp_events(helper, config, results, event_list):
     for eventkey in results:
         if event_list[eventkey] == "0":  # create new event
             body = json.dumps(results[eventkey])
-            helper.log_info("create body has been prepared for eventkey {}".format(eventkey))
+            helper.log_info("create body has been prepared for eventkey {}"
+                            .format(eventkey))
             # POST json data to create events
-            r = requests.post(misp_url_create, headers=headers, data=body, verify=misp_verifycert, cert=client_cert, proxies=config['proxies'])
-            # check if status is anything other than 200; throw an exception if it is
+            r = requests.post(misp_url_create, headers=headers, data=body,
+                              verify=misp_verifycert, cert=client_cert,
+                              proxies=config['proxies'])
+            # check if status is anything other than 200;
+            # throw an exception if it is
             r.raise_for_status()
             # response is 200 or we would have thrown an exception
             # response = r.json()
             helper.log_info("event created")
         else:  # edit existing eventid with Attribute and Object
-            misp_url_edit = config['misp_url'] + '/events/edit/' + event_list[eventkey]
+            misp_url_edit = config['misp_url'] + '/events/edit/' + \
+                event_list[eventkey]
             edit_body = {}
             edit_body['Attribute'] = results[eventkey]['Attribute']
             edit_body['Object'] = results[eventkey]['Object']
             body = json.dumps(edit_body)
-            helper.log_info("edit body has been prepared for eventid {}".format(event_list[eventkey]))
+            helper.log_info("edit body has been prepared for eventid \
+                {}".format(event_list[eventkey]))
             # POST json data to create events
-            r = requests.post(misp_url_edit, headers=headers, data=body, verify=misp_verifycert, cert=client_cert, proxies=config['proxies'])
-            # check if status is anything other than 200; throw an exception if it is
+            r = requests.post(misp_url_edit, headers=headers, data=body,
+                              verify=misp_verifycert, cert=client_cert,
+                              proxies=config['proxies'])
+            # check if status is anything other than 200;
+            # throw an exception if it is
             r.raise_for_status()
             # response is 200 or we would have thrown an exception
             # response = r.json()
@@ -402,7 +465,8 @@ def process_event(helper, *args, **kwargs):
     # The following example gets and sets the log level
     helper.set_log_level(helper.log_level)
 
-    # The following example gets the alert action parameters and prints them to the log
+    # The following example gets the alert action parameters
+    # and prints them to the log
     title = helper.get_param("title")
     helper.log_info("title={}".format(title))
 
@@ -481,12 +545,14 @@ def process_event(helper, *args, **kwargs):
                 Reader = csv.DictReader(file)
                 helper.log_debug("Reader is {}".format(Reader))
                 event_list = {}
-                Events = prepare_misp_events(helper, Config, Reader, event_list)
+                Events = prepare_misp_events(helper, Config,
+                                             Reader, event_list)
                 helper.log_info("Events dict is ready to use")
-                status = process_misp_events(helper, Config, Events, event_list)
+                process_misp_events(helper, Config, Events, event_list)
         # something went wrong with opening the results file
-        except IOError as e:
-            helper.log_error("FATAL Results file exists but could not be opened/read")
+        except IOError:
+            helper.log_error("FATAL Results file exists but \
+                could not be opened/read")
             return 2
 
     return 0

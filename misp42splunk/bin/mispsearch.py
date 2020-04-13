@@ -8,19 +8,21 @@
 # Copyright: LGPLv3 (https://www.gnu.org/licenses/lgpl-3.0.txt)
 # Feel free to use the code, but please share the changes you've made
 #
-
-import sys
-import requests
+from __future__ import absolute_import, division, print_function, unicode_literals
 import json
-from splunklib.searchcommands import dispatch, StreamingCommand, Configuration, Option, validators
 import logging
+import os
+import requests
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))
+from splunklib.searchcommands import dispatch, StreamingCommand, Configuration, Option, validators
 from misp_common import prepare_config, logging_level
 
-__author__     = "Remi Seguy"
-__license__    = "LGPLv3"
-__version__    = "3.1.0"
+__author__ = "Remi Seguy"
+__license__ = "LGPLv3"
+__version__ = "3.1.6"
 __maintainer__ = "Remi Seguy"
-__email__      = "remg427@gmail.com"
+__email__ = "remg427@gmail.com"
 
 
 @Configuration(distributed=False)

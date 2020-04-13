@@ -48,9 +48,19 @@
       "ui-priority": 1,
       "misp-attribute": "ip-dst",
       "multiple": true
+    },
+    "port": {
+      "description": "Associated TCP port with the domain",
+      "categories": [
+        "Network activity",
+        "External analysis"
+      ],
+      "ui-priority": 1,
+      "misp-attribute": "port",
+      "multiple": true
     }
   },
-  "version": 6,
+  "version": 8,
   "description": "A domain and IP address seen as a tuple in a specific time frame.",
   "meta-category": "network",
   "uuid": "43b3b146-77eb-4931-b4cc-b66c60f28734",

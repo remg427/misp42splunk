@@ -8,7 +8,7 @@ from splunk.clilib import cli_common as cli
 from io import open
 
 __license__ = "LGPLv3"
-__version__ = "3.1.0"
+__version__ = "3.1.8"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -26,9 +26,10 @@ def logging_level():
             if 'logging' in name:
                 if 'loglevel' in content:
                     set_level = content['loglevel']
-                    if set_level in ['DEBUG','INFO','WARNING','ERROR','CRITICAL']:
+                    if set_level in ['DEBUG', 'INFO', 'WARNING',
+                                     'ERROR', 'CRITICAL']:
                         run_level = set_level
-    return run_level        
+    return run_level
 
 
 def prepare_config(self):
@@ -52,29 +53,39 @@ def prepare_config(self):
                 foundStanza = True
                 logging.info(json.dumps(mispconf))
         if not foundStanza:
-            logging.error("local/inputs.conf does not contain settings for stanza: {}".format(stanza_name))
-            raise Exception('local/inputs.conf does not contain any stanza %s ', str(stanza_name))
+            logging.error("local/inputs.conf does not contain \
+                settings for stanza: {}".format(stanza_name))
+            raise Exception('local/inputs.conf does not contain \
+                any stanza %s ', str(stanza_name))
     else:
-        logging.error("local/inputs.conf does not exist. Please configure misp instances first.") 
-        raise Exception('local/inputs.conf does not exist. Please configure an inputs entry for %s', misp_instance)
+        logging.error("local/inputs.conf does not exist. \
+            Please configure misp instances first.")
+        raise Exception('local/inputs.conf does not exist. \
+            Please configure an inputs entry for %s', misp_instance)
     # get clear version of misp_key
     storage_passwords = self.service.storage_passwords
     config_args['misp_key'] = None
     for credential in storage_passwords:
-        # usercreds = {'username':credential.content.get('username'),'password':credential.content.get('clear_password')}
+        # usercreds = {'username':credential.content.get('username'),
+        # 'password':credential.content.get('clear_password')}
         username = credential.content.get('username')
-        if misp_instance in username and 'misp_key' in credential.content.get('clear_password'):
-            misp_instance_key = json.loads(credential.content.get('clear_password'))
+        if misp_instance in username \
+           and 'misp_key' in credential.content.get('clear_password'):
+            misp_instance_key = json.loads(
+                credential.content.get('clear_password'))
             config_args['misp_key'] = str(misp_instance_key['misp_key'])
-            logging.info('misp_key found for instance {}'.format(misp_instance))
+            logging.info('misp_key found for instance \
+                {}'.format(misp_instance))
         if 'proxy' in username and 'misp' in username and \
                 'proxy_password' in credential.content.get('clear_password'):
-            proxy_password = str(json.loads(credential.content.get('clear_password')))
+            proxy_password = str(json.loads(
+                credential.content.get('clear_password')))
             logging.info('proxy_password found for misp42splunk')
 
     if config_args['misp_key'] is None:
-        logging.error('misp_key NOT found for instance {}'.format(misp_instance))
-        raise Exception('misp_key NOT found for instance  %s ', misp_instance)         
+        logging.error('misp_key NOT found for instance \
+            {}'.format(misp_instance))
+        raise Exception('misp_key NOT found for instance %s', misp_instance)
     # settings
     # get MISP settings stored in inputs.conf
     config_args['misp_url'] = mispconf['misp_url']
@@ -83,12 +94,12 @@ def prepare_config(self):
         misp_ca_full_path = mispconf.get('misp_ca_full_path', '')
         if misp_ca_full_path != '':
             config_args['misp_verifycert'] = misp_ca_full_path
-            logging.info("config_args['misp_ca_full_path'] {}".format(config_args['misp_ca_full_path']))
         else:
             config_args['misp_verifycert'] = True
     else:
         config_args['misp_verifycert'] = False
-    logging.info("config_args['misp_verifycert'] {}".format(config_args['misp_verifycert']))
+    logging.info("config_args['misp_verifycert'] \
+        {}".format(config_args['misp_verifycert']))
 
     config_args['proxies'] = dict()
     if int(mispconf['misp_use_proxy']) == 1:
@@ -104,16 +115,24 @@ def prepare_config(self):
                     foundProxy = True
                     logging.info("Successfully found proxy settings")
             if not foundProxy:
-                logging.error("misp_use_proxy is True and local/misp42splunk_settings.conf does not contain settings for proxy") 
-                raise Exception('misp_use_proxy is True and local/misp42splunk_settings.conf does not contain settings for proxy')
+                logging.error("misp_use_proxy is True and local/misp42splunk_\
+                    settings.conf does not contain settings for proxy")
+                raise Exception('misp_use_proxy is True and local/misp42splunk_\
+                    settings.conf does not contain settings for proxy')
         else:
-            logging.error("misp_use_proxy is True and local/misp42splunk_settings.conf does not exist. Please configure misp42splunk first.") 
-            raise Exception("misp_use_proxy is True and local/misp42splunk_settings.conf does not exist. Please configure misp42splunk first.") 
+            logging.error("misp_use_proxy is True and local/misp42splunk_\
+                settings.conf does not exist. \
+                Please configure misp42splunk first.")
+            raise Exception("misp_use_proxy is True and local/misp42splunk_\
+                settings.conf does not exist. \
+                Please configure misp42splunk first.")
         if proxy:
             proxy_url = '://'
-            if proxy['proxy_username'] is not '':
-                proxy_url = proxy_url + proxy['proxy_username'] + ':' + proxy_password + '@'
-            proxy_url = proxy_url + proxy['proxy_url'] + ':' + proxy['proxy_port'] + '/'
+            if proxy['proxy_username'] != '':
+                proxy_url = proxy_url + proxy['proxy_username'] \
+                    + ':' + proxy_password + '@'
+            proxy_url = proxy_url + proxy['proxy_url'] + ':' \
+                + proxy['proxy_port'] + '/'
             config_args['proxies'] = {
                 "http": "http" + proxy_url,
                 "https": "https" + proxy_url
@@ -121,18 +140,24 @@ def prepare_config(self):
 
     # get client cert parameters
     if int(mispconf['client_use_cert']) == 1:
-        config_args['client_cert_full_path'] = mispconf['client_cert_full_path']
+        config_args['client_cert_full_path'] = \
+            mispconf['client_cert_full_path']
     else:
         config_args['client_cert_full_path'] = None
-    logging.info("config_args['client_cert_full_path'] {}".format(config_args['client_cert_full_path']))
+    logging.info("config_args['client_cert_full_path'] \
+        {}".format(config_args['client_cert_full_path']))
 
     # test if client certificate file is readable
     if config_args['client_cert_full_path'] is not None:
         try:
-            with open(config_args['client_cert_full_path'], 'rb'):  # open client_cert_full_path if exists and log.
-                logging.info('client_cert_full_path file at %s was successfully opened', str(config_args['client_cert_full_path']))
-        except IOError : # file misp_instances.csv not readable
-            logging.error('client_cert_full_path file at %s not readable', str(config_args['client_cert_full_path']))
-            raise Exception('client_cert_full_path file at %s not readable', str(config_args['client_cert_full_path']))
+            # open client_cert_full_path if exists and log.
+            with open(config_args['client_cert_full_path'], 'rb'):
+                logging.info('client_cert_full_path file at %s was successfully\
+                 opened', str(config_args['client_cert_full_path']))
+        except IOError:  # file misp_instances.csv not readable
+            logging.error('client_cert_full_path file at %s not readable',
+                          str(config_args['client_cert_full_path']))
+            raise Exception('client_cert_full_path file at %s not readable',
+                            str(config_args['client_cert_full_path']))
 
     return config_args

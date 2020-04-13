@@ -3,7 +3,7 @@
   "uuid": "a0c666e0-fc65-4be8-b48f-3423d788b552",
   "meta-category": "network",
   "description": "Email object describing an email with meta-information",
-  "version": 13,
+  "version": 15,
   "attributes": {
     "reply-to": {
       "description": "Email address the reply will be sent to",
@@ -57,7 +57,8 @@
       "ui-priority": 1,
       "categories": [
         "Payload delivery"
-      ]
+      ],
+      "multiple": true
     },
     "screenshot": {
       "description": "Screenshot of email",
@@ -141,7 +142,8 @@
       "ui-priority": 1,
       "categories": [
         "Payload delivery"
-      ]
+      ],
+      "multiple": true
     },
     "return-path": {
       "description": "Message return path",
@@ -157,7 +159,8 @@
       "ui-priority": 1,
       "categories": [
         "Payload delivery"
-      ]
+      ],
+      "multiple": true
     },
     "email-body": {
       "description": "Body of the email",
@@ -173,6 +176,12 @@
       "misp-attribute": "text",
       "ui-priority": 0,
       "disable_correlation": true
+    },
+    "ip-src": {
+      "description": "Source IP address of the email sender",
+      "misp-attribute": "ip-src",
+      "ui-priority": 0,
+      "multiple": true
     },
     "eml": {
       "description": "Full EML",
