@@ -11,6 +11,7 @@
 #
 # "warning_list": "optional",
 from __future__ import absolute_import, division, print_function, unicode_literals
+from misp_common import prepare_config, logging_level
 import json
 import logging
 import os
@@ -18,11 +19,10 @@ import requests
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))
 from splunklib.searchcommands import dispatch, ReportingCommand, Configuration, Option, validators
-from misp_common import prepare_config, logging_level
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "3.1.6"
+__version__ = "3.1.8"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -34,7 +34,8 @@ class mispgetioc(ReportingCommand):
     .. code-block::
         | mispgetioc misp_instance=<input> last=<int>(d|h|m)
         | mispgetioc misp_instance=<input> event=<id1>(,<id2>,...)
-        | mispgetioc misp_instance=<input> date=<<YYYY-MM-DD> (date_to=<YYYY-MM-DD>)
+        | mispgetioc misp_instance=<input> date=<<YYYY-MM-DD>
+                                           (date_to=<YYYY-MM-DD>)
     ##Description
     {
         "returnFormat": "mandatory",
@@ -103,7 +104,8 @@ class mispgetioc(ReportingCommand):
     misp_instance = Option(
         doc='''
         **Syntax:** **misp_instance=instance_name*
-        **Description:**MISP instance parameters as described in local/inputs.conf.''',
+        **Description:** MISP instance parameters
+        as described in local/inputs.conf.''',
         require=True)
     # MANDATORY: json_request XOR eventid XOR last XOR date
     json_request = Option(
@@ -124,8 +126,10 @@ class mispgetioc(ReportingCommand):
         require=False, validate=validators.Match("last", r"^[0-9]+[hdm]$"))
     date = Option(
         doc='''
-        **Syntax:** **date=***The user set event date field - any of valid time related filters"*
-        **Description:**starting date. **eventid**, **last** and **date** are mutually exclusive''',
+        **Syntax:** **date=***The user set event date field
+         - any of valid time related filters"*
+        **Description:**starting date.
+         **eventid**, **last** and **date** are mutually exclusive''',
         require=False)
     # Other params
     page = Option(
@@ -136,27 +140,32 @@ class mispgetioc(ReportingCommand):
     limit = Option(
         doc='''
         **Syntax:** **limit=***<int>*
-        **Description:**define the limit for each MISP search; default 1000. 0 = no pagination.''',
+        **Description:**define the limit for each MISP search;
+         default 1000. 0 = no pagination.''',
         require=False, validate=validators.Match("limit", r"^[0-9]+$"))
     type = Option(
         doc='''
         **Syntax:** **type=***CSV string*
-        **Description:**Comma(,)-separated string of categories to search for. Wildcard is %.''',
+        **Description:**Comma(,)-separated string of types to search for.
+         Wildcard is %.''',
         require=False)
     category = Option(
         doc='''
         **Syntax:** **category=***CSV string*
-        **Description:**Comma(,)-separated string of categories to search for. Wildcard is %.''',
+        **Description:**Comma(,)-separated string of categories to search for.
+         Wildcard is %.''',
         require=False)
     tags = Option(
         doc='''
         **Syntax:** **tags=***CSV string*
-        **Description:**Comma(,)-separated string of tags to search for. Wildcard is %.''',
+        **Description:**Comma(,)-separated string of tags to search for.
+         Wildcard is %.''',
         require=False)
     not_tags = Option(
         doc='''
         **Syntax:** **not_tags=***CSV string*
-        **Description:**Comma(,)-separated string of tags to exclude from results. Wildcard is %.''',
+        **Description:**Comma(,)-separated string of tags to exclude.
+         Wildcard is %.''',
         require=False)
     warning_list = Option(
         doc='''
@@ -166,12 +175,14 @@ class mispgetioc(ReportingCommand):
     to_ids = Option(
         doc='''
         **Syntax:** **to_ids=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
-        **Description:**Boolean to search only attributes with the flag "to_ids" set to true.''',
+        **Description:**Boolean to search only attributes with the flag
+         "to_ids" set to true.''',
         require=False, validate=validators.Boolean())
     geteventtag = Option(
         doc='''
         **Syntax:** **geteventtag=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
-        **Description:**Boolean includeEventTags. By default only attribute tag(s) are returned.''',
+        **Description:**Boolean includeEventTags. By default only
+         attribute tag(s) are returned.''',
         require=False, validate=validators.Boolean())
     getuuid = Option(
         doc='''
@@ -181,16 +192,18 @@ class mispgetioc(ReportingCommand):
     getorg = Option(
         doc='''
         **Syntax:** **getorg=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
-        **Description:**Boolean to return the ID of the organisation that created the event.''',
+        **Description:**Boolean to return the ID of the organisation that
+         created the event.''',
         require=False, validate=validators.Boolean())
     pipesplit = Option(
         doc='''
         **Syntax:** **pipesplit=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
-        **Description:**Boolean to split multivalue attributes into 2 attributes.''',
+        **Description:**Boolean to split multivalue attributes.''',
         require=False, validate=validators.Boolean())
     add_description = Option(
         doc='''
-        **Syntax:** **add_description=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
+        **Syntax:** **add_description=***<1|y|Y|t|true|True
+        |0|n|N|f|false|False>*
         **Description:**Boolean to return misp_description.''',
         require=False, validate=validators.Boolean())
 
@@ -198,7 +211,7 @@ class mispgetioc(ReportingCommand):
     def map(self, records):
         # self.logger.debug('mispgetioc.map')
         return records
-        
+
     def reduce(self, records):
 
         # Phase 1: Preparation
@@ -217,11 +230,15 @@ class mispgetioc(ReportingCommand):
             mandatory_arg = mandatory_arg + 1
 
         if mandatory_arg == 0:
-            logging.error('Missing "json_request", eventid", "last" or "date" argument')
-            raise Exception('Missing "json_request", "eventid", "last" or "date" argument')
+            logging.error('Missing "json_request", eventid", \
+                "last" or "date" argument')
+            raise Exception('Missing "json_request", "eventid", \
+                "last" or "date" argument')
         elif mandatory_arg > 1:
-            logging.error('Options "json_request", eventid", "last" and "date" are mutually exclusive')
-            raise Exception('Options "json_request", "eventid", "last" and "date" are mutually exclusive')
+            logging.error('Options "json_request", eventid", "last" \
+                and "date" are mutually exclusive')
+            raise Exception('Options "json_request", "eventid", "last" \
+                and "date" are mutually exclusive')
 
         body_dict = dict()
         # Only ONE combination was provided
@@ -236,13 +253,15 @@ class mispgetioc(ReportingCommand):
                 body_dict['eventid'] = event_criteria
             else:
                 body_dict['eventid'] = self.eventid
-            logging.info('Option "eventid" set with %s', json.dumps(body_dict['eventid']))
+            logging.info('Option "eventid" set with %s',
+                         json.dumps(body_dict['eventid']))
         elif self.last:
             body_dict['last'] = self.last
             logging.info('Option "last" set with %s', str(body_dict['last']))
         else:
             body_dict['date'] = self.date.split()
-            logging.info('Option "date" set with %s', json.dumps(body_dict['date']))
+            logging.info('Option "date" set with %s',
+                         json.dumps(body_dict['date']))
 
         # Force some values on JSON request
         body_dict['returnFormat'] = 'json'
@@ -284,15 +303,21 @@ class mispgetioc(ReportingCommand):
         if self.geteventtag is True:
             body_dict['includeEventTags'] = True
         if self.category is not None:
-            cat_criteria = {}
-            cat_list = self.category.split(",")
-            cat_criteria['OR'] = cat_list
-            body_dict['category'] = cat_criteria
+            if "," in self.category:
+                cat_criteria = {}
+                cat_list = self.category.split(",")
+                cat_criteria['OR'] = cat_list
+                body_dict['category'] = cat_criteria
+            else:
+                body_dict['category'] = self.category
         if self.type is not None:
-            type_criteria = {}
-            type_list = self.type.split(",")
-            type_criteria['OR'] = type_list
-            body_dict['type'] = type_criteria
+            if "," in self.type:
+                type_criteria = {}
+                type_list = self.type.split(",")
+                type_criteria['OR'] = type_list
+                body_dict['type'] = type_criteria
+            else:
+                body_dict['type'] = self.type
         if self.tags is not None or self.not_tags is not None:
             tags_criteria = {}
             if self.tags is not None:
@@ -332,8 +357,12 @@ class mispgetioc(ReportingCommand):
         body = json.dumps(body_dict)
         logging.debug('mispgetioc request body: %s', body)
         # search
-        r = requests.post(my_args['misp_url'], headers=headers, data=body, verify=my_args['misp_verifycert'], cert=my_args['client_cert_full_path'], proxies=my_args['proxies'])
-        # check if status is anything other than 200; throw an exception if it is
+        r = requests.post(my_args['misp_url'], headers=headers, data=body,
+                          verify=my_args['misp_verifycert'],
+                          cert=my_args['client_cert_full_path'],
+                          proxies=my_args['proxies'])
+        # check if status is anything other than 200;
+        # throw an exception if it is
         r.raise_for_status()
         # response is 200 by this point or we would have thrown an exception
         response = r.json()
@@ -355,8 +384,8 @@ class mispgetioc(ReportingCommand):
                             except Exception:
                                 pass
                     v['misp_tag'] = tag_list
-                    # include ID of the organisation that created the attribute if requested
-                    # in previous version this was the ORG name ==> create lookup
+                    # include ID of the organisation that
+                    # created the attribute if requested
                     if 'Event' in a:
                         v['misp_event_uuid'] = str(a['Event']['uuid'])
                         if my_args['getorg']:
@@ -370,20 +399,25 @@ class mispgetioc(ReportingCommand):
                     v['misp_object_id'] = str(a['object_id'])
                     if my_args['add_desc'] is True:
                         if int(a['object_id']) == 0:
-                            v['misp_description'] = 'MISP e' + str(a['event_id']) + ' attribute ' \
-                                + str(a['uuid']) + ' of type "' + str(a['type']) \
+                            v['misp_description'] = 'MISP e' \
+                                + str(a['event_id']) + ' attribute ' \
+                                + str(a['uuid']) + ' of type "' \
+                                + str(a['type']) \
                                 + '" in category "' + str(a['category']) \
                                 + '" (to_ids:' + str(a['to_ids']) + ')'
                         else:
-                            v['misp_description'] = 'MISP e' + str(a['event_id']) \
-                                + ' attribute ' + str(a['uuid']) + ' of type "' \
+                            v['misp_description'] = 'MISP e' \
+                                + str(a['event_id']) + ' attribute ' \
+                                + str(a['uuid']) + ' of type "' \
                                 + str(a['type']) + '" in category "' \
                                 + str(a['category']) \
                                 + '" (to_ids:' + str(a['to_ids']) \
                                 + ' - o' + str(a['object_id']) + ' )'
                     current_type = str(a['type'])
-                    # combined: not part of an object AND multivalue attribute QND to be split
-                    if int(a['object_id']) == 0 and '|' in current_type and my_args['pipe'] is True:
+                    # combined: not part of an object
+                    # AND multivalue attribute AND to be split
+                    if int(a['object_id']) == 0 and '|' in current_type \
+                       and my_args['pipe'] is True:
                         mv_type_list = current_type.split('|')
                         mv_value_list = str(a['value']).split('|')
                         left_v = v.copy()
@@ -408,13 +442,15 @@ class mispgetioc(ReportingCommand):
         logging.info(json.dumps(typelist))
 
         output_dict = {}
-        # relevant_cat = ['Artifacts dropped', 'Financial fraud', 'Network activity','Payload delivery','Payload installation']
+        # relevant_cat = ['Artifacts dropped', 'Financial fraud',
+        # 'Network activity','Payload delivery','Payload installation']
         for r in results:
             if int(r['misp_object_id']) == 0:  # not an object
                 key = str(r['misp_event_id']) + '_' + r['misp_attribute_id']
                 is_object_member = False
             else:  # this is a  MISP object
-                key = str(r['misp_event_id']) + '_object_' + str(r['misp_object_id'])
+                key = str(r['misp_event_id']) \
+                    + '_object_' + str(r['misp_object_id'])
                 is_object_member = True
             if key not in output_dict:
                 v = dict(r)

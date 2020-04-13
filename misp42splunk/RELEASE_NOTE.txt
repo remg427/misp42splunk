@@ -2,6 +2,8 @@ RELEASE NOTE
 ----------------------------------------------------------------------------
 
 for latest release check see more on https://github.com/remg427/misp42splunk
+Version 3.1.8 - Apr. 13, 2020
+- fix #138
 
 Version 3.1.7 - Jan. 30, 2020
 - update all python lib with latest versions in Add-on builder app 3.0.1
