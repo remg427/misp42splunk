@@ -8,19 +8,21 @@
 # Copyright: LGPLv3 (https://www.gnu.org/licenses/lgpl-3.0.txt)
 # Feel free to use the code, but please share the changes you've made
 #
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import absolute_import, division, \
+    print_function, unicode_literals
+from misp_common import prepare_config, logging_level
 import json
 import logging
 import os
 import requests
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))
-from splunklib.searchcommands import dispatch, StreamingCommand, Configuration, Option, validators
-from misp_common import prepare_config, logging_level
+from splunklib.searchcommands import dispatch, StreamingCommand, \
+    Configuration, Option, validators
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "3.1.6"
+__version__ = "3.1.9"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -32,7 +34,7 @@ class MispSearchCommand(StreamingCommand):
     ##Syntax
 
         code-block::
-        mispsearch field=<field> onlyids=y|n
+        mispsearch field=<field> to_ids=y|n
 
     ##Description
 
@@ -75,16 +77,18 @@ class MispSearchCommand(StreamingCommand):
     misp_instance = Option(
         doc='''
         **Syntax:** **misp_instance=instance_name*
-        **Description:**MISP instance parameters as described in local/inputs.conf''',
+        **Description:**MISP instance parameters as \
+        described in local/inputs.conf''',
         require=True)
     field = Option(
         doc='''
         **Syntax:** **field=***<fieldname>*
-        **Description:**Name of the field containing the value to search for.''',
+        **Description:**Name of the field containing \
+        the value to search for.''',
         require=True, validate=validators.Fieldname())
-    onlyids = Option(
+    to_ids = Option(
         doc='''
-        **Syntax:** **onlyids=***<y|n>*
+        **Syntax:** **to_ids=***<y|n>*
         **Description:** Boolean to search only attributes with to_ids set''',
         require=False, validate=validators.Boolean())
     includeEventUuid = Option(
@@ -100,12 +104,14 @@ class MispSearchCommand(StreamingCommand):
     last = Option(
         doc='''
         **Syntax:** **last=***<int>d|h|m*
-        **Description:**publication duration in day(s), hour(s) or minute(s). **eventid**, **last** and **date_from** are mutually exclusive''',
+        **Description:**publication duration in day(s), hour(s) or minute(s). \
+        **eventid**, **last** and **date_from** are mutually exclusive''',
         require=False, validate=validators.Match("last", r"^[0-9]+[hdm]$"))
     limit = Option(
         doc='''
         **Syntax:** **limit=***<int>*
-        **Description:**define the limit for each MISP search; default 1000. 0 = no pagination.''',
+        **Description:**define the limit for each MISP search; \
+        default 1000. 0 = no pagination.''',
         require=False, validate=validators.Match("limit", r"^[0-9]+$"))
     page = Option(
         doc='''
@@ -117,7 +123,6 @@ class MispSearchCommand(StreamingCommand):
         **Syntax:** **json_request=***valid JSON request*
         **Description:**Valid JSON request''',
         require=False)
-
 
     def stream(self, records):
         # Generate args
@@ -159,7 +164,7 @@ class MispSearchCommand(StreamingCommand):
             body_dict = {"returnFormat": "json",
                          "withAttachments": False
                          }
-            if self.onlyids is True:
+            if self.to_ids is True:
                 body_dict['to_ids'] = "True"
             if self.includeEventUuid is not None:
                 body_dict['includeEventUuid'] = self.includeEventUuid
@@ -220,10 +225,14 @@ class MispSearchCommand(StreamingCommand):
                                         if str(tag['name']) not in misp_tag:
                                             misp_tag.append(str(tag['name']))
                                 if 'Event' in a:
-                                    if a['Event']['uuid'] not in misp_event_uuid:
-                                        misp_event_uuid.append(str(a['Event']['uuid']))
-                                    if a['Event']['orgc_id'] not in misp_orgc_id:
-                                        misp_orgc_id.append(str(a['Event']['orgc_id']))
+                                    if a['Event']['uuid'] \
+                                       not in misp_event_uuid:
+                                        misp_event_uuid.append(
+                                            str(a['Event']['uuid']))
+                                    if a['Event']['orgc_id'] \
+                                       not in misp_orgc_id:
+                                        misp_orgc_id.append(
+                                            str(a['Event']['orgc_id']))
                             record['misp_type'] = misp_type
                             record['misp_value'] = misp_value
                             record['misp_to_ids'] = misp_to_ids
