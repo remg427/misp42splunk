@@ -113,14 +113,14 @@ class mispsight(StreamingCommand):
                     misp_value = ''
                     misp_fp = False
                     misp_fp_ts = 0
-                    misp_fp_uuid = ''
+                    misp_fp_id = ''
                     ms_seen = False
                     ms = {
                         'count': 0,
                         'first': 0,
-                        'f_uuid': 0,
+                        'f_id': 0,
                         'last': 0,
-                        'l_uuid': 0
+                        'l_id': 0
                     }
                     # search
                     logging.debug('mispsight request body: %s', search_body)
@@ -140,8 +140,10 @@ class mispsight(StreamingCommand):
                     response = rs.json()
                     logging.info("MISP REST API %s has got a response with \
                         status code 200", search_url)
-                    logging.debug("MISP REST API %s has got a response: %s"
-                                  % (search_url, rs.json()))
+                    logging.debug(
+                        "MISP REST API %s has got a response: %s"
+                        % (search_url, json.dumps(response))
+                    )
                     if 'response' in response:
                         if 'Attribute' in response['response']:
                             for a in response['response']['Attribute']:
@@ -171,7 +173,10 @@ class mispsight(StreamingCommand):
                                     )
                                     logging.debug(
                                         "MISP REST API %s has got a response: \
-                                        %s" % (sight_url, rt.json())
+                                        %s" % (
+                                            sight_url,
+                                            json.dumps(sight)
+                                        )
                                     )
                                     if 'response' in sight:
                                         for s in sight['response']:
@@ -184,7 +189,7 @@ class mispsight(StreamingCommand):
                                                 )
                                                 ev = str(
                                                     s['Sighting']
-                                                    ['event_uuid']
+                                                    ['event_id']
                                                 )
                                                 if int(ty) == 0:
                                                     ms_seen = True
@@ -193,34 +198,34 @@ class mispsight(StreamingCommand):
                                                     if ms['first'] == 0 or \
                                                        ms['first'] > ds:
                                                         ms['first'] = ds
-                                                        ms['f_uuid'] = ev
+                                                        ms['f_id'] = ev
                                                     if ms['last'] < int(ds):
                                                         ms['last'] = int(ds)
-                                                        ms['l_uuid'] = ev
+                                                        ms['l_id'] = ev
                                                 # false positive
                                                 elif int(ty) == 1:
                                                     misp_fp = True
                                                     misp_fp_ts = ds
-                                                    misp_fp_uuid = ev
+                                                    misp_fp_id = ev
                             if misp_fp is True:
                                 record['misp_value'] = misp_value
                                 record['misp_fp'] = "True"
                                 record['misp_fp_timestamp'] = str(
                                     misp_fp_ts
                                 )
-                                record['misp_fp_event_uuid'] = str(
-                                    misp_fp_uuid
+                                record['misp_fp_event_id'] = str(
+                                    misp_fp_id
                                 )
                             if ms_seen is True:
                                 record['misp_value'] = misp_value
                                 record['misp_count'] = str(ms['count'])
                                 record['misp_first'] = str(ms['first'])
-                                record['misp_first_event_uuid'] = str(
-                                    ms['f_uuid']
+                                record['misp_first_event_id'] = str(
+                                    ms['f_id']
                                 )
                                 record['misp_last'] = str(ms['last'])
-                                record['misp_last_event_uuid'] = str(
-                                    ms['last_event_id']
+                                record['misp_last_event_id'] = str(
+                                    ms['l_id']
                                 )
             yield record
 

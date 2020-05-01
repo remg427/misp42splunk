@@ -1,15 +1,13 @@
 import misp42splunk_declare
-
-import os
-import sys
-import json
-
-import modinput_wrapper.base_modinput
-from splunklib import modularinput as smi
-
-
 import input_module_misp as input_module
 from io import open
+import json
+import os
+import sys
+import modinput_wrapper.base_modinput
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))
+from splunklib import modularinput as smi
+
 
 bin_dir = os.path.basename(__file__)
 
