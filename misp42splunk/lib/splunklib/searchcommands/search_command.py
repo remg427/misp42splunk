@@ -19,22 +19,30 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 # Absolute imports
 
 from collections import namedtuple
+
+import io
+
 try:
     from collections import OrderedDict  # must be python 2.7
 except ImportError:
     from ..ordereddict import OrderedDict
 from copy import deepcopy
-from cStringIO import StringIO
-from itertools import chain, ifilter, imap, islice, izip
-from logging import _levelNames, getLevelName, getLogger
+from splunklib.six.moves import StringIO
+from itertools import chain, islice
+from splunklib.six.moves import filter as ifilter, map as imap, zip as izip
+from splunklib import six
+if six.PY2:
+    from logging import _levelNames, getLevelName, getLogger
+else:
+    from logging import _nameToLevel as _levelNames, getLevelName, getLogger
 try:
     from shutil import make_archive
 except ImportError:
     # Used for recording, skip on python 2.6
     pass
 from time import time
-from urllib import unquote
-from urlparse import urlsplit
+from splunklib.six.moves.urllib.parse import unquote
+from splunklib.six.moves.urllib.parse import urlsplit
 from warnings import warn
 from xml.etree import ElementTree
 
@@ -47,7 +55,7 @@ import traceback
 
 # Relative imports
 
-from . internals import (
+from .internals import (
     CommandLineParser,
     CsvDialect,
     InputHeader,
@@ -62,6 +70,7 @@ from . internals import (
 
 from . import Boolean, Option, environment
 from ..client import Service
+
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -89,6 +98,7 @@ class SearchCommand(object):
     """ Represents a custom search command.
 
     """
+
     def __init__(self):
 
         # Variables that may be used, but not altered by derived classes
@@ -150,7 +160,7 @@ class SearchCommand(object):
     def logging_level(self, value):
         if value is None:
             value = self._default_logging_level
-        if isinstance(value, (bytes, unicode)):
+        if isinstance(value, (bytes, six.text_type)):
             try:
                 level = _levelNames[value.upper()]
             except KeyError:
@@ -246,7 +256,7 @@ class SearchCommand(object):
         invocation.
 
         :return: Search results info:const:`None`, if the search results info file associated with the command
-        invocation is inaccessible.
+                 invocation is inaccessible.
         :rtype: SearchResultsInfo or NoneType
 
         """
@@ -269,10 +279,10 @@ class SearchCommand(object):
             path = os.path.join(dispatch_dir, 'info.csv')
 
         try:
-            with open(path, 'rb') as f:
+            with io.open(path, 'r') as f:
                 reader = csv.reader(f, dialect=CsvDialect)
-                fields = reader.next()
-                values = reader.next()
+                fields = next(reader)
+                values = next(reader)
         except IOError as error:
             if error.errno == 2:
                 self.logger.error('Search results info file {} does not exist.'.format(json_encode_string(path)))
@@ -290,7 +300,7 @@ class SearchCommand(object):
             except ValueError:
                 return value
 
-        info = ObjectView(dict(imap(lambda (f, v): (convert_field(f), convert_value(v)), izip(fields, values))))
+        info = ObjectView(dict(imap(lambda f_v: (convert_field(f_v[0]), convert_value(f_v[1])), izip(fields, values))))
 
         try:
             count_map = info.countMap
@@ -307,7 +317,7 @@ class SearchCommand(object):
         except AttributeError:
             pass
         else:
-            messages = ifilter(lambda (t, m): t or m, izip(msg_type.split('\n'), msg_text.split('\n')))
+            messages = ifilter(lambda t_m: t_m[0] or t_m[1], izip(msg_type.split('\n'), msg_text.split('\n')))
             info.msg = [Message(message) for message in messages]
             del info.msgType
 
@@ -328,6 +338,7 @@ class SearchCommand(object):
         specifying this pair of configuration settings in commands.conf:
 
            .. code-block:: python
+
                enableheader = true
                requires_srinfo = true
 
@@ -335,8 +346,8 @@ class SearchCommand(object):
         :code:`requires_srinfo` setting is false by default. Hence, you must set it.
 
         :return: :class:`splunklib.client.Service`, if :code:`enableheader` and :code:`requires_srinfo` are both
-        :code:`true`. Otherwise, if either :code:`enableheader` or :code:`requires_srinfo` are :code:`false`, a value
-        of :code:`None` is returned.
+            :code:`true`. Otherwise, if either :code:`enableheader` or :code:`requires_srinfo` are :code:`false`, a value
+            of :code:`None` is returned.
 
         """
         if self._service is not None:
@@ -443,7 +454,7 @@ class SearchCommand(object):
         def _map(metadata_map):
             metadata = {}
 
-            for name, value in metadata_map.iteritems():
+            for name, value in six.iteritems(metadata_map):
                 if isinstance(value, dict):
                     value = _map(value)
                 else:
@@ -493,7 +504,7 @@ class SearchCommand(object):
             'username':
                 (lambda v: v.ppc_user, lambda s: s.search_results_info)}}
 
-    _MetadataSource = namedtuple(b'Source', (b'argv', b'input_header', b'search_results_info'))
+    _MetadataSource = namedtuple('Source', ('argv', 'input_header', 'search_results_info'))
 
     def _prepare_protocol_v1(self, argv, ifile, ofile):
 
@@ -580,7 +591,7 @@ class SearchCommand(object):
 
                 ifile = self._prepare_protocol_v1(argv, ifile, ofile)
                 self._record_writer.write_record(dict(
-                    (n, ','.join(v) if isinstance(v, (list, tuple)) else v) for n, v in self._configuration.iteritems()))
+                    (n, ','.join(v) if isinstance(v, (list, tuple)) else v) for n, v in six.iteritems(self._configuration)))
                 self.finish()
 
             elif argv[1] == '__EXECUTE__':
@@ -608,7 +619,7 @@ class SearchCommand(object):
                 raise RuntimeError(message)
 
         except (SyntaxError, ValueError) as error:
-            self.write_error(unicode(error))
+            self.write_error(six.text_type(error))
             self.flush()
             exit(0)
 
@@ -695,9 +706,10 @@ class SearchCommand(object):
                 for arg in args:
                     result = arg.split('=', 1)
                     if len(result) == 1:
-                        self.fieldnames.append(result[0])
+                        self.fieldnames.append(str(result[0]))
                     else:
                         name, value = result
+                        name = str(name)
                         try:
                             option = self.options[name]
                         except KeyError:
@@ -723,7 +735,7 @@ class SearchCommand(object):
             if error_count > 0:
                 exit(1)
 
-            debug('  command: %s', unicode(self))
+            debug('  command: %s', six.text_type(self))
 
             debug('Preparing for execution')
             self.prepare()
@@ -741,7 +753,7 @@ class SearchCommand(object):
                     setattr(info, attr, [arg for arg in getattr(info, attr) if not arg.startswith('record=')])
 
                 metadata = MetadataEncoder().encode(self._metadata)
-                ifile.record('chunked 1.0,', unicode(len(metadata)), ',0\n', metadata)
+                ifile.record('chunked 1.0,', six.text_type(len(metadata)), ',0\n', metadata)
 
             if self.show_configuration:
                 self.write_info(self.name + ' command configuration: ' + str(self._configuration))
@@ -798,15 +810,15 @@ class SearchCommand(object):
         :param name: Name of the metric.
         :type name: basestring
 
-        :param value: A 4-tuple containing the value of metric :param:`name` where
+        :param value: A 4-tuple containing the value of metric ``name`` where
 
             value[0] = Elapsed seconds or :const:`None`.
             value[1] = Number of invocations or :const:`None`.
             value[2] = Input count or :const:`None`.
             value[3] = Output count or :const:`None`.
 
-        The :data:`SearchMetric` type provides a convenient encapsulation of :param:`value`.
-        The :data:`SearchMetric` type provides a convenient encapsulation of :param:`value`.
+        The :data:`SearchMetric` type provides a convenient encapsulation of ``value``.
+        The :data:`SearchMetric` type provides a convenient encapsulation of ``value``.
 
         :return: :const:`None`.
 
@@ -839,7 +851,6 @@ class SearchCommand(object):
 
     @staticmethod
     def _read_chunk(ifile):
-
         # noinspection PyBroadException
         try:
             header = ifile.readline()
@@ -873,8 +884,10 @@ class SearchCommand(object):
         # if body_length <= 0:
         #     return metadata, ''
 
+        body = ""
         try:
-            body = ifile.read(body_length)
+            if body_length > 0:
+                body = ifile.read(body_length)
         except Exception as error:
             raise RuntimeError('Failed to read body of length {}: {}'.format(body_length, error))
 
@@ -887,7 +900,7 @@ class SearchCommand(object):
         reader = csv.reader(ifile, dialect=CsvDialect)
 
         try:
-            fieldnames = reader.next()
+            fieldnames = next(reader)
         except StopIteration:
             return
 
@@ -929,7 +942,7 @@ class SearchCommand(object):
                 reader = csv.reader(StringIO(body), dialect=CsvDialect)
 
                 try:
-                    fieldnames = reader.next()
+                    fieldnames = next(reader)
                 except StopIteration:
                     return
 
@@ -1003,7 +1016,8 @@ class SearchCommand(object):
             :return: String representation of this instance
 
             """
-            text = ', '.join(imap(lambda (name, value): name + '=' + json_encode_string(unicode(value)), self.iteritems()))
+            #text = ', '.join(imap(lambda (name, value): name + '=' + json_encode_string(unicode(value)), self.iteritems()))
+            text = ', '.join(['{}={}'.format(name, json_encode_string(six.text_type(value))) for (name, value) in six.iteritems(self)])
             return text
 
         # region Methods
@@ -1026,16 +1040,19 @@ class SearchCommand(object):
             definitions = type(self).configuration_setting_definitions
             version = self.command.protocol_version
             return ifilter(
-                lambda (name, value): value is not None, imap(
+                lambda name_value1: name_value1[1] is not None, imap(
                     lambda setting: (setting.name, setting.__get__(self)), ifilter(
                         lambda setting: setting.is_supported_by_protocol(version), definitions)))
+
+        items = iteritems
 
         pass  # endregion
 
     pass  # endregion
 
 
-SearchMetric = namedtuple(b'SearchMetric', (b'elapsed_seconds', b'invocation_count', b'input_count', b'output_count'))
+SearchMetric = namedtuple('SearchMetric', ('elapsed_seconds', 'invocation_count', 'input_count', 'output_count'))
+
 
 
 def dispatch(command_class, argv=sys.argv, input_file=sys.stdin, output_file=sys.stdout, module_name=None):
@@ -1065,7 +1082,7 @@ def dispatch(command_class, argv=sys.argv, input_file=sys.stdin, output_file=sys
 
     **Example**
 
-    .. code-block:: python
+    ..  code-block:: python
         :linenos:
 
         #!/usr/bin/env python
@@ -1081,7 +1098,7 @@ def dispatch(command_class, argv=sys.argv, input_file=sys.stdin, output_file=sys
 
     **Example**
 
-    .. code-block:: python
+    ..  code-block:: python
         :linenos:
 
         from splunklib.searchcommands import dispatch, StreamingCommand, Configuration, Option, validators
