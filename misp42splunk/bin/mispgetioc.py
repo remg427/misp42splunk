@@ -10,8 +10,10 @@
 # Feel free to use the code, but please share the changes you've made
 #
 # "warning_list": "optional",
-from __future__ import absolute_import, division, \
-    print_function, unicode_literals
+from __future__ import absolute_import
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
 from misp_common import prepare_config, logging_level
 import json
 import logging
@@ -24,7 +26,7 @@ from splunklib.searchcommands import dispatch, \
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "3.1.9"
+__version__ = "3.1.10"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 

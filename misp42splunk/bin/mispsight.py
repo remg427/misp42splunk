@@ -8,7 +8,11 @@
 # Copyright: LGPLv3 (https://www.gnu.org/licenses/lgpl-3.0.txt)
 # Feel free to use the code, but please share the changes you've made
 #
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import absolute_import
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+from misp_common import prepare_config, logging_level
 import json
 import logging
 import os
@@ -16,12 +20,11 @@ import requests
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))
 from splunklib.searchcommands import dispatch, StreamingCommand, Configuration, Option, validators
-from misp_common import prepare_config, logging_level
 
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "3.1.6"
+__version__ = "3.1.10"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -71,12 +74,14 @@ class mispsight(StreamingCommand):
     field = Option(
         doc='''
         **Syntax:** **field=***<fieldname>*
-        **Description:**Name of the field containing the value to search for.''',
+        **Description:**Name of the field containing \
+        the value to search for.''',
         require=True, validate=validators.Fieldname())
     misp_instance = Option(
         doc='''
         **Syntax:** **misp_instance=instance_name*
-        **Description:**MISP instance parameters as described in local/inputs.conf.''',
+        **Description:**MISP instance parameters as described \
+        in local/inputs.conf.''',
         require=True)
 
     def stream(self, records):
@@ -90,19 +95,20 @@ class mispsight(StreamingCommand):
         headers['Accept'] = 'application/json'
 
         fieldname = str(self.field)
+        search_url = my_args['misp_url'] + '/attributes/restSearch'
+        sight_url = my_args['misp_url'] + \
+            '/sightings/restSearch/attribute'
 
         for record in records:
             if fieldname in record:
                 value = record.get(fieldname, None)
                 if value is not None:
-                    search_url = my_args['misp_url'] + '/attributes/restSearch'
-                    search_dict = { "returnFormat": "json"}
+                    search_dict = {"returnFormat": "json"}
                     search_dict['value'] = str(value)
                     search_dict['withAttachments'] = "false",
                     search_body = json.dumps(search_dict)
 
-                    sight_url = my_args['misp_url'] + '/sightings/restSearch/attribute'
-                    sight_dict = { "returnFormat": "json"}
+                    sight_dict = {"returnFormat": "json"}
 
                     misp_value = ''
                     misp_fp = False
@@ -118,22 +124,37 @@ class mispsight(StreamingCommand):
                     }
                     # search
                     logging.debug('mispsight request body: %s', search_body)
-                    r = requests.post(search_url, headers=headers, data=search_body, verify=my_args['misp_verifycert'], cert=my_args['client_cert_full_path'], proxies=my_args['proxies'])
-                    # check if status is anything other than 200; throw an exception if it is
+                    r = requests.post(search_url,
+                                      headers=headers,
+                                      data=search_body,
+                                      verify=my_args['misp_verifycert'],
+                                      cert=my_args['client_cert_full_path'],
+                                      proxies=my_args['proxies'])
+                    # check if status is anything other than 200;
+                    # throw an exception if it is
                     r.raise_for_status()
-                    # response is 200 by this point or we would have thrown an exception
+                    # response is 200 by this point or we would
+                    # have thrown an exception
                     response = r.json()
-                    logging.info("MISP REST API %s has got a response with status code 200", search_url)
-                    logging.debug("MISP REST API %s has got a response: %s" % (search_url, r.json()))
+                    logging.info("MISP REST API %s has got a response with \
+                        status code 200", search_url)
+                    logging.debug("MISP REST API %s has got a response: %s"
+                                  % (search_url, r.json()))
                     if 'response' in response:
                         if 'Attribute' in response['response']:
                             for a in response['response']['Attribute']:
                                 if misp_value == '':
                                     misp_value = str(a['value'])
-                                if misp_fp == False:
+                                if misp_fp is False:
                                     sight_dict['id'] = str(a['id'])
                                     sight_body = json.dumps(sight_dict)
-                                    s = requests.post(sight_url, headers=headers, data=sight_body, verify=my_args['misp_verifycert'], cert=my_args['client_cert_full_path'], proxies=my_args['proxies'])
+                                    s = requests\
+                                        .post(sight_url,
+                                              headers=headers,
+                                              data=sight_body,
+                                              verify=my_args['misp_verifycert'],
+                                              cert=my_args['client_cert_full_path'],
+                                              proxies=my_args['proxies'])
                                     # check if status is anything other than 200; throw an exception if it is
                                     s.raise_for_status()
                                     # response is 200 by this point or we would have thrown an exception
