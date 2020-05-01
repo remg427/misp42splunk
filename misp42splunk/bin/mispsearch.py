@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # coding=utf-8
 #
 # search for value in MISP and add some fields to the pipeline

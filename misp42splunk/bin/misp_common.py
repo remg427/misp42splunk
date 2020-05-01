@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # coding=utf-8
 
 import json
@@ -8,7 +7,7 @@ from splunk.clilib import cli_common as cli
 from io import open
 
 __license__ = "LGPLv3"
-__version__ = "3.1.8"
+__version__ = "3.1.10"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
