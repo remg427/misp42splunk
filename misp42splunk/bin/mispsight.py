@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # coding=utf-8
 #
 # search for value in MISP and add some fields to the pipeline
@@ -19,7 +18,8 @@ import os
 import requests
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))
-from splunklib.searchcommands import dispatch, StreamingCommand, Configuration, Option, validators
+from splunklib.searchcommands import dispatch, StreamingCommand, \
+    Configuration, Option, validators
 
 
 __author__ = "Remi Seguy"
@@ -112,34 +112,36 @@ class mispsight(StreamingCommand):
 
                     misp_value = ''
                     misp_fp = False
-                    misp_fp_timestamp = 0
-                    misp_fp_event_id = ''
-                    misp_sight_seen = False
-                    misp_sight = {
+                    misp_fp_ts = 0
+                    misp_fp_uuid = ''
+                    ms_seen = False
+                    ms = {
                         'count': 0,
                         'first': 0,
-                        'first_event_id': 0,
+                        'f_uuid': 0,
                         'last': 0,
-                        'last_event_id': 0
+                        'l_uuid': 0
                     }
                     # search
                     logging.debug('mispsight request body: %s', search_body)
-                    r = requests.post(search_url,
-                                      headers=headers,
-                                      data=search_body,
-                                      verify=my_args['misp_verifycert'],
-                                      cert=my_args['client_cert_full_path'],
-                                      proxies=my_args['proxies'])
+                    rs = requests.post(
+                        search_url,
+                        headers=headers,
+                        data=search_body,
+                        verify=my_args['misp_verifycert'],
+                        cert=my_args['client_cert_full_path'],
+                        proxies=my_args['proxies']
+                    )
                     # check if status is anything other than 200;
                     # throw an exception if it is
-                    r.raise_for_status()
+                    rs.raise_for_status()
                     # response is 200 by this point or we would
                     # have thrown an exception
-                    response = r.json()
+                    response = rs.json()
                     logging.info("MISP REST API %s has got a response with \
                         status code 200", search_url)
                     logging.debug("MISP REST API %s has got a response: %s"
-                                  % (search_url, r.json()))
+                                  % (search_url, rs.json()))
                     if 'response' in response:
                         if 'Attribute' in response['response']:
                             for a in response['response']['Attribute']:
@@ -148,48 +150,78 @@ class mispsight(StreamingCommand):
                                 if misp_fp is False:
                                     sight_dict['id'] = str(a['id'])
                                     sight_body = json.dumps(sight_dict)
-                                    s = requests\
-                                        .post(sight_url,
-                                              headers=headers,
-                                              data=sight_body,
-                                              verify=my_args['misp_verifycert'],
-                                              cert=my_args['client_cert_full_path'],
-                                              proxies=my_args['proxies'])
-                                    # check if status is anything other than 200; throw an exception if it is
-                                    s.raise_for_status()
-                                    # response is 200 by this point or we would have thrown an exception
-                                    sight = s.json()
-                                    logging.info("MISP REST API %s has got a response with status code 200", sight_url)
-                                    logging.debug("MISP REST API %s has got a response: %s" % (sight_url, s.json()))
+                                    rt = requests.post(
+                                        sight_url,
+                                        headers=headers,
+                                        data=sight_body,
+                                        verify=my_args['misp_verifycert'],
+                                        cert=my_args['client_cert_full_path'],
+                                        proxies=my_args['proxies']
+                                    )
+                                    # check if status is anything
+                                    # other than 200; throw an exception
+                                    rt.raise_for_status()
+                                    # response is 200 by this point or we
+                                    # would have thrown an exception
+                                    sight = rt.json()
+                                    logging.info(
+                                        "MISP REST API %s has got a response \
+                                        with status code 200",
+                                        sight_url
+                                    )
+                                    logging.debug(
+                                        "MISP REST API %s has got a response: \
+                                        %s" % (sight_url, rt.json())
+                                    )
                                     if 'response' in sight:
-                                        for se in sight['response']:
-                                            if 'Sighting' in se:
-                                                if int(se['Sighting']['type']) == 0:  #true sighting
-                                                    misp_sight_seen = True
-                                                    misp_sight['count'] = misp_sight['count'] + 1
-                                                    if misp_sight['first'] == 0 or \
-                                                       misp_sight['first'] > int(se['Sighting']['date_sighting']):
-                                                        misp_sight['first'] = int(se['Sighting']['date_sighting'])
-                                                        misp_sight['first_event_id'] = se['Sighting']['event_id']
-                                                    if misp_sight['last'] < int(se['Sighting']['date_sighting']):
-                                                        misp_sight['last'] = int(se['Sighting']['date_sighting'])
-                                                        misp_sight['last_event_id'] = se['Sighting']['event_id']
-                                                elif int(se['Sighting']['type']) == 1:  #false positive
+                                        for s in sight['response']:
+                                            if 'Sighting' in s:
+                                                # true sighting
+                                                ty = s['Sighting']['type']
+                                                ds = int(
+                                                    s['Sighting']
+                                                    ['date_sighting']
+                                                )
+                                                ev = str(
+                                                    s['Sighting']
+                                                    ['event_uuid']
+                                                )
+                                                if int(ty) == 0:
+                                                    ms_seen = True
+                                                    ms['count'] = \
+                                                        ms['count'] + 1
+                                                    if ms['first'] == 0 or \
+                                                       ms['first'] > ds:
+                                                        ms['first'] = ds
+                                                        ms['f_uuid'] = ev
+                                                    if ms['last'] < int(ds):
+                                                        ms['last'] = int(ds)
+                                                        ms['l_uuid'] = ev
+                                                # false positive
+                                                elif int(ty) == 1:
                                                     misp_fp = True
-                                                    misp_fp_timestamp = int(se['Sighting']['date_sighting'])
-                                                    misp_fp_event_id = se['Sighting']['event_id']
-                            if misp_fp == True:
+                                                    misp_fp_ts = ds
+                                                    misp_fp_uuid = ev
+                            if misp_fp is True:
                                 record['misp_value'] = misp_value
                                 record['misp_fp'] = "True"
-                                record['misp_fp_timestamp'] = str(misp_fp_timestamp)
-                                record['misp_fp_event_id'] = str(misp_fp_event_id)
-                            if misp_sight_seen == True:
+                                record['misp_fp_timestamp'] = str(
+                                    misp_fp_ts
+                                )
+                                record['misp_fp_event_uuid'] = str(
+                                    misp_fp_uuid
+                                )
+                            if ms_seen is True:
                                 record['misp_value'] = misp_value
-                                record['misp_sight_count'] = str(misp_sight['count'])
-                                record['misp_sight_first'] = str(misp_sight['first'])
-                                record['misp_sight_first_event_id'] = str(misp_sight['first_event_id'])
-                                record['misp_sight_last'] = str(misp_sight['last'])
-                                record['misp_sight_last_event_id'] = str(misp_sight['last_event_id'])
+                                record['misp_count'] = str(ms['count'])
+                                record['misp_first'] = str(ms['first'])
+                                record['misp_first_event_uuid'] = str(
+                                    ms['f_uuid']
+                                )
+                                record['misp_last'] = str(ms['last'])
+                                record['misp_last_event_uuid'] = str(
+                                    ms['last_event_id']
+                                )
             yield record
 
 
