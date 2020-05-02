@@ -47,7 +47,7 @@ def prepare_config(self):
         inputsConf = cli.readConfFile(inputs_conf_file)
         foundStanza = False
         for name, content in list(inputsConf.items()):
-            if stanza_name in name:
+            if stanza_name == str(name):
                 mispconf = content
                 foundStanza = True
                 logging.info(json.dumps(mispconf))

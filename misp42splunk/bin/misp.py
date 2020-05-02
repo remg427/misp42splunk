@@ -161,6 +161,7 @@ class ModInputmisp(modinput_wrapper.base_modinput.BaseModInput):
                 self.global_checkbox_fields = []
         return self.global_checkbox_fields
 
+
 if __name__ == "__main__":
     exitcode = ModInputmisp().run(sys.argv)
     sys.exit(exitcode)

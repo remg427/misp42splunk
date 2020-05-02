@@ -21,6 +21,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))
 from splunklib.searchcommands import dispatch, ReportingCommand, \
     Configuration, Option, validators
 
+
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
 __version__ = "3.1.10"

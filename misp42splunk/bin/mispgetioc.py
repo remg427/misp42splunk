@@ -399,9 +399,13 @@ class mispgetioc(ReportingCommand):
                         if 'Tag' in a:
                             for tag in a['Tag']:
                                 try:
-                                    tag_list.append(str(tag['name']))
-                                    logging.debug('tag_list: %s',
-                                                  json.dumps(tag_list))
+                                    tag_list.append(
+                                        str(tag['name'])
+                                    )
+                                    logging.debug(
+                                        'tag_list: %s',
+                                        json.dumps(tag_list)
+                                    )
                                 except Exception:
                                     pass
                         v['misp_tag'] = tag_list
