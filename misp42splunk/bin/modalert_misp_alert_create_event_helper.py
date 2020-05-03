@@ -19,9 +19,10 @@ from splunk.clilib import cli_common as cli
 import splunklib.client as client
 from io import open
 
+
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "3.1.5"
+__version__ = "3.1.10"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 

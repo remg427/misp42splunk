@@ -19,25 +19,6 @@ util.remove_http_proxy_env_vars()
 
 fields = [
     field.RestField(
-        'interval',
-        required=True,
-        encrypted=False,
-        default=None,
-        validator=validator.Pattern(
-            regex=r"""^\-[1-9]\d*$|^\d*$""",
-        )
-    ),
-    field.RestField(
-        'index',
-        required=True,
-        encrypted=False,
-        default='default',
-        validator=validator.String(
-            max_len=80,
-            min_len=1,
-        )
-    ),
-    field.RestField(
         'misp_url',
         required=True,
         encrypted=False,

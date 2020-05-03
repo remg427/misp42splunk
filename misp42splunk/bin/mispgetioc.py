@@ -13,15 +13,15 @@ from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
-from misp_common import prepare_config, logging_level
+from misp_common import prepare_config, init_logger
 import json
-import logging
 import os
 import requests
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))
-from splunklib.searchcommands import dispatch, \
-    ReportingCommand, Configuration, Option, validators
+from splunklib.searchcommands import \
+    dispatch, ReportingCommand, Configuration, Option, validators
+
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
@@ -224,7 +224,7 @@ class mispgetioc(ReportingCommand):
     def reduce(self, records):
 
         # Phase 1: Preparation
-        my_args = prepare_config(self)
+        my_args = prepare_config(self, 'misp42splunk', logger)
         my_args['misp_url'] = my_args['misp_url'] + '/attributes/restSearch'
 
         # check that ONE of mandatory fields is present
@@ -239,12 +239,12 @@ class mispgetioc(ReportingCommand):
             mandatory_arg = mandatory_arg + 1
 
         if mandatory_arg == 0:
-            logging.error('Missing "json_request", eventid", \
+            logger.error('Missing "json_request", eventid", \
                 "last" or "date" argument')
             raise Exception('Missing "json_request", "eventid", \
                 "last" or "date" argument')
         elif mandatory_arg > 1:
-            logging.error('Options "json_request", eventid", "last" \
+            logger.error('Options "json_request", eventid", "last" \
                 and "date" are mutually exclusive')
             raise Exception('Options "json_request", "eventid", "last" \
                 and "date" are mutually exclusive')
@@ -253,7 +253,7 @@ class mispgetioc(ReportingCommand):
         # Only ONE combination was provided
         if self.json_request is not None:
             body_dict = json.loads(self.json_request)
-            logging.info('Option "json_request" set')
+            logger.info('Option "json_request" set')
         elif self.eventid:
             if "," in self.eventid:
                 event_criteria = {}
@@ -262,15 +262,15 @@ class mispgetioc(ReportingCommand):
                 body_dict['eventid'] = event_criteria
             else:
                 body_dict['eventid'] = self.eventid
-            logging.info('Option "eventid" set with %s',
-                         json.dumps(body_dict['eventid']))
+            logger.info('Option "eventid" set with %s',
+                        json.dumps(body_dict['eventid']))
         elif self.last:
             body_dict['last'] = self.last
-            logging.info('Option "last" set with %s', str(body_dict['last']))
+            logger.info('Option "last" set with %s', str(body_dict['last']))
         else:
             body_dict['date'] = self.date.split()
-            logging.info('Option "date" set with %s',
-                         json.dumps(body_dict['date']))
+            logger.info('Option "date" set with %s',
+                        json.dumps(body_dict['date']))
 
         # Force some values on JSON request
         body_dict['returnFormat'] = 'json'
@@ -368,7 +368,7 @@ class mispgetioc(ReportingCommand):
             body_dict['limit'] = limit
 
         body = json.dumps(body_dict)
-        logging.debug('mispgetioc request body: %s', body)
+        logger.debug('mispgetioc request body: %s', body)
         # search
         r = requests.post(my_args['misp_url'], headers=headers, data=body,
                           verify=my_args['misp_verifycert'],
@@ -402,15 +402,11 @@ class mispgetioc(ReportingCommand):
                                     tag_list.append(
                                         str(tag['name'])
                                     )
-                                    logging.debug(
-                                        'tag_list: %s',
-                                        json.dumps(tag_list)
-                                    )
                                 except Exception:
                                     pass
                         v['misp_tag'] = tag_list
-                        logging.debug('misp_tag: %s',
-                                      json.dumps(v['misp_tag']))
+                        logger.debug('misp_tag: %s',
+                                     json.dumps(v['misp_tag']))
                         # include ID of the organisation that
                         # created the attribute if requested
                         if 'Event' in a:
@@ -443,7 +439,7 @@ class mispgetioc(ReportingCommand):
                         current_type = str(a['type'])
                         # combined: not part of an object
                         # AND multivalue attribute AND to be split
-                        logging.debug('misp_event: %s', json.dumps(v))
+                        # logger.debug('misp_event: %s', json.dumps(v))
                         if int(a['object_id']) == 0 and '|' in current_type \
                            and my_args['pipe'] is True:
                             mv_type_list = current_type.split('|')
@@ -467,7 +463,7 @@ class mispgetioc(ReportingCommand):
                             if current_type not in typelist:
                                 typelist.append(current_type)
 
-            logging.info(json.dumps(typelist))
+            logger.info(json.dumps(typelist))
 
             output_dict = {}
             # relevant_cat = ['Artifacts dropped', 'Financial fraud',
@@ -545,9 +541,7 @@ class mispgetioc(ReportingCommand):
 
 
 if __name__ == "__main__":
-    # set up logging suitable for splunkd consumption
-    logging.root
-    loglevel = logging_level()
-    logging.error('logging level is set to %s', loglevel)
-    logging.root.setLevel(loglevel)
+    # set up custom logger for the app commands
+    app_name = 'misp42splunk'
+    logger = init_logger(app_name)
     dispatch(mispgetioc, sys.argv, sys.stdin, sys.stdout, __name__)

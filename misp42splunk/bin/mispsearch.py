@@ -11,15 +11,14 @@ from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
-from misp_common import prepare_config, logging_level
+from misp_common import prepare_config, init_logger
 import json
-import logging
 import os
 import requests
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))
-from splunklib.searchcommands import dispatch, StreamingCommand, \
-    Configuration, Option, validators
+from splunklib.searchcommands import \
+    dispatch, StreamingCommand, Configuration, Option, validators
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
@@ -127,7 +126,7 @@ class MispSearchCommand(StreamingCommand):
 
     def stream(self, records):
         # Generate args
-        my_args = prepare_config(self)
+        my_args = prepare_config(self, 'misp42splunk', logger)
         my_args['misp_url'] = my_args['misp_url'] + '/attributes/restSearch'
         # set proper headers
         headers = {'Content-type': 'application/json'}
@@ -150,7 +149,7 @@ class MispSearchCommand(StreamingCommand):
 
         if self.json_request is not None:
             body_dict = json.loads(self.json_request)
-            logging.info('Option "json_request" set')
+            logger.info('Option "json_request" set')
             body_dict['returnFormat'] = 'json'
             body_dict['withAttachments'] = False
             if 'limit' in body_dict:
@@ -193,7 +192,7 @@ class MispSearchCommand(StreamingCommand):
                         body_dict['page'] = page
                         body_dict['limit'] = limit
                     body = json.dumps(body_dict)
-                    logging.debug('mispsearch request body: %s', body)
+                    logger.debug('mispsearch request body: %s', body)
                     r = requests.post(my_args['misp_url'], headers=headers,
                                       data=body,
                                       verify=my_args['misp_verifycert'],
@@ -248,9 +247,7 @@ class MispSearchCommand(StreamingCommand):
 
 
 if __name__ == "__main__":
-    # set up logging suitable for splunkd consumption
-    logging.root
-    loglevel = logging_level()
-    logging.error('logging level is set to %s', loglevel)
-    logging.root.setLevel(loglevel)
+    # set up custom logger for the app commands
+    app_name = 'misp42splunk'
+    logger = init_logger(app_name)
     dispatch(MispSearchCommand, sys.argv, sys.stdin, sys.stdout, __name__)

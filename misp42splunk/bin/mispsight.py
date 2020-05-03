@@ -11,16 +11,14 @@ from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
-from misp_common import prepare_config, logging_level
+from misp_common import prepare_config, init_logger
 import json
-import logging
 import os
 import requests
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))
-from splunklib.searchcommands import dispatch, StreamingCommand, \
-    Configuration, Option, validators
-
+from splunklib.searchcommands import \
+    dispatch, StreamingCommand, Configuration, Option, validators
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
@@ -88,7 +86,7 @@ class mispsight(StreamingCommand):
         # self.logger.debug('mispgetioc.reduce')
 
         # Generate args
-        my_args = prepare_config(self)
+        my_args = prepare_config(self, 'misp42splunk', logger)
         # set proper headers
         headers = {'Content-type': 'application/json'}
         headers['Authorization'] = my_args['misp_key']
@@ -123,7 +121,7 @@ class mispsight(StreamingCommand):
                         'l_id': 0
                     }
                     # search
-                    logging.debug('mispsight request body: %s', search_body)
+                    logger.debug('mispsight request body: %s', search_body)
                     rs = requests.post(
                         search_url,
                         headers=headers,
@@ -138,14 +136,15 @@ class mispsight(StreamingCommand):
                     # response is 200 by this point or we would
                     # have thrown an exception
                     response = rs.json()
-                    logging.info("MISP REST API %s has got a response with \
+                    logger.info("MISP REST API %s has got a response with \
                         status code 200", search_url)
-                    logging.debug(
-                        "MISP REST API %s has got a response: %s"
-                        % (search_url, json.dumps(response))
-                    )
                     if 'response' in response:
                         if 'Attribute' in response['response']:
+                            r_number = len(response['response']['Attribute'])
+                            logger.debug(
+                                "MISP REST API %s: response: with %s records"
+                                % (search_url, str(r_number))
+                            )
                             for a in response['response']['Attribute']:
                                 if misp_value == '':
                                     misp_value = str(a['value'])
@@ -166,16 +165,16 @@ class mispsight(StreamingCommand):
                                     # response is 200 by this point or we
                                     # would have thrown an exception
                                     sight = rt.json()
-                                    logging.info(
+                                    logger.info(
                                         "MISP REST API %s has got a response \
                                         with status code 200",
                                         sight_url
                                     )
-                                    logging.debug(
+                                    logger.debug(
                                         "MISP REST API %s has got a response: \
-                                        %s" % (
+                                        with %s records" % (
                                             sight_url,
-                                            json.dumps(sight)
+                                            len(sight)
                                         )
                                     )
                                     if 'response' in sight:
@@ -231,9 +230,7 @@ class mispsight(StreamingCommand):
 
 
 if __name__ == "__main__":
-    # set up logging suitable for splunkd consumption
-    logging.root
-    loglevel = logging_level()
-    logging.error('logging level is set to %s', loglevel)
-    logging.root.setLevel(loglevel)
+    # set up custom logger for the app commands
+    app_name = 'misp42splunk'
+    logger = init_logger(app_name)
     dispatch(mispsight, sys.argv, sys.stdin, sys.stdout, __name__)

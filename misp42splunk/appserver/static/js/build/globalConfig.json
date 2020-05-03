@@ -12,83 +12,6 @@
             "description": "Set up your add-on", 
             "tabs": [
                 {
-                    "entity": [
-                        {
-                            "required": true, 
-                            "label": "Account name", 
-                            "field": "name", 
-                            "validators": [
-                                {
-                                    "minLength": 1, 
-                                    "errorMsg": "Length of Account name should be between 1 and 50", 
-                                    "maxLength": 50, 
-                                    "type": "string"
-                                }, 
-                                {
-                                    "pattern": "^[a-zA-Z]\\w*$", 
-                                    "errorMsg": "Account name must start with a letter and followed by alphabetic letters, digits or underscores.", 
-                                    "type": "regex"
-                                }
-                            ], 
-                            "help": "Enter a unique name for this account.", 
-                            "type": "text"
-                        }, 
-                        {
-                            "validators": [
-                                {
-                                    "minLength": 1, 
-                                    "errorMsg": "Length of username should be between 1 and 200", 
-                                    "maxLength": 200, 
-                                    "type": "string"
-                                }
-                            ], 
-                            "required": true, 
-                            "label": "Username", 
-                            "field": "username", 
-                            "options": {
-                                "placeholder": "Enter the username here"
-                            }, 
-                            "help": "Enter the username for this account.", 
-                            "type": "text"
-                        }, 
-                        {
-                            "field": "password", 
-                            "encrypted": true, 
-                            "label": "Password", 
-                            "required": true, 
-                            "validators": [
-                                {
-                                    "minLength": 1, 
-                                    "errorMsg": "Length of password should be between 1 and 8192", 
-                                    "maxLength": 8192, 
-                                    "type": "string"
-                                }
-                            ], 
-                            "help": "Enter the password for this account.", 
-                            "type": "text"
-                        }
-                    ], 
-                    "name": "account", 
-                    "table": {
-                        "header": [
-                            {
-                                "field": "name", 
-                                "label": "Account name"
-                            }, 
-                            {
-                                "field": "username", 
-                                "label": "Username"
-                            }
-                        ], 
-                        "actions": [
-                            "edit", 
-                            "delete", 
-                            "clone"
-                        ]
-                    }, 
-                    "title": "Account"
-                }, 
-                {
                     "options": {
                         "saveValidator": "function(formData) { if(!formData.proxy_enabled || formData.proxy_enabled === '0') {return true; } if(!formData.proxy_url) { return 'Proxy Host can not be empty'; } if(!formData.proxy_port) { return 'Proxy Port can not be empty'; } return true; }"
                     }, 
@@ -228,7 +151,7 @@
                 "moreInfo": [
                     {
                         "field": "name", 
-                        "label": "Name"
+                        "label": "misp_instance"
                     }, 
                     {
                         "field": "interval", 
@@ -273,15 +196,11 @@
                 "header": [
                     {
                         "field": "name", 
-                        "label": "Name"
+                        "label": "misp_instance"
                     }, 
                     {
-                        "field": "interval", 
-                        "label": "Interval"
-                    }, 
-                    {
-                        "field": "index", 
-                        "label": "Index"
+                        "field": "misp_url", 
+                        "label": "MISP url"
                     }, 
                     {
                         "field": "disabled", 
@@ -295,64 +214,30 @@
                     "clone"
                 ]
             }, 
-            "title": "Inputs", 
+            "title": "MISP", 
             "services": [
                 {
                     "name": "misp", 
                     "entity": [
                         {
                             "required": true, 
-                            "label": "Name", 
+                            "label": "misp_instance", 
                             "field": "name", 
                             "validators": [
                                 {
                                     "pattern": "^[a-zA-Z]\\w*$", 
-                                    "errorMsg": "Input Name must start with a letter and followed by alphabetic letters, digits or underscores.", 
+                                    "errorMsg": "misp_instance name must start with a letter and followed by alphabetic letters, digits or underscores.", 
                                     "type": "regex"
                                 }, 
                                 {
                                     "minLength": 1, 
-                                    "errorMsg": "Length of input name should be between 1 and 100", 
+                                    "errorMsg": "Length of misp_instance name should be between 1 and 100", 
                                     "maxLength": 100, 
                                     "type": "string"
                                 }
                             ], 
-                            "help": "Enter a unique name for the data input", 
+                            "help": "Enter a unique name for the misp_instance", 
                             "type": "text"
-                        }, 
-                        {
-                            "required": true, 
-                            "label": "Interval", 
-                            "field": "interval", 
-                            "validators": [
-                                {
-                                    "pattern": "^\\-[1-9]\\d*$|^\\d*$", 
-                                    "errorMsg": "Interval must be an integer.", 
-                                    "type": "regex"
-                                }
-                            ], 
-                            "help": "Time interval of input in seconds.", 
-                            "type": "text"
-                        }, 
-                        {
-                            "validators": [
-                                {
-                                    "minLength": 1, 
-                                    "errorMsg": "Length of index name should be between 1 and 80.", 
-                                    "maxLength": 80, 
-                                    "type": "string"
-                                }
-                            ], 
-                            "required": true, 
-                            "field": "index", 
-                            "options": {
-                                "endpointUrl": "data/indexes", 
-                                "blackList": "^_.*$", 
-                                "createSearchChoice": true
-                            }, 
-                            "defaultValue": "default", 
-                            "label": "Index", 
-                            "type": "singleSelect"
                         }, 
                         {
                             "required": true, 
@@ -446,7 +331,7 @@
                     "title": "misp"
                 }
             ], 
-            "description": "Manage your data inputs"
+            "description": "Manage your misp instances"
         }
     }
 }

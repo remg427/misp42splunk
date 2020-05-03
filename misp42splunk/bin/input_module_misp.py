@@ -1,11 +1,9 @@
-
 # encoding = utf-8
-
+import datetime
 import os
 import re
 import sys
 import time
-import datetime
 
 '''
     IMPORTANT
