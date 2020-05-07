@@ -2,10 +2,7 @@
 # encoding = utf-8
 # Always put this line at the beginning of this file
 import misp42splunk_declare
-
-import os
 import sys
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))
 
 from alert_actions_base import ModularAlertBase
 import modalert_misp_alert_create_event_helper

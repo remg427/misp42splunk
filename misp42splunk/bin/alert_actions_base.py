@@ -1,26 +1,22 @@
 from __future__ import print_function
+from builtins import str
 import csv
 import gzip
-import os
 import sys
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))
-from cim_actions import ModularAction
-from logging_helper import get_logger
-import logging
-from splunk_aoblib.rest_helper import TARestHelper
-from splunk_aoblib.setup_util import Setup_Util
 
 try:
     from splunk.clilib.bundle_paths import make_splunkhome_path
 except ImportError:
     from splunk.appserver.mrsparkle.lib.util import make_splunkhome_path
 
-sys.path.insert(
-    0,
-    make_splunkhome_path(
-        ["etc", "apps", "Splunk_SA_CIM", "lib"]
-    )
-)
+# TODO: How does it depend on CIM module?
+# sys.path.insert(0, make_splunkhome_path(["etc", "apps", "Splunk_SA_CIM", "lib"]))
+
+from cim_actions import ModularAction
+from logging_helper import get_logger
+import logging
+from splunk_aoblib.rest_helper import TARestHelper
+from splunk_aoblib.setup_util import Setup_Util
 
 
 class ModularAlertBase(ModularAction):
@@ -36,11 +32,7 @@ class ModularAlertBase(ModularAction):
         self.result_handle = None
         self.ta_name = ta_name
         self.splunk_uri = self.settings.get('server_uri')
-        self.setup_util = Setup_Util(
-            self.splunk_uri,
-            self.session_key,
-            self._logger
-        )
+        self.setup_util = Setup_Util(self.splunk_uri, self.session_key, self._logger)
 
         self.rest_helper = TARestHelper(self._logger)
 
@@ -187,7 +179,10 @@ class ModularAlertBase(ModularAction):
 
     def get_events(self):
         try:
-            self.result_handle = gzip.open(self.results_file, 'rb')
+            try:
+                self.result_handle = gzip.open(self.results_file, 'rt')
+            except ValueError: # Workaround for Python 2.7 on Windows
+                self.result_handle = gzip.open(self.results_file, 'r')
             return (self.pre_handle(num, result) for num, result in enumerate(csv.DictReader(self.result_handle)))
         except IOError:
             msg = "Error: {}."
@@ -195,12 +190,19 @@ class ModularAlertBase(ModularAction):
             sys.exit(2)
 
     def prepare_meta_for_cam(self):
-        with gzip.open(self.results_file, 'rb') as rf:
+        try:
+            try:
+                rf = gzip.open(self.results_file, 'rt')
+            except ValueError: # Workaround for Python 2.7 on Windows
+                rf = gzip.open(self.results_file, 'r')
             for num, result in enumerate(csv.DictReader(rf)):
                 result.setdefault('rid', str(num))
                 self.update(result)
                 self.invoke()
                 break
+        finally:
+            if rf:
+                rf.close()
 
     def run(self, argv):
         status = 0
@@ -216,7 +218,7 @@ class ModularAlertBase(ModularAction):
             if level:
                 self._logger.setLevel(level)
         except Exception as e:
-            if e.message and '403' in e.message:
+            if e and '403' in str(e):
                 self.log_error('User does not have permissions')
             else:
                 self.log_error('Unable to set log level')
@@ -230,8 +232,8 @@ class ModularAlertBase(ModularAction):
             sys.exit(2)
         except Exception as e:
             msg = "Unexpected error: {}."
-            if e.message:
-                self.log_error(msg.format(e.message))
+            if e:
+                self.log_error(msg.format(str(e)))
             else:
                 import traceback
                 self.log_error(msg.format(traceback.format_exc()))

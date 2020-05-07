@@ -1,4 +1,6 @@
-#!/usr/bin/env python
+
+# coding=utf-8
+
 #
 # Create Events in MISP from results of alerts
 #
@@ -6,7 +8,8 @@
 #
 # Copyright: LGPLv3 (https://www.gnu.org/licenses/lgpl-3.0.txt)
 # Feel free to use the code, but please share the changes you've made
-'''
+
+"""
 {
     "values": "mandatory",
     "id": "mandatory",
@@ -16,7 +19,8 @@
     "date": "optional",
     "time": "optional"
 }
-'''
+"""
+
 import csv
 import gzip
 import json
@@ -26,11 +30,11 @@ import time
 from splunk.clilib import cli_common as cli
 import splunklib.client as client
 
-__author__     = "Remi Seguy"
-__license__    = "LGPLv3"
-__version__    = "3.1.5"
+__author__ = "Remi Seguy"
+__license__ = "LGPLv3"
+__version__ = "3.2.0"
 __maintainer__ = "Remi Seguy"
-__email__      = "remg427@gmail.com"
+__email__ = "remg427@gmail.com"
 
 
 # encoding = utf-8
@@ -43,7 +47,7 @@ def prepare_alert_config(helper):
     # get MISP instance parameters
     # open local/inputs.conf
     _SPLUNK_PATH = os.environ['SPLUNK_HOME']
-    app_name     = 'misp42splunk'
+    app_name = 'misp42splunk'
     inputs_conf_file = _SPLUNK_PATH + os.sep + 'etc' + os.sep + 'apps' + os.sep + app_name + os.sep + 'local' + os.sep + 'inputs.conf'
     if os.path.exists(inputs_conf_file):
         inputsConf = cli.readConfFile(inputs_conf_file)
@@ -273,27 +277,32 @@ def process_event(helper, *args, **kwargs):
     helper.log_info("Alert action misp_alert_sighting started.")
 
     # TODO: Implement your alert action logic here
-    Config = prepare_alert_config(helper)
-    helper.log_info("Config dict is ready to use")
+    config = prepare_alert_config(helper)
+    helper.log_info("config dict is ready to use")
 
-    filename = Config['filename']
+    filename = config['filename']
     if os.path.exists(filename):
         # file exists - try to open and if successful add path to configuration
         try:
             # open the file with gzip lib, start making alerts
             # can with statements fail gracefully??
-            with gzip.open(filename, 'rb') as file:
-                # DictReader lets us grab the first row as a header row and
-                # other lines will read as a dict mapping the header
-                # to the value instead of reading the first line with a
-                # regular csv reader and zipping the dict manually later at
-                # least, in theory
-                Reader = csv.DictReader(file)
-                helper.log_debug("Reader is {}".format(Reader))
-                create_alert(helper, Config, Reader)
+            fh = gzip.open(filename, "rt")
+        except ValueError:
+            # Workaround for Python 2.7 under Windows
+            fh = gzip.open(filename, "r")
+
+        if fh is not None:
+            # DictReader lets us grab the first row as a header row and
+            # other lines will read as a dict mapping the header
+            # to the value instead of reading the first line with a
+            # regular csv reader and zipping the dict manually later at
+            # least, in theory
+            reader = csv.DictReader(fh)
+            helper.log_debug("Reader is {}".format(reader))
+            create_alert(helper, config, reader)
         # something went wrong with opening the results file
-        except IOError as e:
-            helper.log_error("FATAL Results file exists but could not be opened/read")
+        else:
+            helper.log_error("FATAL Results file exists but could not be opened or read")
             return 2
 
     return 0

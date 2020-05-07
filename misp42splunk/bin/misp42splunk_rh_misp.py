@@ -1,8 +1,5 @@
 
 import misp42splunk_declare
-import os
-import sys
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))
 
 
 from splunktaucclib.rest_handler.endpoint import (
@@ -13,6 +10,7 @@ from splunktaucclib.rest_handler.endpoint import (
 )
 from splunktaucclib.rest_handler import admin_external, util
 from splunk_aoblib.rest_migration import ConfigMigrationHandler
+
 
 util.remove_http_proxy_env_vars()
 

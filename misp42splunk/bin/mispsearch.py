@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # coding=utf-8
 #
 # search for value in MISP and add some fields to the pipeline
@@ -7,29 +8,27 @@
 # Copyright: LGPLv3 (https://www.gnu.org/licenses/lgpl-3.0.txt)
 # Feel free to use the code, but please share the changes you've made
 #
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
-from __future__ import unicode_literals
-from misp_common import prepare_config, init_logger
+from __future__ import absolute_import, division, print_function, unicode_literals
+import misp42splunk_declare
+
+from splunklib.searchcommands import dispatch, StreamingCommand, Configuration, Option, validators
+from misp_common import prepare_config, logging_level
 import json
-import os
+import logging
 import requests
 import sys
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))
-from splunklib.searchcommands import \
-    dispatch, StreamingCommand, Configuration, Option, validators
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "3.1.10"
+__version__ = "3.2.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
 
 @Configuration(distributed=False)
 class MispSearchCommand(StreamingCommand):
-    """ search in MISP for attributes matching the value of field.
+    """
+    search in MISP for attributes matching the value of field.
 
     ##Syntax
 
@@ -126,7 +125,7 @@ class MispSearchCommand(StreamingCommand):
 
     def stream(self, records):
         # Generate args
-        my_args = prepare_config(self, 'misp42splunk', logger)
+        my_args = prepare_config(self, 'misp42splunk')
         my_args['misp_url'] = my_args['misp_url'] + '/attributes/restSearch'
         # set proper headers
         headers = {'Content-type': 'application/json'}
@@ -149,7 +148,7 @@ class MispSearchCommand(StreamingCommand):
 
         if self.json_request is not None:
             body_dict = json.loads(self.json_request)
-            logger.info('Option "json_request" set')
+            logging.info('Option "json_request" set')
             body_dict['returnFormat'] = 'json'
             body_dict['withAttachments'] = False
             if 'limit' in body_dict:
@@ -192,7 +191,7 @@ class MispSearchCommand(StreamingCommand):
                         body_dict['page'] = page
                         body_dict['limit'] = limit
                     body = json.dumps(body_dict)
-                    logger.debug('mispsearch request body: %s', body)
+                    logging.debug('mispsearch request body: %s', body)
                     r = requests.post(my_args['misp_url'], headers=headers,
                                       data=body,
                                       verify=my_args['misp_verifycert'],
@@ -248,6 +247,9 @@ class MispSearchCommand(StreamingCommand):
 
 if __name__ == "__main__":
     # set up custom logger for the app commands
-    app_name = 'misp42splunk'
-    logger = init_logger(app_name)
+    logging.root
+    loglevel = logging_level('misp42splunk')
+    logging.root.setLevel(loglevel)
+    logging.error('logging level is set to %s', loglevel)
+    logging.error('PYTHON VERSION: ' + sys.version)
     dispatch(MispSearchCommand, sys.argv, sys.stdin, sys.stdout, __name__)

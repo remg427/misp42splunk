@@ -5,7 +5,6 @@ import json
 import os
 import sys
 import modinput_wrapper.base_modinput
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))
 from splunklib import modularinput as smi
 
 

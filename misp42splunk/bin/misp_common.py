@@ -2,12 +2,11 @@
 import json
 import logging
 import os
-import sys
 from splunk.clilib import cli_common as cli
 from io import open
 
 __license__ = "LGPLv3"
-__version__ = "3.1.10"
+__version__ = "3.2.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -41,46 +40,12 @@ def logging_level(app_name):
     return run_level
 
 
-def init_logger(app_name):
-    # initialisae a custom logger for the app
-    #  output is written to a file <app_name>_commands.conf
-    log_level = logging_level(app_name)
-    # create logger
-    logger = logging.getLogger(app_name)
-    # set app logging level
-    logger.setLevel(log_level)
-    # create handler to file <app_name>_commands.conf
-    handler = logging.handlers.WatchedFileHandler(
-        os.environ.get(
-            "LOGFILE",
-            os.path.join(
-                os.environ['SPLUNK_HOME'], 'var', 'log', 'splunk',
-                app_name + '_commands.conf'
-            )
-        )
-    )
-    # create formatter
-    formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    )
-    # add formatter to ch
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-    logger.info(
-        "--------------------------------------------------------------------"
-    )
-    logger.error('logger level is set to %s', log_level)
-    logger.info('PYTHON VERSION: ' + sys.version)
-    # return custom logger
-    return logger
-
-
-def prepare_config(self, app_name, logger):
+def prepare_config(self, app_name):
     config_args = dict()
     # get MISP instance to be used
     misp_instance = self.misp_instance
     stanza_name = 'misp://' + misp_instance
-    logger.info("stanza_name={}".format(stanza_name))
+    logging.info("stanza_name={}".format(stanza_name))
     # get MISP instance parameters
     # open local/inputs.conf into a dict:  app_config
     _SPLUNK_PATH = os.environ['SPLUNK_HOME']
@@ -97,13 +62,13 @@ def prepare_config(self, app_name, logger):
             if stanza_name == str(name):
                 app_config = content
                 foundStanza = True
-                logger.info(
+                logging.info(
                     'misp42splunk config: {}'.format(
                         json.dumps(app_config)
                     )
                 )
         if not foundStanza:
-            logger.error(
+            logging.error(
                 "local/inputs.conf does not contain \
                 settings for stanza: {}".format(stanza_name)
             )
@@ -112,7 +77,7 @@ def prepare_config(self, app_name, logger):
                 any stanza %s ', str(stanza_name)
             )
     else:
-        logger.error(
+        logging.error(
             "local/inputs.conf does not exist. Please configure misp instances first."
         )
         raise Exception(
@@ -130,17 +95,17 @@ def prepare_config(self, app_name, logger):
             misp_instance_key = json.loads(
                 credential.content.get('clear_password'))
             config_args['misp_key'] = str(misp_instance_key['misp_key'])
-            logger.info(
+            logging.info(
                 'misp_key found for instance {}'.format(misp_instance)
             )
         if 'proxy' in username and 'misp' in username and \
                 'proxy_password' in credential.content.get('clear_password'):
             proxy_password = str(json.loads(
                 credential.content.get('clear_password')))
-            logger.info('proxy_password found for misp42splunk')
+            logging.info('proxy_password found for misp42splunk')
 
     if config_args['misp_key'] is None:
-        logger.error(
+        logging.error(
             'misp_key NOT found for instance \
             {}'.format(misp_instance)
         )
@@ -148,7 +113,7 @@ def prepare_config(self, app_name, logger):
     # settings
     # save MISP settings stored in inputs.conf into config_arg
     config_args['misp_url'] = app_config['misp_url']
-    logger.info("config_args['misp_url'] {}".format(config_args['misp_url']))
+    logging.info("config_args['misp_url'] {}".format(config_args['misp_url']))
 
     if int(app_config['misp_verifycert']) == 1:
         misp_ca_full_path = app_config.get('misp_ca_full_path', '')
@@ -158,7 +123,7 @@ def prepare_config(self, app_name, logger):
             config_args['misp_verifycert'] = True
     else:
         config_args['misp_verifycert'] = False
-    logger.info("config_args['misp_verifycert'] \
+    logging.info("config_args['misp_verifycert'] \
         {}".format(config_args['misp_verifycert']))
 
     config_args['proxies'] = dict()
@@ -176,12 +141,12 @@ def prepare_config(self, app_name, logger):
                 if 'proxy' in name:
                     proxy = content
                     foundProxy = True
-                    logger.info("Successfully found proxy settings")
+                    logging.info("Successfully found proxy settings")
             if not foundProxy:
-                logger.error("misp_use_proxy is True and local/misp42splunk_settings.conf does not contain settings for proxy")
+                logging.error("misp_use_proxy is True and local/misp42splunk_settings.conf does not contain settings for proxy")
                 raise Exception('misp_use_proxy is True and local/misp42splunk_settings.conf does not contain settings for proxy')
         else:
-            logger.error("misp_use_proxy is True and local/misp42splunk_settings.conf does not exist. Please configure misp42splunk first.")
+            logging.error("misp_use_proxy is True and local/misp42splunk_settings.conf does not exist. Please configure misp42splunk first.")
             raise Exception("misp_use_proxy is True and local/misp42splunk_\
                 settings.conf does not exist. \
                 Please configure misp42splunk first.")
@@ -203,7 +168,7 @@ def prepare_config(self, app_name, logger):
             app_config['client_cert_full_path']
     else:
         config_args['client_cert_full_path'] = None
-    logger.info("config_args['client_cert_full_path'] \
+    logging.info("config_args['client_cert_full_path'] \
         {}".format(config_args['client_cert_full_path']))
 
     # test if client certificate file is readable
@@ -211,10 +176,10 @@ def prepare_config(self, app_name, logger):
         try:
             # open client_cert_full_path if exists and log.
             with open(config_args['client_cert_full_path'], 'rb'):
-                logger.info('client_cert_full_path file at %s was successfully\
+                logging.info('client_cert_full_path file at %s was successfully\
                  opened', str(config_args['client_cert_full_path']))
         except IOError:  # file misp_instances.csv not readable
-            logger.error(
+            logging.error(
                 'client_cert_full_path file at %s not readable',
                 str(config_args['client_cert_full_path'])
             )

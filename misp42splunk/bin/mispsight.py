@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # coding=utf-8
 #
 # search for value in MISP and add some fields to the pipeline
@@ -7,29 +8,27 @@
 # Copyright: LGPLv3 (https://www.gnu.org/licenses/lgpl-3.0.txt)
 # Feel free to use the code, but please share the changes you've made
 #
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
-from __future__ import unicode_literals
-from misp_common import prepare_config, init_logger
+from __future__ import absolute_import, division, print_function, unicode_literals
+import misp42splunk_declare
+
+from splunklib.searchcommands import dispatch, StreamingCommand, Configuration, Option, validators
+from misp_common import prepare_config, logging_level
 import json
-import os
+import logging
 import requests
 import sys
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))
-from splunklib.searchcommands import \
-    dispatch, StreamingCommand, Configuration, Option, validators
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "3.1.10"
+__version__ = "3.2.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
 
 @Configuration(distributed=False)
-class mispsight(StreamingCommand):
-    """ search in MISP for attributes matching the value of field.
+class MispSightCommand(StreamingCommand):
+    """
+    search in MISP for attributes matching the value of field.
 
     ##Syntax
 
@@ -83,10 +82,10 @@ class mispsight(StreamingCommand):
         require=True)
 
     def stream(self, records):
-        # self.logger.debug('mispgetioc.reduce')
+        # self.self.logging.debug('mispgetioc.reduce')
 
         # Generate args
-        my_args = prepare_config(self, 'misp42splunk', logger)
+        my_args = prepare_config(self, 'misp42splunk')
         # set proper headers
         headers = {'Content-type': 'application/json'}
         headers['Authorization'] = my_args['misp_key']
@@ -121,7 +120,7 @@ class mispsight(StreamingCommand):
                         'l_id': 0
                     }
                     # search
-                    logger.debug('mispsight request body: %s', search_body)
+                    logging.debug('mispsight request body: %s', search_body)
                     rs = requests.post(
                         search_url,
                         headers=headers,
@@ -136,12 +135,11 @@ class mispsight(StreamingCommand):
                     # response is 200 by this point or we would
                     # have thrown an exception
                     response = rs.json()
-                    logger.info("MISP REST API %s has got a response with \
-                        status code 200", search_url)
+                    logging.info("MISP REST API %s has got a response with status code 200", search_url)
                     if 'response' in response:
                         if 'Attribute' in response['response']:
                             r_number = len(response['response']['Attribute'])
-                            logger.debug(
+                            logging.debug(
                                 "MISP REST API %s: response: with %s records"
                                 % (search_url, str(r_number))
                             )
@@ -165,14 +163,12 @@ class mispsight(StreamingCommand):
                                     # response is 200 by this point or we
                                     # would have thrown an exception
                                     sight = rt.json()
-                                    logger.info(
-                                        "MISP REST API %s has got a response \
-                                        with status code 200",
+                                    logging.info(
+                                        "MISP REST API %s has got a response with status code 200",
                                         sight_url
                                     )
-                                    logger.debug(
-                                        "MISP REST API %s has got a response: \
-                                        with %s records" % (
+                                    logging.debug(
+                                        "MISP REST API %s has got a response: with %s records" % (
                                             sight_url,
                                             len(sight)
                                         )
@@ -231,6 +227,9 @@ class mispsight(StreamingCommand):
 
 if __name__ == "__main__":
     # set up custom logger for the app commands
-    app_name = 'misp42splunk'
-    logger = init_logger(app_name)
-    dispatch(mispsight, sys.argv, sys.stdin, sys.stdout, __name__)
+    logging.root
+    loglevel = logging_level('misp42splunk')
+    logging.root.setLevel(loglevel)
+    logging.error('logging level is set to %s', loglevel)
+    logging.error('PYTHON VERSION: ' + sys.version)
+    dispatch(MispSightCommand, sys.argv, sys.stdin, sys.stdout, __name__)
