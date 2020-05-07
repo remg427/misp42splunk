@@ -1,11 +1,9 @@
-
 # encoding = utf-8
-
+import datetime
 import os
 import re
 import sys
 import time
-import datetime
 
 '''
     IMPORTANT
@@ -19,6 +17,7 @@ def use_single_instance_mode():
     return True
 '''
 
+
 def validate_input(helper, definition):
     """Implement your own validation logic to validate the input stanza configurations"""
     # This example accesses the modular input variable
@@ -29,6 +28,7 @@ def validate_input(helper, definition):
     # client_use_cert = definition.parameters.get('client_use_cert', None)
     # client_cert_full_path = definition.parameters.get('client_cert_full_path', None)
     pass
+
 
 def collect_events(helper, ew):
     """Implement your data collection logic here

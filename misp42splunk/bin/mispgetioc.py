@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # coding=utf-8
 #
 # Extract IOC's from MISP
@@ -10,25 +9,27 @@
 # Feel free to use the code, but please share the changes you've made
 #
 # "warning_list": "optional",
+
 from __future__ import absolute_import, division, print_function, unicode_literals
+import misp42splunk_declare
+
+from splunklib.searchcommands import dispatch, ReportingCommand, Configuration, Option, validators
 from misp_common import prepare_config, logging_level
 import json
 import logging
-import os
 import requests
 import sys
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))
-from splunklib.searchcommands import dispatch, ReportingCommand, Configuration, Option, validators
+
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "3.1.8"
+__version__ = "3.1.11"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
 
 @Configuration(requires_preop=False)
-class mispgetioc(ReportingCommand):
+class MispGetIocCommand(ReportingCommand):
     """ get the attributes from a MISP instance.
     ##Syntax
     .. code-block::
@@ -132,62 +133,23 @@ class mispgetioc(ReportingCommand):
          **eventid**, **last** and **date** are mutually exclusive''',
         require=False)
     # Other params
-    page = Option(
+    add_description = Option(
         doc='''
-        **Syntax:** **page=***<int>*
-        **Description:**define the page for each MISP search; default 1.''',
-        require=False, validate=validators.Match("limit", r"^[0-9]+$"))
-    limit = Option(
-        doc='''
-        **Syntax:** **limit=***<int>*
-        **Description:**define the limit for each MISP search;
-         default 1000. 0 = no pagination.''',
-        require=False, validate=validators.Match("limit", r"^[0-9]+$"))
-    type = Option(
-        doc='''
-        **Syntax:** **type=***CSV string*
-        **Description:**Comma(,)-separated string of types to search for.
-         Wildcard is %.''',
-        require=False)
+        **Syntax:** **add_description=***<1|y|Y|t|true|True
+        |0|n|N|f|false|False>*
+        **Description:**Boolean to return misp_description.''',
+        require=False, validate=validators.Boolean())
     category = Option(
         doc='''
         **Syntax:** **category=***CSV string*
         **Description:**Comma(,)-separated string of categories to search for.
          Wildcard is %.''',
         require=False)
-    tags = Option(
-        doc='''
-        **Syntax:** **tags=***CSV string*
-        **Description:**Comma(,)-separated string of tags to search for.
-         Wildcard is %.''',
-        require=False)
-    not_tags = Option(
-        doc='''
-        **Syntax:** **not_tags=***CSV string*
-        **Description:**Comma(,)-separated string of tags to exclude.
-         Wildcard is %.''',
-        require=False)
-    warning_list = Option(
-        doc='''
-        **Syntax:** **warning_list=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
-        **Description:**Boolean to filter out well known values.''',
-        require=False, validate=validators.Boolean())
-    to_ids = Option(
-        doc='''
-        **Syntax:** **to_ids=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
-        **Description:**Boolean to search only attributes with the flag
-         "to_ids" set to true.''',
-        require=False, validate=validators.Boolean())
     geteventtag = Option(
         doc='''
         **Syntax:** **geteventtag=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
         **Description:**Boolean includeEventTags. By default only
          attribute tag(s) are returned.''',
-        require=False, validate=validators.Boolean())
-    getuuid = Option(
-        doc='''
-        **Syntax:** **getuuid=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
-        **Description:**Boolean to return attribute UUID.''',
         require=False, validate=validators.Boolean())
     getorg = Option(
         doc='''
@@ -195,27 +157,72 @@ class mispgetioc(ReportingCommand):
         **Description:**Boolean to return the ID of the organisation that
          created the event.''',
         require=False, validate=validators.Boolean())
+    getuuid = Option(
+        doc='''
+        **Syntax:** **getuuid=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
+        **Description:**Boolean to return attribute UUID.''',
+        require=False, validate=validators.Boolean())
+    limit = Option(
+        doc='''
+        **Syntax:** **limit=***<int>*
+        **Description:**define the limit for each MISP search;
+         default 1000. 0 = no pagination.''',
+        require=False, validate=validators.Match("limit", r"^[0-9]+$"))
+    not_tags = Option(
+        doc='''
+        **Syntax:** **not_tags=***CSV string*
+        **Description:**Comma(,)-separated string of tags to exclude.
+         Wildcard is %.''',
+        require=False)
+    output = Option(
+        doc='''
+        **Syntax:** **output=***<default|rawy>*
+        **Description:**selection between the default behaviou or \
+        JSON output by event.''',
+        require=False, validate=validators.Match("output", r"(default|raw)"))
+    page = Option(
+        doc='''
+        **Syntax:** **page=***<int>*
+        **Description:**define the page for each MISP search; default 1.''',
+        require=False, validate=validators.Match("limit", r"^[0-9]+$"))
     pipesplit = Option(
         doc='''
         **Syntax:** **pipesplit=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
         **Description:**Boolean to split multivalue attributes.''',
         require=False, validate=validators.Boolean())
-    add_description = Option(
+    tags = Option(
         doc='''
-        **Syntax:** **add_description=***<1|y|Y|t|true|True
-        |0|n|N|f|false|False>*
-        **Description:**Boolean to return misp_description.''',
+        **Syntax:** **tags=***CSV string*
+        **Description:**Comma(,)-separated string of tags to search for.
+         Wildcard is %.''',
+        require=False)
+    to_ids = Option(
+        doc='''
+        **Syntax:** **to_ids=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
+        **Description:**Boolean to search only attributes with the flag
+         "to_ids" set to true.''',
+        require=False, validate=validators.Boolean())
+    type = Option(
+        doc='''
+        **Syntax:** **type=***CSV string*
+        **Description:**Comma(,)-separated string of types to search for.
+         Wildcard is %.''',
+        require=False)
+    warning_list = Option(
+        doc='''
+        **Syntax:** **warning_list=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
+        **Description:**Boolean to filter out well known values.''',
         require=False, validate=validators.Boolean())
 
-    @Configuration()
-    def map(self, records):
-        # self.logger.debug('mispgetioc.map')
-        return records
+    # @Configuration()
+    # def map(self, records):
+    # self.logging.debug('mispgetioc.map')
+    # return records
 
     def reduce(self, records):
 
         # Phase 1: Preparation
-        my_args = prepare_config(self)
+        my_args = prepare_config(self, 'misp42splunk')
         my_args['misp_url'] = my_args['misp_url'] + '/attributes/restSearch'
 
         # check that ONE of mandatory fields is present
@@ -254,14 +261,14 @@ class mispgetioc(ReportingCommand):
             else:
                 body_dict['eventid'] = self.eventid
             logging.info('Option "eventid" set with %s',
-                         json.dumps(body_dict['eventid']))
+                        json.dumps(body_dict['eventid']))
         elif self.last:
             body_dict['last'] = self.last
             logging.info('Option "last" set with %s', str(body_dict['last']))
         else:
             body_dict['date'] = self.date.split()
             logging.info('Option "date" set with %s',
-                         json.dumps(body_dict['date']))
+                        json.dumps(body_dict['date']))
 
         # Force some values on JSON request
         body_dict['returnFormat'] = 'json'
@@ -345,6 +352,10 @@ class mispgetioc(ReportingCommand):
             my_args['add_desc'] = True
         else:
             my_args['add_desc'] = False
+        if self.output is not None:
+            my_args['output'] = self.output
+        else:
+            my_args['output'] = "default"
 
         results = []
         # add colums for each type in results
@@ -366,155 +377,172 @@ class mispgetioc(ReportingCommand):
         r.raise_for_status()
         # response is 200 by this point or we would have thrown an exception
         response = r.json()
-        if 'response' in response:
-            if 'Attribute' in response['response']:
-                for a in response['response']['Attribute']:
-                    v = {}
-                    v['misp_category'] = str(a['category'])
-                    v['misp_attribute_id'] = str(a['id'])
-                    v['misp_event_id'] = str(a['event_id'])
-                    v['misp_timestamp'] = str(a['timestamp'])
-                    v['misp_to_ids'] = str(a['to_ids'])
-                    v['misp_comment'] = str(a['comment'])
-                    tag_list = []
-                    if 'Tag' in a:
-                        for tag in a['Tag']:
-                            try:
-                                tag_list.append(str(tag['name']))
-                            except Exception:
-                                pass
-                    v['misp_tag'] = tag_list
-                    # include ID of the organisation that
-                    # created the attribute if requested
-                    if 'Event' in a:
-                        v['misp_event_uuid'] = str(a['Event']['uuid'])
-                        if my_args['getorg']:
-                            v['misp_orgc_id'] = str(a['Event']['orgc_id'])
+        if my_args['output'] == "raw":
+            if 'response' in response:
+                if 'Attribute' in response['response']:
+                    for a in response['response']['Attribute']:
+                        yield a
+        else:
+            if 'response' in response:
+                if 'Attribute' in response['response']:
+                    for a in response['response']['Attribute']:
+                        v = {}
+                        v['misp_category'] = str(a['category'])
+                        v['misp_attribute_id'] = str(a['id'])
+                        v['misp_event_id'] = str(a['event_id'])
+                        v['misp_timestamp'] = str(a['timestamp'])
+                        v['misp_to_ids'] = str(a['to_ids'])
+                        v['misp_comment'] = str(a['comment'])
+                        tag_list = []
+                        if 'Tag' in a:
+                            for tag in a['Tag']:
+                                try:
+                                    tag_list.append(
+                                        str(tag['name'])
+                                    )
+                                except Exception:
+                                    pass
+                        v['misp_tag'] = tag_list
+                        logging.debug('misp_tag: %s',
+                                     json.dumps(v['misp_tag']))
+                        # include ID of the organisation that
+                        # created the attribute if requested
+                        if 'Event' in a:
+                            v['misp_event_uuid'] = str(a['Event']['uuid'])
+                            if my_args['getorg']:
+                                v['misp_orgc_id'] = str(a['Event']['orgc_id'])
+                            if my_args['add_desc'] is True:
+                                v['misp_event_info'] = str(a['Event']['info'])
+                        # include attribute UUID if requested
+                        if my_args['getuuid']:
+                            v['misp_attribute_uuid'] = str(a['uuid'])
+                        # handle object and multivalue attributes
+                        v['misp_object_id'] = str(a['object_id'])
                         if my_args['add_desc'] is True:
-                            v['misp_event_info'] = str(a['Event']['info'])
-                    # include attribute UUID if requested
-                    if my_args['getuuid']:
-                        v['misp_attribute_uuid'] = str(a['uuid'])
-                    # handle object and multivalue attributes
-                    v['misp_object_id'] = str(a['object_id'])
-                    if my_args['add_desc'] is True:
-                        if int(a['object_id']) == 0:
-                            v['misp_description'] = 'MISP e' \
-                                + str(a['event_id']) + ' attribute ' \
-                                + str(a['uuid']) + ' of type "' \
-                                + str(a['type']) \
-                                + '" in category "' + str(a['category']) \
-                                + '" (to_ids:' + str(a['to_ids']) + ')'
+                            if int(a['object_id']) == 0:
+                                v['misp_description'] = 'MISP e' \
+                                    + str(a['event_id']) + ' attribute ' \
+                                    + str(a['uuid']) + ' of type "' \
+                                    + str(a['type']) \
+                                    + '" in category "' + str(a['category']) \
+                                    + '" (to_ids:' + str(a['to_ids']) + ')'
+                            else:
+                                v['misp_description'] = 'MISP e' \
+                                    + str(a['event_id']) + ' attribute ' \
+                                    + str(a['uuid']) + ' of type "' \
+                                    + str(a['type']) + '" in category "' \
+                                    + str(a['category']) \
+                                    + '" (to_ids:' + str(a['to_ids']) \
+                                    + ' - o' + str(a['object_id']) + ' )'
+                        current_type = str(a['type'])
+                        # combined: not part of an object
+                        # AND multivalue attribute AND to be split
+                        # logging.debug('misp_event: %s', json.dumps(v))
+                        if int(a['object_id']) == 0 and '|' in current_type \
+                           and my_args['pipe'] is True:
+                            mv_type_list = current_type.split('|')
+                            mv_value_list = str(a['value']).split('|')
+                            left_v = v.copy()
+                            left_v['misp_type'] = mv_type_list.pop()
+                            left_v['misp_value'] = mv_value_list.pop()
+                            results.append(left_v)
+                            if left_v['misp_type'] not in typelist:
+                                typelist.append(left_v['misp_type'])
+                            right_v = v.copy()
+                            right_v['misp_type'] = mv_type_list.pop()
+                            right_v['misp_value'] = mv_value_list.pop()
+                            results.append(right_v)
+                            if right_v['misp_type'] not in typelist:
+                                typelist.append(right_v['misp_type'])
                         else:
-                            v['misp_description'] = 'MISP e' \
-                                + str(a['event_id']) + ' attribute ' \
-                                + str(a['uuid']) + ' of type "' \
-                                + str(a['type']) + '" in category "' \
-                                + str(a['category']) \
-                                + '" (to_ids:' + str(a['to_ids']) \
-                                + ' - o' + str(a['object_id']) + ' )'
-                    current_type = str(a['type'])
-                    # combined: not part of an object
-                    # AND multivalue attribute AND to be split
-                    if int(a['object_id']) == 0 and '|' in current_type \
-                       and my_args['pipe'] is True:
-                        mv_type_list = current_type.split('|')
-                        mv_value_list = str(a['value']).split('|')
-                        left_v = v.copy()
-                        left_v['misp_type'] = mv_type_list.pop()
-                        left_v['misp_value'] = mv_value_list.pop()
-                        results.append(left_v)
-                        if left_v['misp_type'] not in typelist:
-                            typelist.append(left_v['misp_type'])
-                        right_v = v.copy()
-                        right_v['misp_type'] = mv_type_list.pop()
-                        right_v['misp_value'] = mv_value_list.pop()
-                        results.append(right_v)
-                        if right_v['misp_type'] not in typelist:
-                            typelist.append(right_v['misp_type'])
-                    else:
-                        v['misp_type'] = current_type
-                        v['misp_value'] = str(a['value'])
-                        results.append(v)
-                        if current_type not in typelist:
-                            typelist.append(current_type)
+                            v['misp_type'] = current_type
+                            v['misp_value'] = str(a['value'])
+                            results.append(v)
+                            if current_type not in typelist:
+                                typelist.append(current_type)
 
-        logging.info(json.dumps(typelist))
+            logging.info(json.dumps(typelist))
 
-        output_dict = {}
-        # relevant_cat = ['Artifacts dropped', 'Financial fraud',
-        # 'Network activity','Payload delivery','Payload installation']
-        for r in results:
-            if int(r['misp_object_id']) == 0:  # not an object
-                key = str(r['misp_event_id']) + '_' + r['misp_attribute_id']
-                is_object_member = False
-            else:  # this is a  MISP object
-                key = str(r['misp_event_id']) \
-                    + '_object_' + str(r['misp_object_id'])
-                is_object_member = True
-            if key not in output_dict:
-                v = dict(r)
-                for t in typelist:
-                    misp_t = 'misp_' + t.replace('-', '_').replace('|', '_p_')
-                    if t == r['misp_type']:
-                        v[misp_t] = r['misp_value']
-                    else:
-                        v[misp_t] = ''
-                to_ids = []
-                to_ids.append(r['misp_to_ids'])
-                v['misp_to_ids'] = to_ids
-                category = []
-                category.append(r['misp_category'])
-                v['misp_category'] = category
-                if my_args['add_desc'] is True:
-                    description = []
-                    description.append(r['misp_description'])
-                    v['misp_description'] = description
-                if my_args['getuuid'] is True:
-                    attribute_uuid = []
-                    attribute_uuid.append(r['misp_attribute_uuid'])
-                    v['misp_attribute_uuid'] = attribute_uuid
-                if is_object_member is True:
-                    v['misp_type'] = 'misp_object'
-                    v['misp_value'] = r['misp_object_id']
-                output_dict[key] = dict(v)
-            else:
-                v = dict(output_dict[key])
-                misp_t = 'misp_' + r['misp_type'].replace('-', '_')
-                v[misp_t] = r['misp_value']  # set value for relevant type
-                to_ids = v['misp_to_ids']
-                if r['misp_to_ids'] not in to_ids:
-                    to_ids.append(r['misp_to_ids'])
-                    v['misp_to_ids'] = to_ids
-                category = v['misp_category']
-                if r['misp_category'] not in category:  # append category
-                    category.append(r['misp_category'])
-                    v['misp_category'] = category
-                if my_args['add_desc'] is True:
-                    description = v['misp_description']
-                    if r['misp_description'] not in description:
+            output_dict = {}
+            # relevant_cat = ['Artifacts dropped', 'Financial fraud',
+            # 'Network activity','Payload delivery','Payload installation']
+            for r in results:
+                if int(r['misp_object_id']) == 0:  # not an object
+                    key = str(r['misp_event_id']) + \
+                        '_' + r['misp_attribute_id']
+                    is_object_member = False
+                else:  # this is a  MISP object
+                    key = str(r['misp_event_id']) \
+                        + '_object_' + str(r['misp_object_id'])
+                    is_object_member = True
+                if key not in output_dict:
+                    v = dict(r)
+                    for t in typelist:
+                        misp_t = 'misp_' + t.replace('-', '_')\
+                            .replace('|', '_p_')
+                        v[misp_t] = []
+                        if t == r['misp_type']:
+                            v[misp_t].append(r['misp_value'])
+                    v['misp_to_ids'] = []
+                    v['misp_to_ids'].append(r['misp_to_ids'])
+                    v['misp_category'] = []
+                    v['misp_category'].append(r['misp_category'])
+                    if my_args['getuuid'] is True:
+                        v['misp_attribute_uuid'] = []
+                        v['misp_attribute_uuid']\
+                            .append(r['misp_attribute_uuid'])
+                    v['misp_attribute_id'] = []
+                    v['misp_attribute_id']\
+                        .append(r['misp_attribute_id'])
+                    if my_args['add_desc'] is True:
+                        description = []
                         description.append(r['misp_description'])
-                    v['misp_description'] = description
-                if my_args['getuuid'] is True:
-                    attribute_uuid = v['misp_attribute_uuid']
-                    if r['misp_attribute_uuid'] not in attribute_uuid:
+                        v['misp_description'] = description
+                    if my_args['getuuid'] is True:
+                        attribute_uuid = []
                         attribute_uuid.append(r['misp_attribute_uuid'])
-                    v['misp_attribute_uuid'] = attribute_uuid
-                if is_object_member is False:
-                    misp_type = r['misp_type'] + '|' + v['misp_type']
-                    v['misp_type'] = misp_type
-                    misp_value = r['misp_value'] + '|' + v['misp_value']
-                    v['misp_value'] = misp_value
-                output_dict[key] = dict(v)
+                        v['misp_attribute_uuid'] = attribute_uuid
+                    if is_object_member is True:
+                        v['misp_type'] = 'misp_object'
+                        v['misp_value'] = r['misp_object_id']
+                    output_dict[key] = dict(v)
+                else:
+                    v = dict(output_dict[key])
+                    misp_t = 'misp_' + r['misp_type'].replace('-', '_')
+                    v[misp_t].append(r['misp_value'])  # set value for type
+                    v['misp_to_ids'].append(r['misp_to_ids'])
+                    v['misp_category'].append(r['misp_category'])
+                    tag_list = v['misp_tag']
+                    for tag in r['misp_tag']:
+                        if tag not in tag_list:
+                            tag_list.append(tag)
+                    v['misp_tag'] = tag_list
+                    if my_args['add_desc'] is True:
+                        description = v['misp_description']
+                        if r['misp_description'] not in description:
+                            description.append(r['misp_description'])
+                        v['misp_description'] = description
+                    v['misp_attribute_id']\
+                        .append(r['misp_attribute_id'])
+                    if my_args['getuuid'] is True:
+                        v['misp_attribute_uuid']\
+                            .append(r['misp_attribute_uuid'])
+                    if is_object_member is False:
+                        misp_type = r['misp_type'] + '|' + v['misp_type']
+                        v['misp_type'] = misp_type
+                        misp_value = r['misp_value'] + '|' + v['misp_value']
+                        v['misp_value'] = misp_value
+                    output_dict[key] = dict(v)
 
-        for k, v in list(output_dict.items()):
-            yield v
+            for k, v in list(output_dict.items()):
+                yield v
 
 
 if __name__ == "__main__":
-    # set up logging suitable for splunkd consumption
+    # set up custom logger for the app commands
     logging.root
-    loglevel = logging_level()
-    logging.error('logging level is set to %s', loglevel)
+    loglevel = logging_level('misp42splunk')
     logging.root.setLevel(loglevel)
-    dispatch(mispgetioc, sys.argv, sys.stdin, sys.stdout, __name__)
+    logging.error('logging level is set to %s', loglevel)
+    logging.error('PYTHON VERSION: ' + sys.version)
+    dispatch(MispGetIocCommand, sys.argv, sys.stdin, sys.stdout, __name__)
