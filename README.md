@@ -1,10 +1,7 @@
-## IMPORTANT
-With version >3.0.0 you need FIRST to create input(s) to point to your MISP instance(s)  
-and SECOND adapt all saved searches to add misp_instance=one-of-the-input-name
 
-## Overview
-misp42splunk app connects one or several [MISP](http://www.misp-project.org/) instance(s) and your [Splunk](www.splunk.com) search head (cluster).  
-The app is designed to be easy to install, set up and maintain using the Splunk GUI.
+## Introduction
+This TA alows interaction between your [Splunk](www.splunk.com) search head (cluster) and one or several [MISP](http://www.misp-project.org/) instance(s). It is a versatile TA that acts as a wrapper of MISP API to either collect MISP information into Splunk (custom commands) or push information from Splunk to MISP (alert actions).
+The TA is designed to be easy to install, set up and maintain using the Splunk GUI.
 
 ## Usage  
 1. MISP to SPLUNK (custom commands):  
@@ -24,16 +21,16 @@ This app is designed to run on **Splunk Search Head(s)** on Linux plateforms (no
 2. **working with other branches** Download the ZIP file and extract the folder misp42splunk which actually contains the Splunk app. You have to compress that folder as misp42splunk.tar.gz
 3. Install the app on your Splunk Search Head(s): "Manage Apps" -> "Install app from file"
 4. At next logon, you should be invited to configure the app (if not go to Manage Apps > misp42 > launch app)
-5. create at least one input for example "default_misp". Please note that mandatory fields "intervals" and "index" are not used. Just put a valid value
+5. create at least one instance for example "default_misp".
     - provide a name for example default_misp to follow the examples provided in this doc
     - provide the url to your MISP instance (version > 2.4.117)
     - provide the authkey,
     - check (or not) the certificate of the MISP server,
     - use (or not) the proxy for this instance,
     - provide client certificate if required (and check the box to use it)
-![inputs](docs/misp42_create_inputs.png)
-6. If you need **several instances**, create additional inputs.
-7. Important: Role(s)/user(s) using this app must have the capability to "list_storage_passwords" (as API KEYs and proxy password(s) are safely stored encrypted )
+![inputs](images/misp42_add_misp_instance.png)
+6. If you need **several instances**, create additional entries.
+7. Important: Role(s)/user(s) using this app must have the capability to "list_storage_passwords" (as API KEYs and proxy password(s) are safely stored encrypted).
 
 ## Use Cases
 ### Build a dashboard
@@ -77,8 +74,8 @@ you can also use this example (thanks @xg-simon for sharing):
 
 ## Usage
 - custom commands
-    * [mispgetioc](docs/mispgetioc.md) reporting command levaring /attributes/restSearch endpoint
-    * [mispgetevent](docs/mispapireport.md) reporting command levaring /events/restSearch endpoint
+    * [mispgetioc](docs/mispgetioc.md) reporting command leveraging /attributes/restSearch endpoint
+    * [mispgetevent](docs/mispapireport.md) reporting command leveraging /events/restSearch endpoint
     * [mispsearch](docs/mispsearch.md) streaming command
     * [mispsight](docs/mispsight.md) streaming command
 - Splunk alert actions to [update MISP](docs/mispalerts.md)

@@ -112,8 +112,13 @@ def prepare_config(self, app_name):
         raise Exception('misp_key NOT found for instance %s', misp_instance)
     # settings
     # save MISP settings stored in inputs.conf into config_arg
-    config_args['misp_url'] = app_config['misp_url']
-    logging.info("config_args['misp_url'] {}".format(config_args['misp_url']))
+    misp_url = app_config['misp_url']
+    if misp_url.startswith('https://'):
+        config_args['misp_url'] = misp_url
+        logging.info("config_args['misp_url'] {}".format(config_args['misp_url']))
+    else:
+        logging.error("misp_url must starts with HTTPS. Please set a valid misp_url")
+        exit(1)
 
     if int(app_config['misp_verifycert']) == 1:
         misp_ca_full_path = app_config.get('misp_ca_full_path', '')

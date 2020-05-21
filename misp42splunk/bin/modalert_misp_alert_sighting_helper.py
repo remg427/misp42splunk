@@ -75,8 +75,13 @@ def prepare_alert_config(helper):
         helper.log_error('misp_key NOT found for instance  {}'.format(misp_instance))         
 
     # get MISP settings stored in inputs.conf
-    config_args['misp_url'] = mispconf['misp_url']
-    helper.log_info("config_args['misp_url'] {}".format(config_args['misp_url']))
+    misp_url = mispconf['misp_url']
+    if misp_url.startswith('https://'):
+        config_args['misp_url'] = misp_url
+        helper.log_info("config_args['misp_url'] {}".format(config_args['misp_url']))
+    else:
+        helper.log_error("misp_url must starts with HTTPS. Please set a valid misp_url")
+        exit(1)
     if int(mispconf['misp_verifycert']) == 1:
         config_args['misp_verifycert'] = True
     else:

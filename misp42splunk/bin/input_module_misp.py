@@ -27,7 +27,10 @@ def validate_input(helper, definition):
     # misp_use_proxy = definition.parameters.get('misp_use_proxy', None)
     # client_use_cert = definition.parameters.get('client_use_cert', None)
     # client_cert_full_path = definition.parameters.get('client_cert_full_path', None)
-    pass
+    misp_url = definition.parameters.get('misp_url', None)
+    if misp_url and not misp_url.startswith('https://'):
+        helper.log_error("misp_url must starts with HTTPS. Please set a valid misp_url")
+        exit(1)
 
 
 def collect_events(helper, ew):
