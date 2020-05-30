@@ -403,8 +403,6 @@ class MispGetIocCommand(ReportingCommand):
                                 except Exception:
                                     pass
                         v['misp_tag'] = tag_list
-                        logging.debug('misp_tag: %s',
-                                     json.dumps(v['misp_tag']))
                         # include ID of the organisation that
                         # created the attribute if requested
                         if 'Event' in a:

@@ -117,7 +117,7 @@ def prepare_config(self, app_name):
         config_args['misp_url'] = misp_url
         logging.info("config_args['misp_url'] {}".format(config_args['misp_url']))
     else:
-        logging.error("misp_url must starts with HTTPS. Please set a valid misp_url")
+        logging.error("misp_url must start with HTTPS. Please set a valid misp_url")
         exit(1)
 
     if int(app_config['misp_verifycert']) == 1:
