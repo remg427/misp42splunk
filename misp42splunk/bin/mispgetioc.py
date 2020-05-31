@@ -13,23 +13,26 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 import misp42splunk_declare
 
-from splunklib.searchcommands import dispatch, ReportingCommand, Configuration, Option, validators
-from misp_common import prepare_config, logging_level
+from collections import OrderedDict
+from itertools import chain
 import json
 import logging
+from misp_common import prepare_config, logging_level
 import requests
+from splunklib.searchcommands import dispatch, GeneratingCommand, Configuration, Option, validators
+from splunklib.searchcommands import splunklib_logger as logger
 import sys
-
+from splunklib.six.moves import map
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "3.1.11"
+__version__ = "3.1.13"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
 
-@Configuration(requires_preop=False)
-class MispGetIocCommand(ReportingCommand):
+@Configuration(retainsevents=False, type='reporting', distributed=False)
+class MispGetIocCommand(GeneratingCommand):
     """ get the attributes from a MISP instance.
     ##Syntax
     .. code-block::
@@ -179,7 +182,8 @@ class MispGetIocCommand(ReportingCommand):
         **Syntax:** **output=***<default|rawy>*
         **Description:**selection between the default behaviou or \
         JSON output by event.''',
-        require=False, validate=validators.Match("output", r"(default|raw)"))
+        require=False, validate=validators.Match(
+            "output", r"(default|raw)"))
     page = Option(
         doc='''
         **Syntax:** **page=***<int>*
@@ -214,15 +218,31 @@ class MispGetIocCommand(ReportingCommand):
         **Description:**Boolean to filter out well known values.''',
         require=False, validate=validators.Boolean())
 
-    # @Configuration()
-    # def map(self, records):
-    # self.logging.debug('mispgetioc.map')
-    # return records
+    @staticmethod
+    def _record(serial_number, time_stamp, host, attributes, attribute_names, encoder):
 
-    def reduce(self, records):
+        raw = encoder.encode(attributes)
+        # Formulate record
+
+        if serial_number > 0:
+            attributes['_serial'] = serial_number
+            attributes['_time'] = time_stamp
+            attributes['_raw'] = raw
+            attributes['host'] = host
+            return attributes
+
+        record = OrderedDict(chain(
+            (('_serial', serial_number), ('_time', time_stamp),
+             ('_raw', raw), ('host', host)),
+            map(lambda name: (name, attributes.get(name, '')), attribute_names)))
+
+        return record
+
+    def generate(self):
 
         # Phase 1: Preparation
         my_args = prepare_config(self, 'misp42splunk')
+        my_args['host'] = my_args['misp_url'].replace('https://', '')
         my_args['misp_url'] = my_args['misp_url'] + '/attributes/restSearch'
 
         # check that ONE of mandatory fields is present
@@ -261,14 +281,14 @@ class MispGetIocCommand(ReportingCommand):
             else:
                 body_dict['eventid'] = self.eventid
             logging.info('Option "eventid" set with %s',
-                        json.dumps(body_dict['eventid']))
+                         json.dumps(body_dict['eventid']))
         elif self.last:
             body_dict['last'] = self.last
             logging.info('Option "last" set with %s', str(body_dict['last']))
         else:
             body_dict['date'] = self.date.split()
             logging.info('Option "date" set with %s',
-                        json.dumps(body_dict['date']))
+                         json.dumps(body_dict['date']))
 
         # Force some values on JSON request
         body_dict['returnFormat'] = 'json'
@@ -377,11 +397,18 @@ class MispGetIocCommand(ReportingCommand):
         r.raise_for_status()
         # response is 200 by this point or we would have thrown an exception
         response = r.json()
+        encoder = json.JSONEncoder(ensure_ascii=False, separators=(',', ':'))
         if my_args['output'] == "raw":
             if 'response' in response:
                 if 'Attribute' in response['response']:
+                    attribute_names = ['_raw']
+                    serial_number = 1
                     for a in response['response']['Attribute']:
-                        yield a
+                        yield MispGetIocCommand._record(
+                            serial_number, a['timestamp'], my_args['host'],
+                            a, attribute_names, encoder)
+                        serial_number += 1
+                        GeneratingCommand.flush
         else:
             if 'response' in response:
                 if 'Attribute' in response['response']:
@@ -464,6 +491,24 @@ class MispGetIocCommand(ReportingCommand):
             output_dict = {}
             # relevant_cat = ['Artifacts dropped', 'Financial fraud',
             # 'Network activity','Payload delivery','Payload installation']
+            attribute_names = [
+                'misp_attribute_id',
+                'misp_attribute_uuid',
+                'misp_category',
+                'misp_comment',
+                'misp_description',
+                'misp_event_id',
+                'misp_tag',
+                'misp_timestamp',
+                'misp_to_ids',
+                'misp_type',
+                'misp_value'
+            ]
+            for t in typelist:
+                misp_t = 'misp_' + \
+                    t.replace('-', '_').replace('|', '_p_')
+                if misp_t not in attribute_names:
+                    attribute_names.append(misp_t)
             for r in results:
                 if int(r['misp_object_id']) == 0:  # not an object
                     key = str(r['misp_event_id']) + \
@@ -485,21 +530,17 @@ class MispGetIocCommand(ReportingCommand):
                     v['misp_to_ids'].append(r['misp_to_ids'])
                     v['misp_category'] = []
                     v['misp_category'].append(r['misp_category'])
+                    v['misp_attribute_id'] = []
+                    v['misp_attribute_id']\
+                        .append(r['misp_attribute_id'])
                     if my_args['getuuid'] is True:
                         v['misp_attribute_uuid'] = []
                         v['misp_attribute_uuid']\
                             .append(r['misp_attribute_uuid'])
-                    v['misp_attribute_id'] = []
-                    v['misp_attribute_id']\
-                        .append(r['misp_attribute_id'])
                     if my_args['add_desc'] is True:
                         description = []
                         description.append(r['misp_description'])
                         v['misp_description'] = description
-                    if my_args['getuuid'] is True:
-                        attribute_uuid = []
-                        attribute_uuid.append(r['misp_attribute_uuid'])
-                        v['misp_attribute_uuid'] = attribute_uuid
                     if is_object_member is True:
                         v['misp_type'] = 'misp_object'
                         v['misp_value'] = r['misp_object_id']
@@ -532,8 +573,14 @@ class MispGetIocCommand(ReportingCommand):
                         v['misp_value'] = misp_value
                     output_dict[key] = dict(v)
 
+            serial_number = 0
+            logging.debug(json.dumps(attribute_names))
             for k, v in list(output_dict.items()):
-                yield v
+                yield MispGetIocCommand._record(
+                    serial_number, v['misp_timestamp'], my_args['host'],
+                    v, attribute_names, encoder)
+                serial_number += 1
+                GeneratingCommand.flush
 
 
 if __name__ == "__main__":
