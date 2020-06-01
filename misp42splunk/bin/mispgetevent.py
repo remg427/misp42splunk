@@ -464,6 +464,8 @@ class MispGetEventCommand(GeneratingCommand):
             body_dict['published'] = True
         elif self.published is False:
             body_dict['published'] = False
+        # Search parameters: boolean and filter
+        # manage enforceWarninglist
         if self.warning_list is True:
             body_dict['enforceWarninglist'] = True
         elif self.warning_list is False:

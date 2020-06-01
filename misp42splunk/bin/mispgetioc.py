@@ -322,6 +322,9 @@ class MispGetIocCommand(GeneratingCommand):
             page = 1
 
         # Search parameters: boolean and filter
+        # manage to_ids and enforceWarninglist
+        # to avoid FP enforceWarninglist is set to True if 
+        # to_ids is set to True (search criterion)
         if self.to_ids is True:
             body_dict['to_ids'] = True
             body_dict['enforceWarninglist'] = True  # protection
@@ -493,8 +496,6 @@ class MispGetIocCommand(GeneratingCommand):
             logging.info(json.dumps(typelist))
 
             output_dict = {}
-            # relevant_cat = ['Artifacts dropped', 'Financial fraud',
-            # 'Network activity','Payload delivery','Payload installation']
             attribute_names = [
                 'misp_attribute_id',
                 'misp_attribute_uuid',
