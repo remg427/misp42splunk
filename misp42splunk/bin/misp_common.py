@@ -117,7 +117,7 @@ def prepare_config(self, app_name):
         config_args['misp_url'] = misp_url
         logging.info("config_args['misp_url'] {}".format(config_args['misp_url']))
     else:
-        logging.error("misp_url must starts with HTTPS. Please set a valid misp_url")
+        logging.error("misp_url must start with HTTPS. Please set a valid misp_url")
         exit(1)
 
     if int(app_config['misp_verifycert']) == 1:
@@ -157,7 +157,7 @@ def prepare_config(self, app_name):
                 Please configure misp42splunk first.")
         if proxy:
             proxy_url = '://'
-            if proxy['proxy_username'] != '':
+            if proxy['proxy_username'] not in [None, '']:
                 proxy_url = proxy_url + proxy['proxy_username'] \
                     + ':' + proxy_password + '@'
             proxy_url = proxy_url + proxy['proxy_url'] + ':' \
