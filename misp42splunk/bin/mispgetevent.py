@@ -10,17 +10,21 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 import misp42splunk_declare
-
-from splunklib.searchcommands import dispatch, ReportingCommand, Configuration, Option, validators
-from misp_common import prepare_config, logging_level
+from collections import OrderedDict
+from itertools import chain
 import json
 import logging
+from misp_common import prepare_config, logging_level
 import requests
+from splunklib.searchcommands import dispatch, GeneratingCommand, Configuration, Option, validators
+from splunklib.searchcommands import splunklib_logger as logger
 import sys
+from splunklib.six.moves import map
+
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "3.1.11"
+__version__ = "3.2.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -164,12 +168,12 @@ def format_output_table(input_json, output_table, list_of_types,
                                                          object_id,
                                                          object_name,
                                                          object_comment))
-                    logging.debug('event UUID is %s', str(v['misp_event_uuid']))
+                    logging.debug(
+                        'event UUID is %s', str(v['misp_event_uuid']))
                     output_table.append(v)
 
 
-@Configuration(requires_preop=False)
-class MispGetEventCommand(ReportingCommand):
+class MispGetEventCommand(GeneratingCommand):
 
     """ get the attributes from a MISP instance.
     ##Syntax
@@ -319,16 +323,45 @@ class MispGetEventCommand(ReportingCommand):
         **Description:**Comma(,)-separated string of types to search for.
          Wildcard is %.''',
         require=False)
+    if output == 'raw':
+        gen_type = 'events'
+        retain_events = True
+        gen_streaming = False
+    else:
+        gen_type = 'reporting'
+        retain_events = False
+        gen_streaming = False
 
-    # @Configuration()
-    # def map(self, records):
-    # self.logging.debug('mispevent.map')
-    # return records
+    @staticmethod
+    def _record(serial_number, time_stamp, host, attributes, attribute_names, encoder):
 
-    def reduce(self, records):
+        raw = encoder.encode(attributes)
+        # Formulate record
+
+        if serial_number > 0:
+            attributes['_serial'] = serial_number
+            attributes['_time'] = time_stamp
+            attributes['_raw'] = raw
+            attributes['host'] = host
+            return attributes
+
+        record = OrderedDict(chain(
+            (('_serial', serial_number), ('_time', time_stamp),
+             ('_raw', raw), ('host', host)),
+            map(lambda name: (name, attributes.get(name, '')), attribute_names)))
+
+        return record
+
+    @Configuration(
+        retainsevents=retain_events,
+        type=gen_type,
+        streaming=gen_streaming,
+        distributed=False)
+    def generate(self):
 
         # Phase 1: Preparation
         my_args = prepare_config(self, 'misp42splunk')
+        my_args['host'] = my_args['misp_url'].replace('https://', '')
         my_args['misp_url'] = my_args['misp_url'] + '/events/restSearch'
 
         # check that ONE of mandatory fields is present
@@ -460,12 +493,20 @@ class MispGetEventCommand(ReportingCommand):
         # response is 200 by this point or we would have thrown an exception
         response = r.json()
 
+        encoder = json.JSONEncoder(ensure_ascii=False, separators=(',', ':'))
         if output == "raw":
             if 'response' in response:
                 for r_item in response['response']:
                     if 'Event' in r_item:
+                        attribute_names = ['_raw']
+                        serial_number = 1
                         for e in list(r_item.values()):
-                            yield e
+                            yield MispGetEventCommand._record(
+                                serial_number, e['timestamp'], my_args['host'],
+                                e, attribute_names, encoder)
+                        serial_number += 1
+                        GeneratingCommand.flush
+
         else:
 
             results = []
