@@ -157,7 +157,7 @@ def prepare_config(self, app_name):
                 Please configure misp42splunk first.")
         if proxy:
             proxy_url = '://'
-            if proxy['proxy_username'] != '':
+            if proxy['proxy_username'] not in [None, '']:
                 proxy_url = proxy_url + proxy['proxy_username'] \
                     + ':' + proxy_password + '@'
             proxy_url = proxy_url + proxy['proxy_url'] + ':' \

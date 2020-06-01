@@ -2,6 +2,15 @@ RELEASE NOTE
 ----------------------------------------------------------------------------
 
 for latest release check see more on https://github.com/remg427/misp42splunk
+Version 3.1.13 - June 2nd, 2020
+- update splunklib to 1.6.13
+- convert mispgetevant as GeneratingCommand
+- convert mispgetioc as GeneratingCommand
+- rename attribute 'threat_level_id' as 'misp_threat_level'
+- fix proxy settings when proxy_username is None
+- remove debug output on tags
+- fix typos
+
 Version 3.1.12 - May 21st, 2020
 - enforce HTTPS
 

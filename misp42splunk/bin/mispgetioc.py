@@ -20,13 +20,13 @@ import logging
 from misp_common import prepare_config, logging_level
 import requests
 from splunklib.searchcommands import dispatch, GeneratingCommand, Configuration, Option, validators
-from splunklib.searchcommands import splunklib_logger as logger
+# from splunklib.searchcommands import splunklib_logger as logger
 import sys
 from splunklib.six.moves import map
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "3.2.0"
+__version__ = "3.1.13"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -223,18 +223,22 @@ class MispGetIocCommand(GeneratingCommand):
 
         raw = encoder.encode(attributes)
         # Formulate record
+        fields = dict()
+        for f in attribute_names:
+            if f in attributes:
+                fields[f] = attributes[f]
 
         if serial_number > 0:
-            attributes['_serial'] = serial_number
-            attributes['_time'] = time_stamp
-            attributes['_raw'] = raw
-            attributes['host'] = host
-            return attributes
+            fields['_serial'] = serial_number
+            fields['_time'] = time_stamp
+            fields['_raw'] = raw
+            fields['host'] = host
+            return fields
 
         record = OrderedDict(chain(
             (('_serial', serial_number), ('_time', time_stamp),
              ('_raw', raw), ('host', host)),
-            map(lambda name: (name, attributes.get(name, '')), attribute_names)))
+            map(lambda name: (name, fields.get(name, '')), attribute_names)))
 
         return record
 
@@ -320,13 +324,13 @@ class MispGetIocCommand(GeneratingCommand):
         # Search parameters: boolean and filter
         if self.to_ids is True:
             body_dict['to_ids'] = True
-            body_dict['warning_list'] = True  # protection
+            body_dict['enforceWarninglist'] = True  # protection
         elif self.to_ids is False:
             body_dict['to_ids'] = False
         if self.warning_list is True:
-            body_dict['warning_list'] = True
+            body_dict['enforceWarninglist'] = True
         elif self.warning_list is False:
-            body_dict['warning_list'] = False
+            body_dict['enforceWarninglist'] = False
         if self.geteventtag is True:
             body_dict['includeEventTags'] = True
         if self.category is not None:
@@ -401,8 +405,8 @@ class MispGetIocCommand(GeneratingCommand):
         if my_args['output'] == "raw":
             if 'response' in response:
                 if 'Attribute' in response['response']:
-                    attribute_names = ['_raw']
-                    serial_number = 1
+                    attribute_names = []
+                    serial_number = 0
                     for a in response['response']['Attribute']:
                         yield MispGetIocCommand._record(
                             serial_number, a['timestamp'], my_args['host'],
