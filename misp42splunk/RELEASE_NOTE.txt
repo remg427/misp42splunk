@@ -2,6 +2,9 @@ RELEASE NOTE
 ----------------------------------------------------------------------------
 
 for latest release check see more on https://github.com/remg427/misp42splunk
+Version 3.2.0 - June 2nd, 2020
+- #148 new custom command mispcollect returns events
+
 Version 3.1.13 - June 2nd, 2020
 - #147 fix a bug on enforceWarninglist
 - add option warning_list for mispgetevent
