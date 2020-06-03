@@ -511,6 +511,8 @@ class MispGetIocCommand(GeneratingCommand):
                 'misp_type',
                 'misp_value'
             ]
+            if my_args['add_desc'] is True:
+                attribute_names.append('misp_event_info')
             for t in typelist:
                 misp_t = 'misp_' + \
                     t.replace('-', '_').replace('|', '_p_')
