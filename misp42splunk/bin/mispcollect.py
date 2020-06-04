@@ -20,7 +20,6 @@ from splunklib.searchcommands import dispatch, GeneratingCommand, Configuration,
 # from splunklib.searchcommands import splunklib_logger as logger
 import sys
 from splunklib.six.moves import map
-
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 __author__ = "Remi Seguy"
@@ -374,11 +373,11 @@ class MispCollectCommand(GeneratingCommand):
                         attribute_names = []
                         serial_number = 0
                         for e in list(r_item.values()):
+                            if keep_related is False:
+                                e.pop('RelatedEvent', None)
                             if serial_number == 0:
                                 for k in list(e.keys()):
                                     attribute_names.append(k)
-                            if keep_related is False:
-                                e.pop('RelatedEvent', None)
                             yield MispCollectCommand._record(
                                 serial_number, e['timestamp'], my_args['host'],
                                 e, attribute_names, encoder)
