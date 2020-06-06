@@ -19,14 +19,16 @@ import json
 import logging
 from misp_common import prepare_config, logging_level
 import requests
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from splunklib.searchcommands import dispatch, GeneratingCommand, Configuration, Option, validators
 # from splunklib.searchcommands import splunklib_logger as logger
 import sys
 from splunklib.six.moves import map
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "3.1.13"
+__version__ = "3.2.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -509,6 +511,8 @@ class MispGetIocCommand(GeneratingCommand):
                 'misp_type',
                 'misp_value'
             ]
+            if my_args['add_desc'] is True:
+                attribute_names.append('misp_event_info')
             for t in typelist:
                 misp_t = 'misp_' + \
                     t.replace('-', '_').replace('|', '_p_')

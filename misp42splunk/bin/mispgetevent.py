@@ -16,15 +16,16 @@ import json
 import logging
 from misp_common import prepare_config, logging_level
 import requests
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from splunklib.searchcommands import dispatch, GeneratingCommand, Configuration, Option, validators
 # from splunklib.searchcommands import splunklib_logger as logger
 import sys
 from splunklib.six.moves import map
-
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "3.1.13"
+__version__ = "3.2.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -344,15 +345,6 @@ class MispGetEventCommand(GeneratingCommand):
         **Description:**Boolean to filter out well known values.''',
         require=False, validate=validators.Boolean())
 
-    if output == 'raw':
-        gen_type = 'events'
-        retain_events = True
-        gen_streaming = False
-    else:
-        gen_type = 'reporting'
-        retain_events = False
-        gen_streaming = False
-
     @staticmethod
     def _record(
             serial_number, time_stamp, host, attributes,
@@ -539,7 +531,6 @@ class MispGetEventCommand(GeneratingCommand):
                                 e, attribute_names, encoder)
                         serial_number += 1
                         GeneratingCommand.flush
-
         else:
 
             events = []

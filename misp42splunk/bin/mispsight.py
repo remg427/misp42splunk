@@ -16,11 +16,15 @@ from misp_common import prepare_config, logging_level
 import json
 import logging
 import requests
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+# from splunklib.searchcommands import splunklib_logger as logger
 import sys
+from splunklib.six.moves import map
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "3.1.11"
+__version__ = "3.2.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
