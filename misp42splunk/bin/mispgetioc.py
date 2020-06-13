@@ -28,7 +28,7 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "3.2.0"
+__version__ = "3.2.1"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -221,9 +221,12 @@ class MispGetIocCommand(GeneratingCommand):
         require=False, validate=validators.Boolean())
 
     @staticmethod
-    def _record(serial_number, time_stamp, host, attributes, attribute_names, encoder):
+    def _record(
+            serial_number, time_stamp, host, attributes,
+            attribute_names, encoder, condensed=False):
 
-        raw = encoder.encode(attributes)
+        if condensed is False:
+            raw = encoder.encode(attributes)
         # Formulate record
         fields = dict()
         for f in attribute_names:
@@ -233,14 +236,21 @@ class MispGetIocCommand(GeneratingCommand):
         if serial_number > 0:
             fields['_serial'] = serial_number
             fields['_time'] = time_stamp
-            fields['_raw'] = raw
+            if condensed is False:
+                fields['_raw'] = raw
             fields['host'] = host
             return fields
 
-        record = OrderedDict(chain(
-            (('_serial', serial_number), ('_time', time_stamp),
-             ('_raw', raw), ('host', host)),
-            map(lambda name: (name, fields.get(name, '')), attribute_names)))
+        if condensed is False:
+            record = OrderedDict(chain(
+                (('_serial', serial_number), ('_time', time_stamp),
+                 ('_raw', raw), ('host', host)),
+                map(lambda name: (name, fields.get(name, '')), attribute_names)))
+        else:
+            record = OrderedDict(chain(
+                (('_serial', serial_number), ('_time', time_stamp),
+                 ('host', host)),
+                map(lambda name: (name, fields.get(name, '')), attribute_names)))
 
         return record
 
@@ -365,35 +375,33 @@ class MispGetIocCommand(GeneratingCommand):
             body_dict['tags'] = tags_criteria
 
         # output filter parameters
-        if self.getuuid is True:
-            my_args['getuuid'] = True
-        else:
-            my_args['getuuid'] = False
-        if self.getorg is True:
-            my_args['getorg'] = True
-        else:
-            my_args['getorg'] = False
-        if self.pipesplit is True:
-            my_args['pipe'] = True
-        else:
-            my_args['pipe'] = False
         if self.add_description is True:
             my_args['add_desc'] = True
         else:
             my_args['add_desc'] = False
+        if self.getorg is True:
+            my_args['getorg'] = True
+        else:
+            my_args['getorg'] = False
+        if self.getuuid is True:
+            my_args['getuuid'] = True
+        else:
+            my_args['getuuid'] = False
+        if self.pipesplit is True:
+            my_args['pipe'] = True
+        else:
+            my_args['pipe'] = False
         if self.output is not None:
             my_args['output'] = self.output
         else:
             my_args['output'] = "default"
 
-        results = []
         # add colums for each type in results
+        results = []
         typelist = []
-
         if pagination is True:
             body_dict['page'] = page
             body_dict['limit'] = limit
-
         body = json.dumps(body_dict)
         logging.debug('mispgetioc request body: %s', body)
         # search
@@ -404,13 +412,15 @@ class MispGetIocCommand(GeneratingCommand):
         # check if status is anything other than 200;
         # throw an exception if it is
         r.raise_for_status()
+
         # response is 200 by this point or we would have thrown an exception
         response = r.json()
         encoder = json.JSONEncoder(ensure_ascii=False, separators=(',', ':'))
+        # if raw output, returns JSON 1st-level keys as columns
         if my_args['output'] == "raw":
             if 'response' in response:
                 if 'Attribute' in response['response']:
-                    attribute_names = []
+                    attribute_names = list()
                     serial_number = 0
                     for a in response['response']['Attribute']:
                         yield MispGetIocCommand._record(
@@ -418,6 +428,7 @@ class MispGetIocCommand(GeneratingCommand):
                             a, attribute_names, encoder)
                         serial_number += 1
                         GeneratingCommand.flush
+        # default output: extract some values from JSON attributes
         else:
             if 'response' in response:
                 if 'Attribute' in response['response']:
@@ -497,27 +508,8 @@ class MispGetIocCommand(GeneratingCommand):
 
             logging.info(json.dumps(typelist))
 
+            # consolidate attribute values under output table
             output_dict = {}
-            attribute_names = [
-                'misp_attribute_id',
-                'misp_attribute_uuid',
-                'misp_category',
-                'misp_comment',
-                'misp_description',
-                'misp_event_id',
-                'misp_tag',
-                'misp_timestamp',
-                'misp_to_ids',
-                'misp_type',
-                'misp_value'
-            ]
-            if my_args['add_desc'] is True:
-                attribute_names.append('misp_event_info')
-            for t in typelist:
-                misp_t = 'misp_' + \
-                    t.replace('-', '_').replace('|', '_p_')
-                if misp_t not in attribute_names:
-                    attribute_names.append(misp_t)
             for r in results:
                 if int(r['misp_object_id']) == 0:  # not an object
                     key = str(r['misp_event_id']) + \
@@ -582,12 +574,21 @@ class MispGetIocCommand(GeneratingCommand):
                         v['misp_value'] = misp_value
                     output_dict[key] = dict(v)
 
+            # return output table
+            attribute_names = list()
+            init_attribute_names = True
             serial_number = 0
-            logging.debug(json.dumps(attribute_names))
-            for k, v in list(output_dict.items()):
+            for v in output_dict.values():
+                if init_attribute_names is True:
+                    for key in v.keys():
+                        if key not in attribute_names:
+                            attribute_names.append(key)
+                    attribute_names.sort()
+                    init_attribute_names = False
+                    logging.debug(json.dumps(attribute_names))
                 yield MispGetIocCommand._record(
                     serial_number, v['misp_timestamp'], my_args['host'],
-                    v, attribute_names, encoder)
+                    v, attribute_names, encoder, True)
                 serial_number += 1
                 GeneratingCommand.flush
 

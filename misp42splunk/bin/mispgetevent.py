@@ -75,25 +75,24 @@ def init_misp_output(event_dict, attr_dict, attr_names):
 def format_output_table(input_json, output_table, list_of_types,
                         getioc=False, pipesplit=False):
     if 'response' in input_json:
-        attribute_names = [
-            'misp_event_uuid',
-            'misp_event_id',
-            'misp_event_date',
-            'misp_timestamp',
-            'misp_event_info',
-            'misp_orgc_id',
-            'misp_attribute_count',
+        columns = [
             'misp_analysis',
-            'misp_threat_level',
+            'misp_attribute_count',
             'misp_distribution',
-            'misp_sharing_group_id',
-            'misp_extends_uuid',
+            'misp_event_date',
+            'misp_event_id',
+            'misp_event_info',
             'misp_event_published',
-            'misp_publish_timestamp',
+            'misp_event_uuid',
+            'misp_extends_uuid',
+            'misp_orgc_id',
             'misp_orgc_name',
             'misp_orgc_uuid',
+            'misp_publish_timestamp',
+            'misp_sharing_group_id',
             'misp_tag',
-            'misp_attribute_count'
+            'misp_threat_level',
+            'misp_timestamp',
         ]
         for r_item in input_json['response']:
             if 'Event' in r_item:
@@ -183,7 +182,7 @@ def format_output_table(input_json, output_table, list_of_types,
                     output_table.append(v)
 
         if output_table is not None:
-            return attribute_names
+            return columns
 
     return list()
 
@@ -348,9 +347,10 @@ class MispGetEventCommand(GeneratingCommand):
     @staticmethod
     def _record(
             serial_number, time_stamp, host, attributes,
-            attribute_names, encoder):
+            attribute_names, encoder, condensed=False):
 
-        raw = encoder.encode(attributes)
+        if condensed is False:
+            raw = encoder.encode(attributes)
         # Formulate record
         fields = dict()
         for f in attribute_names:
@@ -360,22 +360,24 @@ class MispGetEventCommand(GeneratingCommand):
         if serial_number > 0:
             fields['_serial'] = serial_number
             fields['_time'] = time_stamp
-            fields['_raw'] = raw
+            if condensed is False:
+                fields['_raw'] = raw
             fields['host'] = host
             return fields
 
-        record = OrderedDict(chain(
-            (('_serial', serial_number), ('_time', time_stamp),
-             ('_raw', raw), ('host', host)),
-            map(lambda name: (name, fields.get(name, '')), attribute_names)))
+        if condensed is False:
+            record = OrderedDict(chain(
+                (('_serial', serial_number), ('_time', time_stamp),
+                 ('_raw', raw), ('host', host)),
+                map(lambda name: (name, fields.get(name, '')), attribute_names)))
+        else:
+            record = OrderedDict(chain(
+                (('_serial', serial_number), ('_time', time_stamp),
+                 ('host', host)),
+                map(lambda name: (name, fields.get(name, '')), attribute_names)))
 
         return record
 
-    # @Configuration(
-    #     retainsevents=retain_events,
-    #     type=gen_type,
-    #     streaming=gen_streaming,
-    #     distributed=False)
     def generate(self):
 
         # Phase 1: Preparation
@@ -521,31 +523,22 @@ class MispGetEventCommand(GeneratingCommand):
         encoder = json.JSONEncoder(ensure_ascii=False, separators=(',', ':'))
         if output == "raw":
             if 'response' in response:
+                attribute_names = list()
+                serial_number = 0
                 for r_item in response['response']:
                     if 'Event' in r_item:
-                        attribute_names = ['_raw']
-                        serial_number = 1
-                        for e in list(r_item.values()):
+                        for e in r_item.values():
                             yield MispGetEventCommand._record(
                                 serial_number, e['timestamp'], my_args['host'],
                                 e, attribute_names, encoder)
                         serial_number += 1
                         GeneratingCommand.flush
         else:
-
+            # build output table and list of types
             events = []
-            # add colums for each type in results
             typelist = []
-
-            attribute_names = format_output_table(response, events, typelist,
-                                                  getioc, pipesplit)
-
-            if attribute_names is None:
-                attribute_names = ['_raw']
-            logging.info(
-                'attribute_names contains  %s values', str(len(typelist)))
-            logging.debug(
-                'attribute_names is:  %s', json.dumps(attribute_names))
+            column_list = format_output_table(response, events, typelist,
+                                              getioc, pipesplit)
             logging.info(
                 'typelist containss %s values', str(len(typelist)))
             logging.debug(
@@ -553,12 +546,21 @@ class MispGetEventCommand(GeneratingCommand):
             logging.info('results contains %s records', str(len(events)))
 
             if getioc is False:
+                attribute_names = list()
+                init_attribute_names = True
+                serial_number = 0
                 for e in events:
                     # logging.debug('event is %s', json.dumps(e))
-                    serial_number = 0
+                    if init_attribute_names is True:
+                        for key in e.keys():
+                            if key not in attribute_names:
+                                attribute_names.append(key)
+                        attribute_names.sort()
+                        init_attribute_names = False
+                        logging.debug(json.dumps(attribute_names))
                     yield MispGetEventCommand._record(
                         serial_number, e['misp_timestamp'],
-                        my_args['host'], e, attribute_names, encoder)
+                        my_args['host'], e, attribute_names, encoder, True)
                     serial_number += 1
                     GeneratingCommand.flush
             else:
@@ -568,14 +570,14 @@ class MispGetEventCommand(GeneratingCommand):
                         for a in e['Attribute']:
                             if int(a['misp_object_id']) == 0:  # not an object
                                 key = str(e['misp_event_id']) + '_' \
-                                    + a['misp_attribute_id']
+                                    + str(a['misp_attribute_id'])
                                 is_object_member = False
                             else:  # this is a  MISP object
                                 key = str(e['misp_event_id']) + \
                                     '_object_' + str(a['misp_object_id'])
                                 is_object_member = True
                             if key not in output_dict:
-                                v = init_misp_output(e, a, attribute_names)
+                                v = init_misp_output(e, a, column_list)
                                 for t in typelist:
                                     misp_t = 'misp_' \
                                         + t.replace('-', '_')\
@@ -619,32 +621,20 @@ class MispGetEventCommand(GeneratingCommand):
                                 output_dict[key] = dict(v)
 
                 if output_dict is not None:
-                    attribute_names.extend([
-                        'misp_attribute_id',
-                        'misp_attribute_tag',
-                        'misp_attribute_uuid',
-                        'misp_category',
-                        'misp_comment',
-                        'misp_description',
-                        'misp_event_id',
-                        'misp_tag',
-                        'misp_timestamp',
-                        'misp_to_ids',
-                        'misp_type',
-                        'misp_value'
-                    ])
-                    for t in typelist:
-                        misp_t = 'misp_' + \
-                            t.replace('-', '_').replace('|', '_p_')
-                        if misp_t not in attribute_names:
-                            attribute_names.append(misp_t)
-
+                    attribute_names = list()
+                    init_attribute_names = True
                     serial_number = 0
-                    logging.debug(json.dumps(attribute_names))
-                    for k, v in list(output_dict.items()):
+                    for v in output_dict.values():
+                        if init_attribute_names is True:
+                            for key in v.keys():
+                                if key not in attribute_names:
+                                    attribute_names.append(key)
+                            attribute_names.sort()
+                            init_attribute_names = False
+                            logging.debug(json.dumps(attribute_names))
                         yield MispGetEventCommand._record(
                             serial_number, v['misp_timestamp'],
-                            my_args['host'], v, attribute_names, encoder)
+                            my_args['host'], v, attribute_names, encoder, True)
                         serial_number += 1
                         GeneratingCommand.flush
 
