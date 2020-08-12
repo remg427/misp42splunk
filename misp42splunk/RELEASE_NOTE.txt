@@ -2,6 +2,11 @@ RELEASE NOTE
 ----------------------------------------------------------------------------
 
 for latest release check see more on https://github.com/remg427/misp42splunk
+Version 3.2.2 - June 13, 2020
+- cleanup on alert actions
+- fix eventid management (to edit event)
+- #156 issue with pipesplit=true
+
 Version 3.2.1 - June 13, 2020
 - #154 returns all keys from results
 - remove _raw when output=default to improve readibility

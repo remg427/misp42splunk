@@ -24,7 +24,7 @@ from io import open
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "3.1.11"
+__version__ = "3.2.2"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -45,8 +45,8 @@ def prepare_alert_config(helper):
     # open local/inputs.conf
     _SPLUNK_PATH = os.environ['SPLUNK_HOME']
     app_name = 'misp42splunk'
-    inputs_conf_file = _SPLUNK_PATH + os.sep + 'etc' + os.sep + 'apps' + \
-        os.sep + app_name + os.sep + 'local' + os.sep + 'inputs.conf'
+    inputs_conf_file = os.path.join(
+        _SPLUNK_PATH, 'etc', 'apps', app_name, 'local', 'inputs.conf')
     if os.path.exists(inputs_conf_file):
         input_conf = cli.readConfFile(inputs_conf_file)
         for name, content in list(input_conf.items()):
@@ -54,11 +54,9 @@ def prepare_alert_config(helper):
                 mispconf = content
                 helper.log_info(json.dumps(mispconf))
         if not mispconf:
-            helper.log_error("local/inputs.conf does not contain settings \
-                for stanza: {}".format(stanza_name))
+            helper.log_error("local/inputs.conf does not contain settings for stanza: {}".format(stanza_name))
     else:
-        helper.log_error("local/inputs.conf does not exist. \
-            Please configure misp instances first.")
+        helper.log_error("local/inputs.conf does not exist. Please configure misp instances first.")
     # get clear version of misp_key
     # get session key
     sessionKey = helper.settings['session_key']
@@ -83,9 +81,11 @@ def prepare_alert_config(helper):
     misp_url = mispconf['misp_url']
     if misp_url.startswith('https://'):
         config_args['misp_url'] = misp_url
-        helper.log_info("config_args['misp_url'] {}".format(config_args['misp_url']))
+        helper.log_info(
+            "config_args['misp_url'] {}".format(config_args['misp_url']))
     else:
-        helper.log_error("misp_url must starts with HTTPS. Please set a valid misp_url")
+        helper.log_error(
+            "misp_url must starts with HTTPS. Please set a valid misp_url")
         exit(1)
 
     helper.log_info("config_args['misp_url'] \
@@ -110,9 +110,10 @@ def prepare_alert_config(helper):
         proxy = helper.get_proxy()
         if proxy:
             proxy_url = '://'
-            if proxy['proxy_username'] is not '':
-                proxy_url = proxy_url + proxy['proxy_username'] + \
-                    ':' + proxy['proxy_password'] + '@'
+            if 'proxy_username' in proxy:
+                if proxy['proxy_username'] not in [None, '']:
+                    proxy_url = proxy_url + proxy['proxy_username'] + \
+                        ':' + proxy['proxy_password'] + '@'
             proxy_url = proxy_url + proxy['proxy_url'] + \
                 ':' + proxy['proxy_port'] + '/'
             config_args['proxies'] = {
@@ -180,9 +181,9 @@ def init_object_template(ot):
         # open object definition.json
         _SPLUNK_PATH = os.environ['SPLUNK_HOME']
         # open misp.conf
-        object_definition = _SPLUNK_PATH + os.sep + 'etc' + \
-            os.sep + 'apps' + os.sep + 'misp42splunk' + os.sep + \
-            'bin' + os.sep + ot + '_definition.json'
+        object_definition = os.path.join(
+            _SPLUNK_PATH, 'etc', 'apps', 'misp42splunk',
+            'bin', ot + '_definition.json')
         with open(object_definition) as json_object:
             od = json.load(json_object)
         return od
@@ -251,8 +252,8 @@ def prepare_misp_events(helper, config, results, event_list):
         # Value == 0: means create new event
         # Value <> 0: edit existing event
         eventid = config['eventid']  # from the alert conf
-        if 'eventid' in row:         # overwrites from the result row
-            eventid = str(row.pop('eventid'))
+        if eventid in row:         # overwrites from the result row
+            eventid = str(row.pop(eventid))
         helper.log_info("eventid is {}".format(eventid))
 
         # check if building event has been initiated
@@ -283,8 +284,7 @@ def prepare_misp_events(helper, config, results, event_list):
                 event['sharing_group_id'] = int(
                     row.pop('misp_sg_id'))  # "sharing_group_id": "optional",
             else:
-                helper.log_error("Distribution is set to Sharing Group \
-                    but no field misp_sg_id is provided")
+                helper.log_error("Distribution is set to Sharing Group but no field misp_sg_id is provided")
         attributes = list(event['Attribute'])
         objects = list(event['Object'])
         tags = list(event['Tag'])

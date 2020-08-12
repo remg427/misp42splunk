@@ -273,15 +273,11 @@ class MispGetIocCommand(GeneratingCommand):
             mandatory_arg = mandatory_arg + 1
 
         if mandatory_arg == 0:
-            logging.error('Missing "json_request", eventid", \
-                "last" or "date" argument')
-            raise Exception('Missing "json_request", "eventid", \
-                "last" or "date" argument')
+            logging.error('Missing "json_request", eventid", "last" or "date" argument')
+            raise Exception('Missing "json_request", "eventid", "last" or "date" argument')
         elif mandatory_arg > 1:
-            logging.error('Options "json_request", eventid", "last" \
-                and "date" are mutually exclusive')
-            raise Exception('Options "json_request", "eventid", "last" \
-                and "date" are mutually exclusive')
+            logging.error('Options "json_request", eventid", "last" and "date" are mutually exclusive')
+            raise Exception('Options "json_request", "eventid", "last" and "date" are mutually exclusive')
 
         body_dict = dict()
         # Only ONE combination was provided
@@ -513,7 +509,7 @@ class MispGetIocCommand(GeneratingCommand):
             for r in results:
                 if int(r['misp_object_id']) == 0:  # not an object
                     key = str(r['misp_event_id']) + \
-                        '_' + r['misp_attribute_id']
+                        '_' + str(r['misp_attribute_id'])
                     is_object_member = False
                 else:  # this is a  MISP object
                     key = str(r['misp_event_id']) \
@@ -522,8 +518,7 @@ class MispGetIocCommand(GeneratingCommand):
                 if key not in output_dict:
                     v = dict(r)
                     for t in typelist:
-                        misp_t = 'misp_' + t.replace('-', '_')\
-                            .replace('|', '_p_')
+                        misp_t = 'misp_' + t.replace('-', '_').replace('|', '_p_')
                         v[misp_t] = []
                         if t == r['misp_type']:
                             v[misp_t].append(r['misp_value'])
@@ -548,7 +543,7 @@ class MispGetIocCommand(GeneratingCommand):
                     output_dict[key] = dict(v)
                 else:
                     v = dict(output_dict[key])
-                    misp_t = 'misp_' + r['misp_type'].replace('-', '_')
+                    misp_t = 'misp_' + r['misp_type'].replace('-', '_').replace('|', '_p_')
                     v[misp_t].append(r['misp_value'])  # set value for type
                     v['misp_to_ids'].append(r['misp_to_ids'])
                     v['misp_category'].append(r['misp_category'])
@@ -562,15 +557,15 @@ class MispGetIocCommand(GeneratingCommand):
                         if r['misp_description'] not in description:
                             description.append(r['misp_description'])
                         v['misp_description'] = description
-                    v['misp_attribute_id']\
-                        .append(r['misp_attribute_id'])
+                    if r['misp_attribute_id'] not in v['misp_attribute_id']:
+                        v['misp_attribute_id'].append(r['misp_attribute_id'])
                     if my_args['getuuid'] is True:
-                        v['misp_attribute_uuid']\
-                            .append(r['misp_attribute_uuid'])
+                        if r['misp_attribute_uuid'] not in v['misp_attribute_uuid']:
+                            v['misp_attribute_uuid'].append(r['misp_attribute_uuid'])
                     if is_object_member is False:
                         misp_type = r['misp_type'] + '|' + v['misp_type']
                         v['misp_type'] = misp_type
-                        misp_value = r['misp_value'] + '|' + v['misp_value']
+                        misp_value = str(r['misp_value']) + '|' + str(v['misp_value'])
                         v['misp_value'] = misp_value
                     output_dict[key] = dict(v)
 
