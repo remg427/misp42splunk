@@ -77,8 +77,9 @@ you can also use this example (thanks @xg-simon for sharing):
 
 ## Usage
 - custom commands
-    * [mispgetioc](docs/mispgetioc.md) reporting command leveraging /attributes/restSearch endpoint
-    * [mispgetevent](docs/mispapireport.md) reporting command leveraging /events/restSearch endpoint
+    * [mispgetioc](docs/mispgetioc.md) Generating command leveraging /attributes/restSearch endpoint
+    * [mispgetevent](docs/mispgetevent.md) Generating command leveraging /events/restSearch endpoint
+    * [mispcollect](docs/mispcollect.md) Generating command for events leveraging /attributes/restSearch or /events/restSearch endpoints
     * [mispsearch](docs/mispsearch.md) streaming command
     * [mispsight](docs/mispsight.md) streaming command
 - Splunk alert actions to [update MISP](docs/mispalerts.md)
