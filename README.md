@@ -5,11 +5,11 @@ The TA is designed to be easy to install, set up and maintain using the Splunk G
 
 ## Usage  
 1. MISP to SPLUNK (custom commands):  
- **`| mispgetioc misp_instance=default_misp _params_ | ...`** gets MISP event attributes into Splunk search pipeline.  
- **`| mispgetevent misp_instance=default_misp _params_ | ...`** gets MISP events into Splunk search pipeline using direct calls of the API.   
+ **`| mispgetioc misp_instance=default_misp _params_ | ...`** gets MISP event attributes into Splunk search pipeline as lookup.  
+ **`| mispgetevent misp_instance=default_misp _params_ | ...`** gets MISP events into Splunk search pipeline as lookup.   
+ **`| mispcollect misp_instance=default_misp _params_ | ...`** gets MISP attributes or events into Splunk as events with complete mapping.   
  **`search ... |mispsearch misp_instance=default_misp field=myvalue | ...`** searches for matching attributes in MISP.  
  **`search ... |mispsight  misp_instance=default_misp field=myvalue | ...`** gets sighting information for a specific value (note that if there is FP, only first hit is returned)
- ** IMPORTANT ** mispapireport has been replaced by mispgetioc (use json_request=)
 
 2. MISP for SPLUNK: 2 Splunk alert actions are available          
  * one action to create new events or **edit** existing ones if you provide an eventid (or UUID). This allows to contribute to misp event(s) across several alert triggers.
@@ -45,11 +45,14 @@ Fresh IOC from MISP > saved searches in Splunk
 If you have output of analysis pushed to Splunk you may automate the creation of events
 Log on sandboxing output > saved search to qualify, sanitize (dedup remove top Alexa, etc.) and prepare the table (misp_*, fo_*, eo_* and no_*) > set a splunk alert to create event(s) in MISP
 * Only fields prefixed with misp_ (or fo_ for file objects, eo_ for email objects, no_ for domain-ip objects) are imported
+* **NEW in >=3.2.2** additional fields can be added to MISP event by editing lookup/misp_datatypes.csv see [this sample](README/misp_datatypes.csv.sample). This will improve compatibility with Enterprise Security Adaptative response
 * Advise: for objects, verify the name of the fields to be created [Object definitions](https://github.com/MISP/misp-objects/tree/master/objects)
 * If you provide an eventid, that event is updated with attributes and objects instead of creating a new one. **WARNING** apparently the **API does create duplicate objects** if you submit several time the same inputs.
 
 ### Sighting in MISP based on Splunk alerts
 Search for attributes values/uuids in Splunk > alert to increment sighting counters (standard,false positive,expiration) in MISP for those values/uuids 
+
+NEW in >=3.2.2: you can record the source of sighting in alert configuration (static string or inline field)
 
 ### Saved searches and Enterprise Security App
 Several saved searches are provided to easily create KV store lookups which can be used later. The default behaviour is to append new event attributes to the KV store but you may switch to replace it.
