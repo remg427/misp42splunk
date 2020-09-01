@@ -3,8 +3,8 @@
 This custom command must be the first of a search (or a sub-search).
 
 The results are displayed
- - in JSON (output=json): each event is returned as a row
- - or a table (output=table) that contains:  
+ - in JSON (output=raw): each event is returned as a row
+ - or a table (output=default or nothing) that contains:  
 
 - always following fields = ['misp_event_id', 'misp_orgc_id', 'misp_event_date', 'threat_level_id', 'misp_event_info', 'misp_event_published', 'misp_event_uuid', 'misp_attribute_count', 'misp_analysis', 'misp_timestamp', 'misp_distribution', 'misp_publish_timestamp', 'misp_sharing_group_id', 'misp_extends_uuid', 'misp_orgc_name', 'misp_orgc_uuid', 'misp_tag', 'misp_attribute_count' ]
 - if object_id is not equal 0, object attributes are displayed on the same row and field type is set to object, value to object_id
@@ -14,18 +14,18 @@ So the output can be immediately reused in a search without complex transforms
 
 The command syntax is as follow:
 
-    |mispgetevent **[misp_instance=instance_name] ( [json_request=@JSON] [eventid=id] | [last=interval]  | [date="YYYY-mm-dd"] )**
-                [getioc=bool]
-                [page=int]
-                [limit=int]
-                [category="CSV_string"]
-                [type="CSV_string"]
-                [tags="CSV_string"]
-                [output=(default|raw)
-                [not_tags="CSV_string"]
-                [pipesplit=bool]
-                [published]
-
+    |mispgetevent **[misp_instance=instance_name] ( [json_request=@JSON] [eventid=(uu)id] | [last=interval]  | [date="YYYY-mm-dd"] )**
+           category = string (comma-separated)
+           getioc = boolean
+           limit = string (comma-separated)
+           not_tags = string (comma-separated)
+           output = (default|raw)")
+           page = string (comma-separated)
+           pipesplit = boolean
+           published = boolean
+           tags = string (comma-separated)
+           type = string (comma-separated)
+           warning_list = boolean
 
 - You must set either parameter 'json_request' 'eventid', 'last' or 'date'
     + eventid is either a single value (event_id on the instance, uuid) or a comma-separated list of values. You can mix event_ids and event uuids.
@@ -35,7 +35,7 @@ The command syntax is as follow:
 ## examples
 one example:
 
-    |mispgetevent misp_instance=default_misp eventid=477 category="Payload delivery,Network activity,External analysis" type="sha256,domain,ip-dst,text"
+    | mispgetevent misp_instance=default_misp eventid=477 category="Payload delivery,Network activity,External analysis" type="sha256,domain,ip-dst,text"
 
 will return the following columns
 
@@ -60,16 +60,9 @@ will return events with all top level fields (minimum breakdown)
 ## logging
 in the app, you can set the logging level. logs are written to search.log (access via inspect jobs).
 
-#All parameters
-** Only one parameter out of json_request, last, eventid, date must be passed **
-## specific paramters for mispgetevent
-| mispgetevent status | param name | values (example) | description |
-| --- | --- | --- | --- |
-| mandatory param | misp_instance | | MISP instance parameters as described in local/inputs.conf. |
-| optional param | json_request | valid JSON request | the same JSON request as on MISP API |
-| optional param | pipesplit | boolean | split multivalue attributes into 2 attributes. |
+# All parameters
 
-## all parameters
+   # MANDATORY MISP instance for this search
     misp_instance = Option(
         doc='''
         **Syntax:** **misp_instance=instance_name*
@@ -101,59 +94,64 @@ in the app, you can set the logging level. logs are written to search.log (acces
          and **date** are mutually exclusive''',
         require=False)
     # Other params
-    getioc = Option(
-        doc='''
-        **Syntax:** **getioc=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
-        **Description:**Boolean to return the list of attributes
-         together with the event.''',
-        require=False, validate=validators.Boolean())
-    page = Option(
-        doc='''
-        **Syntax:** **page=***<int>*
-        **Description:**define the page for each MISP search; default 1.''',
-        require=False, validate=validators.Match("limit", r"^[0-9]+$"))
-    limit = Option(
-        doc='''
-        **Syntax:** **limit=***<int>*
-        **Description:**define the limit for each MISP search; default 1000.
-         0 = no pagination.''',
-        require=False, validate=validators.Match("limit", r"^[0-9]+$"))
-    type = Option(
-        doc='''
-        **Syntax:** **type=***CSV string*
-        **Description:**Comma(,)-separated string of types to search for.
-         Wildcard is %.''',
-        require=False)
     category = Option(
         doc='''
         **Syntax:** **category=***CSV string*
         **Description:**Comma(,)-separated string of categories to search for.
          Wildcard is %.''',
         require=False)
-    tags = Option(
+    getioc = Option(
         doc='''
-        **Syntax:** **tags=***CSV string*
-        **Description:**Comma(,)-separated string of tags to search for.
-         Wildcard is %.''',
-        require=False)
+        **Syntax:** **getioc=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
+        **Description:**Boolean to return the list of attributes
+         together with the event.''',
+        require=False, validate=validators.Boolean())
+    limit = Option(
+        doc='''
+        **Syntax:** **limit=***<int>*
+        **Description:**define the limit for each MISP search; default 1000.
+         0 = no pagination.''',
+        require=False, validate=validators.Match("limit", r"^[0-9]+$"))
     not_tags = Option(
         doc='''
         **Syntax:** **not_tags=***CSV string*
         **Description:**Comma(,)-separated string of tags to exclude.
          Wildcard is %.''',
         require=False)
-    published = Option(
-        doc='''
-        **Syntax:** **published=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
-        **Description:**select only published events (for option from to) .''',
-        require=False, validate=validators.Boolean())
-    pipesplit = Option(
-        doc='''
-        **Syntax:** **pipesplit=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
-        **Description:**Boolean to split multivalue attributes.''',
-        require=False, validate=validators.Boolean())
     output = Option(
         doc='''
         **Syntax:** **output=***<default|rawy>*
         **Description:**selection between a tabular or JSON output.''',
         require=False, validate=validators.Match("output", r"(default|raw)"))
+    page = Option(
+        doc='''
+        **Syntax:** **page=***<int>*
+        **Description:**define the page for each MISP search; default 1.''',
+        require=False, validate=validators.Match("limit", r"^[0-9]+$"))
+    pipesplit = Option(
+        doc='''
+        **Syntax:** **pipesplit=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
+        **Description:**Boolean to split multivalue attributes.''',
+        require=False, validate=validators.Boolean())
+    published = Option(
+        doc='''
+        **Syntax:** **published=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
+        **Description:**select only published events (for option from to) .''',
+        require=False, validate=validators.Boolean())
+    tags = Option(
+        doc='''
+        **Syntax:** **tags=***CSV string*
+        **Description:**Comma(,)-separated string of tags to search for.
+         Wildcard is %.''',
+        require=False)
+    type = Option(
+        doc='''
+        **Syntax:** **type=***CSV string*
+        **Description:**Comma(,)-separated string of types to search for.
+         Wildcard is %.''',
+        require=False)
+    warning_list = Option(
+        doc='''
+        **Syntax:** **warning_list=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
+        **Description:**Boolean to filter out well known values.''',
+        require=False, validate=validators.Boolean())
