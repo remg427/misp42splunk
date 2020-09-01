@@ -6,6 +6,9 @@ Version 3.2.2 - June 13, 2020
 - cleanup on alert actions
 - fix eventid management (to edit event)
 - #156 issue with pipesplit=true
+- alert create event: add lookup/misp_datatypes.csv to add additional fields to MISP events (improve CIM compatibility)
+- #158 sighting alert add source field.
+
 
 Version 3.2.1 - June 13, 2020
 - #154 returns all keys from results

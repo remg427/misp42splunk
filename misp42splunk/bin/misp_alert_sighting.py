@@ -52,19 +52,25 @@ class AlertActionWorkermisp_alert_sighting(ModularAlertBase):
                 **kwargs
             )
         except (AttributeError, TypeError) as ae:
+            # self.log_error(
+            #     "Error: {}. Please double check spelling and also verify that \
+            #     a compatible version of Splunk_SA_CIM \
+            #     is installed.".format(ae.message)
+            # )
             self.log_error(
                 "Error: {}. Please double check spelling and also verify that \
                 a compatible version of Splunk_SA_CIM \
-                is installed.".format(ae.message)
+                is installed.".format(ae)
             )
             return 4
         except Exception as e:
             msg = "Unexpected error: {}."
-            if e.message:
-                self.log_error(msg.format(e.message))
-            else:
-                import traceback
-                self.log_error(msg.format(traceback.format_exc()))
+            self.log_error(msg.format(e))
+            # if e.message:
+            #     self.log_error(msg.format(e.message))
+            # else:
+            #     import traceback
+            #     self.log_error(msg.format(traceback.format_exc()))
             return 5
         return status
 

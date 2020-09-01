@@ -218,6 +218,7 @@ def create_alert(helper, config, results):
     tslabel = config['unique']
     source = config['source']
 
+    helper.log_info("[AS302] sighting mode is {}".format(mode))
     if mode == 'byvalue':
         sightings = group_values(helper, results, tslabel, default_ts, source, sighting_type)
     else:
@@ -240,6 +241,7 @@ def create_alert(helper, config, results):
 
             if 'uuid' in row:
                 value = row['uuid']
+                helper.log_info("[AS303] sighting uuid {}".format(value))
                 if value not in [None, '']:
                     # keep only first uuid in mv field (see #74)
                     value = value.splitlines()[0]
@@ -249,7 +251,8 @@ def create_alert(helper, config, results):
                         timestamp=timestamp,
                         type=sighting_type
                     )
-                    sightings.append(sightings)
+                    helper.log_debug("[AS304] sighting is {}".format(sighting))
+                    sightings.append(sighting)
 
     # set proper headers
     headers = {'Content-type': 'application/json'}
@@ -257,9 +260,9 @@ def create_alert(helper, config, results):
     headers['Accept'] = 'application/json'
 
     # iterate in dict events to create events
-    for sighting in list(sightings.items()):
+    for sighting in sightings:
         payload = json.dumps(sighting)
-
+        helper.log_debug("[AS301] sighting body has been prepared {}".format(payload))
         # byvalue: sighting contains
         # {"timestamp": timestamp, "values":["value1", "value2,etc. "]}
         # byuuid:  sighting contains
