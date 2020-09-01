@@ -129,6 +129,7 @@ Please configure misp instances first.")
     # Get string values from alert form
     config_args['mode'] = str(helper.get_param("mode"))
     config_args['type'] = int(helper.get_param("type"))
+    config_args['source'] = str(helper.get_param("source"))
     if not helper.get_param("unique"):
         config_args['unique'] = "no_timestamp_field"
     else:
@@ -140,11 +141,12 @@ Please configure misp instances first.")
     return config_args
 
 
-def group_values(helper, r, tslabel, ds):
+def group_values(helper, r, tslabel, ds, source, sighting_type):
     # mode byvalue:
     # iterate through each row, cleaning multivalue fields and then
     # adding the values under same timestamp; this builds the dict sightings
-    sightings = {}
+    data_collection = dict()
+    source_collection = dict()
     for row in r:
 
         # Splunk makes a bunch of dumb empty multivalue fields
@@ -152,34 +154,47 @@ def group_values(helper, r, tslabel, ds):
         row = {key: value for key, value in list(row.items()) if not key.startswith("__mv_")}
 
         # Get the timestamp as string to group values and remove from row
+        timestamp = str(ds)
         if tslabel in row:
-            timestamp = str(int(row.pop(tslabel)))
-        else:
-            timestamp = ds
-
+            try:
+                timestamp = str(int(row.pop(tslabel)))
+            except ValueError:
+                pass
+        if source in row:
+            newSource = str(row.pop(source))
+            if newSource not in [None, '']:
+                # grabs that field's value and assigns it to source
+                source = newSource
+        source_collection[timestamp] = source
         # check if building sighting has been initiated
         # if yes simply add attribute entry otherwise collect other metadata
-        if timestamp in sightings:
-            data = sightings[timestamp]
+        if timestamp in data_collection:
+            data = data_collection[timestamp]
         else:
             data = []
-
         # now we take remaining KV pairs on the line to add data to list
         for key, value in list(row.items()):
             if value not in [None, '']:
                 if '\n' in value:  # was a multivalue field
-                    helper.log_debug(
-                        'value is not a simple string {}'.format(value))
                     values = value.splitlines()
                     for val in values:
-                        if val != "" and val not in data:
+                        if val not in [None, ''] and val not in data:
                             data.append(str(val))
                 else:
-                    helper.log_debug('key %s value %s' % (key, value))
-                    data.append(str(value))
+                    if value not in data:
+                        data.append(str(value))
 
-        sightings[timestamp] = data
+        data_collection[timestamp] = data
 
+    sightings = list()
+    for ts, data in list(data_collection.items()):
+        sighting = dict(
+            timestamp=int(ts),
+            values=data,
+            source=source_collection[ts],
+            type=sighting_type
+        )
+        sightings.append(sighting)
     return sightings
 
 
@@ -199,26 +214,42 @@ def create_alert(helper, config, results):
     #   mode byuuid:  adding attribute uuid(s) under same timestamp
     # this builds the dict sightings
     # Get field name containing timestamps for sighting - defined in alert
-    defaulttimestamp = str(int(time.time()))
+    default_ts = int(time.time())
     tslabel = config['unique']
+    source = config['source']
 
     if mode == 'byvalue':
-        sightings = group_values(helper, results, tslabel, defaulttimestamp)
+        sightings = group_values(helper, results, tslabel, default_ts, source, sighting_type)
     else:
         # Get the timestamp as string to group values and remove from row
-        sightings = {}
+        sightings = list()
         for row in results:
             if tslabel in row:
-                timestamp = str(int(row.pop(tslabel)))
+                try:
+                    timestamp = int(row.pop(tslabel))
+                except ValueError:
+                    timestamp = default_ts
             else:
-                timestamp = defaulttimestamp
+                timestamp = default_ts
+
+            if config['source'] in row:
+                newSource = str(row.pop(config['source']))
+                if newSource not in [None, '']:
+                    # grabs that field's value and assigns it to source
+                    source = newSource
 
             if 'uuid' in row:
                 value = row['uuid']
                 if value not in [None, '']:
                     # keep only first uuid in mv field (see #74)
                     value = value.splitlines()[0]
-                    sightings[value] = timestamp
+                    sighting = dict(
+                        id=value,
+                        source=source,
+                        timestamp=timestamp,
+                        type=sighting_type
+                    )
+                    sightings.append(sightings)
 
     # set proper headers
     headers = {'Content-type': 'application/json'}
@@ -226,26 +257,15 @@ def create_alert(helper, config, results):
     headers['Accept'] = 'application/json'
 
     # iterate in dict events to create events
-    for key, data in list(sightings.items()):
-        if mode == 'byvalue':
-            sighting = json.dumps(dict(
-                timestamp=int(key),
-                values=data,
-                type=sighting_type
-            ))
-        else:
-            sighting = json.dumps(dict(
-                timestamp=int(data),
-                id=key,
-                type=sighting_type
-            ))
+    for sighting in list(sightings.items()):
+        payload = json.dumps(sighting)
 
         # byvalue: sighting contains
         # {"timestamp": timestamp, "values":["value1", "value2,etc. "]}
         # byuuid:  sighting contains
         # {"timestamp": timestamp, "uuid":"uuid_value"}
         r = requests.post(
-            misp_url, headers=headers, data=sighting,
+            misp_url, headers=headers, data=payload,
             verify=misp_verifycert, cert=client_cert, proxies=proxies)
         # check if status is anything other than 200;
         # throw an exception if it is
@@ -307,11 +327,11 @@ def process_event(helper, *args, **kwargs):
     """
 
     helper.set_log_level(helper.log_level)
-    helper.log_info("Alert action misp_alert_sighting started.")
+    helper.log_info("[AS101] Alert action misp_alert_sighting started.")
 
     # TODO: Implement your alert action logic here
     config = prepare_alert_config(helper)
-    helper.log_info("config dict is ready to use")
+    helper.log_info("[AS102] config dict is ready to use")
 
     filename = config['filename']
     if os.path.exists(filename):
@@ -331,12 +351,11 @@ def process_event(helper, *args, **kwargs):
             # regular csv reader and zipping the dict manually later at
             # least, in theory
             reader = csv.DictReader(fh)
-            helper.log_debug("Reader is {}".format(reader))
             create_alert(helper, config, reader)
         # something went wrong with opening the results file
         else:
             helper.log_error(
-                "FATAL Results file exists but could not be opened or read")
+                "[AS102] FATAL Results file exists but could not be opened or read")
             return 2
 
     return 0

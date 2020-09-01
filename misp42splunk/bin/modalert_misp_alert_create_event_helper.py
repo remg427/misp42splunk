@@ -35,6 +35,44 @@ __email__ = "remg427@gmail.com"
 
 
 # encoding = utf-8
+
+def get_datatype_dict(helper, config, app_name):
+    datatype_dict = dict()
+    _SPLUNK_PATH = os.environ['SPLUNK_HOME']
+    directory = os.path.join(
+        _SPLUNK_PATH, 'etc', 'apps', app_name, 'lookups'
+    )
+    helper.log_debug("[HC301]---: {} ".format(directory))
+    dt_filename = os.path.join(directory, 'misp_datatypes.csv')
+    if os.path.exists(dt_filename):
+        try:
+            # open the file with gzip lib, start making alerts
+            # can with statements fail gracefully??
+            fh = open(dt_filename, "rt")
+            helper.log_debug(
+                "[HC302] file {} is open with first try".format(dt_filename)
+            )
+        except ValueError:
+            # Workaround for Python 2.7 under Windows
+            fh = gzip.open(dt_filename, "r")
+            helper.log_debug(
+                "[HC303] file {} is open with alternate".format(dt_filename)
+            )
+        if fh is not None:
+            try:
+                csv_reader = csv.DictReader(fh)
+                for row in csv_reader:
+                    if 'field_name' in row and 'field_type' in row:
+                        if row['field_type'] == 'attribute':
+                            datatype_dict[row['field_name']] = row['datatype']
+                helper.log_info("[HC304] datatype_dict built from misp_datatypes.csv")
+            except IOError:  # file misp_datatypes.csv not readable
+                helper.log_error('[HC305] file {} empty, malformed or not readable'.format(
+                    dt_filename
+                ))
+    return datatype_dict
+
+
 def prepare_alert_config(helper):
     config_args = dict()
     # get MISP instance to be used
@@ -224,6 +262,7 @@ def prepare_misp_events(helper, config, results, event_list):
         'Attribute': [],
         'Object': []
     }
+    data_type = get_datatype_dict(helper, config, 'misp42splunk')
     # tag the event with TLP level
     tags = [{'name': config['tlp']}, {'name': config['pap']}]
     # Add tags set in alert definition
@@ -323,9 +362,42 @@ def prepare_misp_events(helper, config, results, event_list):
 
         # now we take KV pairs starting by misp_
         # to add to event as single attribute(s)
+        fo_template = init_object_template('file')
+        fo_attribute = []
+        eo_template = init_object_template('email')
+        eo_attribute = []
+        no_template = init_object_template('domain-ip')
+        no_attribute = []
         for key, value in list(row.items()):
             if key.startswith("misp_") and value != "":
                 misp_key = str(key).replace('misp_', '').replace('_', '-')
+                attributes.append(store_attribute(misp_key, str(value),
+                                  to_ids=to_ids, category=category,
+                                  attribute_tag=attribute_tag,
+                                  comment=comment))
+            elif key.startswith("fo_") and value != "":
+                fo_key = str(key).replace('fo_', '').replace('_', '-')
+                object_attribute = store_object_attribute(
+                    fo_template['attributes'], fo_key, str(value),
+                    attribute_tag=attribute_tag)
+                if object_attribute:
+                    fo_attribute.append(object_attribute)
+            elif key.startswith("eo_") and value != "":
+                eo_key = str(key).replace('eo_', '').replace('_', '-')
+                object_attribute = store_object_attribute(
+                    eo_template['attributes'], eo_key, str(value),
+                    attribute_tag=attribute_tag)
+                if object_attribute:
+                    eo_attribute.append(object_attribute)
+            elif key.startswith("no_") and value != "":
+                no_key = str(key).replace('no_', '').replace('_', '-')
+                object_attribute = store_object_attribute(
+                    no_template['attributes'], no_key, str(value),
+                    attribute_tag=attribute_tag)
+                if object_attribute:
+                    no_attribute.append(object_attribute)
+            elif key in data_type:
+                misp_key = data_type[key]
                 attributes.append(store_attribute(misp_key, str(value),
                                   to_ids=to_ids, category=category,
                                   attribute_tag=attribute_tag,
@@ -336,35 +408,6 @@ def prepare_misp_events(helper, config, results, event_list):
 
         # now we look for attribute belonging to anobject i.e.
         # on the same row, field(s) start(s) with no_, eo_ or no_
-        fo_template = init_object_template('file')
-        fo_attribute = []
-        eo_template = init_object_template('email')
-        eo_attribute = []
-        no_template = init_object_template('domain-ip')
-        no_attribute = []
-        for key, value in list(row.items()):
-            if key.startswith("fo_") and value != "":
-                fo_key = str(key).replace('fo_', '').replace('_', '-')
-                object_attribute = store_object_attribute(
-                    fo_template['attributes'], fo_key, str(value),
-                    attribute_tag=attribute_tag)
-                if object_attribute:
-                    fo_attribute.append(object_attribute)
-            if key.startswith("eo_") and value != "":
-                eo_key = str(key).replace('eo_', '').replace('_', '-')
-                object_attribute = store_object_attribute(
-                    eo_template['attributes'], eo_key, str(value),
-                    attribute_tag=attribute_tag)
-                if object_attribute:
-                    eo_attribute.append(object_attribute)
-            if key.startswith("no_") and value != "":
-                no_key = str(key).replace('no_', '').replace('_', '-')
-                object_attribute = store_object_attribute(
-                    no_template['attributes'], no_key, str(value),
-                    attribute_tag=attribute_tag)
-                if object_attribute:
-                    no_attribute.append(object_attribute)
-
         if fo_attribute:
             new_object = {
                 'template_version': fo_template['version'],
@@ -376,7 +419,6 @@ def prepare_misp_events(helper, config, results, event_list):
                 'Attribute': fo_attribute
             }
             objects.append(new_object)
-
         if eo_attribute:
             new_object = {
                 'template_version': eo_template['version'],
@@ -388,7 +430,6 @@ def prepare_misp_events(helper, config, results, event_list):
                 'Attribute': eo_attribute
             }
             objects.append(new_object)
-
         if no_attribute:
             new_object = {
                 'template_version': no_template['version'],
@@ -405,7 +446,6 @@ def prepare_misp_events(helper, config, results, event_list):
 
         # update event defintion
         events[eventkey] = event
-
     # events are prepared; now return them
     return events
 
@@ -447,8 +487,7 @@ def process_misp_events(helper, config, results, event_list):
             edit_body['Attribute'] = results[eventkey]['Attribute']
             edit_body['Object'] = results[eventkey]['Object']
             body = json.dumps(edit_body)
-            helper.log_info("edit body has been prepared for eventid \
-                {}".format(event_list[eventkey]))
+            helper.log_info("edit body has been prepared for eventid {}".format(event_list[eventkey]))
             # POST json data to create events
             r = requests.post(misp_url_edit, headers=headers, data=body,
                               verify=misp_verifycert, cert=client_cert,
