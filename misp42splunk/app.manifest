@@ -5,7 +5,7 @@
     "id": {
       "group": null,
       "name": "misp42splunk",
-      "version": "3.2.2"
+      "version": "3.2.3"
     },
     "author": [
       {
@@ -14,7 +14,7 @@
         "company": null
       }
     ],
-    "releaseDate": "2020-09-01",
+    "releaseDate": "2020-09-17",
     "description": "",
     "classification": {
       "intendedAudience": null,
