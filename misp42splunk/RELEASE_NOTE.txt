@@ -2,6 +2,21 @@ RELEASE NOTE
 ----------------------------------------------------------------------------
 
 for latest release check see more on https://github.com/remg427/misp42splunk
+Version 3.2.3 - Sept 17, 2020
+- move lib under bin for solving logging issuess
+
+Version 3.2.2 - Sept 1, 2020
+- cleanup on alert actions
+- fix eventid management (to edit event)
+- #156 issue with pipesplit=true
+- alert create event: add lookup/misp_datatypes.csv to add additional fields to MISP events (improve CIM compatibility)
+- #158 sighting alert add source field.
+
+
+Version 3.2.1 - June 13, 2020
+- #154 returns all keys from results
+- remove _raw when output=default to improve readibility
+
 Version 3.2.0 - June 2nd, 2020
 - #148 new custom command mispcollect returns events
 
