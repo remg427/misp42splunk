@@ -3,6 +3,7 @@ import input_module_misp as input_module
 from io import open
 import json
 import os
+import shutil
 import sys
 import modinput_wrapper.base_modinput
 from splunklib import modularinput as smi
@@ -57,7 +58,7 @@ class ModInputmisp(modinput_wrapper.base_modinput.BaseModInput):
         scheme.add_argument(
             smi.Argument(
                 "misp_url", title="MISP url",
-                description="provide MISP URL. Do not end with a /",
+                description="provide base MISP URL starting with https://",
                 required_on_create=True,
                 required_on_edit=False
             )
@@ -142,10 +143,7 @@ class ModInputmisp(modinput_wrapper.base_modinput.BaseModInput):
 
     def get_global_checkbox_fields(self):
         if self.global_checkbox_fields is None:
-            checkbox_name_file = os.path.join(
-                bin_dir,
-                'global_checkbox_param.json'
-            )
+            checkbox_name_file = os.path.join(bin_dir, 'global_checkbox_param.json')
             try:
                 if os.path.isfile(checkbox_name_file):
                     with open(checkbox_name_file, 'r') as fp:
@@ -153,14 +151,22 @@ class ModInputmisp(modinput_wrapper.base_modinput.BaseModInput):
                 else:
                     self.global_checkbox_fields = []
             except Exception as e:
-                self.log_error(
-                    'Get exception when loading global checkbox \
-                    parameter names. ' + str(e)
-                )
+                self.log_error('Get exception when loading global checkbox parameter names. ' + str(e))
                 self.global_checkbox_fields = []
         return self.global_checkbox_fields
 
 
 if __name__ == "__main__":
+    _SPLUNK_PATH = os.environ['SPLUNK_HOME']
+    app_name = "misp42splunk"
+    local_dir = os.path.join(
+        _SPLUNK_PATH, 'etc', 'apps',
+        app_name,
+        'local'
+    )
+    inputs_conf_file = os.path.join(local_dir, 'inputs.conf')
+    misp_instances_file = os.path.join(local_dir, 'misp42splunk_instances.conf')
+    if os.path.exists(misp_instances_file):
+        shutil.copy(misp_instances_file, inputs_conf_file)
     exitcode = ModInputmisp().run(sys.argv)
     sys.exit(exitcode)

@@ -1,0 +1,197 @@
+<form>
+  <init>
+    <set token="drilldown_misp_alert"></set>
+    <set token="misp_title"></set>
+    <set token="misp_description"></set>
+    <set token="misp_eventid"></set>
+    <set token="misp_unique"></set>
+    <set token="misp_tags"></set>
+  </init>
+  <label>misp_alert_create_event</label>
+  <fieldset submitButton="true">
+    <input type="text" token="title" searchWhenChanged="false">
+      <label>title*</label>
+    </input>
+    <input type="text" token="description" searchWhenChanged="false">
+      <label>description*</label>
+    </input>
+    <input type="dropdown" token="misp_instance" searchWhenChanged="False">
+      <label>misp_instance*</label>
+      <fieldForLabel>misp_instance</fieldForLabel>
+      <fieldForValue>misp_instance</fieldForValue>
+      <search>
+        <query>| rest /services/configs/inputs
+| rename eai:acl.app as app
+| where app="misp42splunk" AND isnotnull(misp_url)
+| eval misp_instance=replace(title,"misp://","")
+| fields misp_instance</query>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </search>
+    </input>
+    <input type="text" token="eventid" searchWhenChanged="false">
+      <label>EventID</label>
+      <change>
+        <condition match="$value$=&quot;&quot;">
+          <set token="misp_eventid"></set>
+        </condition>
+        <condition>
+          <set token="misp_eventid">param.eventid="$eventid$"</set>
+        </condition>
+      </change>
+    </input>
+    <input type="text" token="choice" searchWhenChanged="false">
+      <label>unique</label>
+      <change>
+        <condition match="$value$=&quot;&quot;">
+          <set token="misp_unique"></set>
+        </condition>
+        <condition>
+          <set token="misp_unique">param.unique="$unique$"</set>
+        </condition>
+      </change>
+    </input>
+    <input type="text" token="info" searchWhenChanged="false">
+      <label>info</label>
+      <change>
+        <condition match="$value$=&quot;&quot;">
+          <set token="misp_info"></set>
+        </condition>
+        <condition>
+          <set token="misp_info">param.info="$info$"</set>
+        </condition>
+      </change>
+    </input>
+    <input type="dropdown" token="distribution" searchWhenChanged="false">
+      <label>distribution*</label>
+      <choice value="4">Sharing Group</choice>
+      <choice value="3">All communities</choice>
+      <choice value="1">This community only</choice>
+      <choice value="2">Connected communities</choice>
+      <choice value="0">Your organisation only</choice>
+      <default>0</default>
+      <initialValue>0</initialValue>
+    </input>
+    <input type="dropdown" token="threatlevel" searchWhenChanged="false">
+      <label>threatlevel*</label>
+      <choice value="2">Medium</choice>
+      <choice value="4">Undefined</choice>
+      <choice value="1">High</choice>
+      <choice value="3">Low</choice>
+      <default>4</default>
+      <initialValue>4</initialValue>
+    </input>
+    <input type="dropdown" token="analysis" searchWhenChanged="false">
+      <label>analysis*</label>
+      <choice value="1">Ongoing</choice>
+      <choice value="2">Complete</choice>
+      <choice value="0">Initial</choice>
+      <default>0</default>
+      <initialValue>0</initialValue>
+    </input>
+    <input type="dropdown" token="misp_tlp" searchWhenChanged="false">
+      <label>TLP *</label>
+      <choice value="TLP_AMBER">AMBER</choice>
+      <choice value="TLP_WHITE">WHITE</choice>
+      <choice value="TLP_GREEN">GREEN</choice>
+      <choice value="TLP_RED">RED</choice>
+      <default>TLP_AMBER</default>
+      <initialValue>TLP_AMBER</initialValue>
+    </input>
+    <input type="dropdown" token="misp_pap" searchWhenChanged="false">
+      <label>PAP *</label>
+      <choice value="PAP_AMBER">AMBER</choice>
+      <choice value="PAP_WHITE">WHITE</choice>
+      <choice value="PAP_GREEN">GREEN</choice>
+      <choice value="PAP_RED">RED</choice>
+      <default>PAP_AMBER</default>
+      <initialValue>PAP_AMBER</initialValue>
+    </input>
+    <input type="dropdown" token="publish_on_creation" searchWhenChanged="false">
+      <label>Publish event on creation?*</label>
+      <choice value="FALSE">FALSE</choice>
+      <choice value="TRUE">TRUE</choice>
+      <default>FALSE</default>
+      <initialValue>FALSE</initialValue>
+    </input>
+    <input type="text" token="tags" searchWhenChanged="False">
+      <label>tags (CSV)</label>
+      <initialValue></initialValue>
+      <change>
+        <condition match="$value$=&quot;&quot;">
+          <set token="misp_tags"></set>
+        </condition>
+        <condition>
+          <set token="misp_tags">param.tags="$tags$"</set>
+        </condition>
+      </change>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Simple query: Click on a row to create an event in MISP</title>
+      <table>
+        <search>
+          <query>| makeresults | eval misp_ip_dst="1.1.1.1", misp_time=_time, misp_info="inline event name", misp_tag="additional_tag,tlp:red", misp_attribute_tag="inline attribute tag",  misp_category="Network activity", misp_comment="inline comment", misp_to_ids="True"</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">row</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <drilldown>
+          <set token="drilldown_misp_ce_alert">create</set>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel depends="$drilldown_misp_ce_alert$">
+      <title>Create an alert in MISP. Once the result is displayed below, an alert should have been created in MISP instance. If not check logs below</title>
+      <table>
+        <search>
+          <query>| makeresults | eval misp_ip_dst="1.1.1.1", misp_time=_time, misp_info="inline event name", misp_tag="additional_tag,tlp:red", misp_attribute_tag="inline attribute tag",  misp_category="Network activity", misp_comment="inline comment", misp_to_ids="True"
+| sendalert misp_alert_create_event param.title="$title$" param.description="$description$" param.misp_instance=$misp_instance$ $misp_eventid$ $misp_unique$ param.distribution=$distribution$ param.threatlevel=$threatlevel$ param.analysis=$analysis$ param.tlp="$misp_tlp$" param.pap="$misp_pap$" param.publish_on_creation="$publish_on_creation$" $misp_tags$</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Logs related to misp_alert_create_event</title>
+      <table>
+        <search>
+          <query>(index=_* OR index=cim_*) sourcetype="*" sourcetype="ta:misp42:log"</query>
+          <earliest>-1h@h</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+</form>

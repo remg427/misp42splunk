@@ -248,12 +248,12 @@
                             "field": "misp_url", 
                             "validators": [
                                 {
-                                    "pattern": "^https:\/\/[0-9a-zA-Z\\-\\.]+(?:\\:\\d+)?$", 
-                                    "errorMsg": "Invalid URL; it must start with https and do not add ending /", 
+                                    "pattern": "^https:\/\/[0-9a-zA-Z\\-\\.]+(?:\\:\\d+)?", 
+                                    "errorMsg": "Invalid URL; it must start with https.", 
                                     "type": "regex"
                                 }
                             ], 
-                            "help": "provide MISP URL. Do not end with a /", 
+                            "help": "provide base MISP URL starting with https://", 
                             "type": "text"
                         }, 
                         {

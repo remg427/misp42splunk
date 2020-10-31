@@ -21,123 +21,38 @@
 }
 """
 
-import csv
-import gzip
 import json
-import os
+from misp_common import prepare_config
 import requests
 import time
-from splunk.clilib import cli_common as cli
 import splunklib.client as client
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "3.2.2"
+__version__ = "3.3.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
 
 # encoding = utf-8
-def prepare_alert_config(helper):
-    config_args = dict()
-    # get MISP instance to be used
-    misp_instance = helper.get_param("misp_instance")
-    stanza_name = 'misp://' + misp_instance
-    helper.log_info("stanza_name={}".format(stanza_name))
-    # get MISP instance parameters
-    # open local/inputs.conf
-    _SPLUNK_PATH = os.environ['SPLUNK_HOME']
-    app_name = 'misp42splunk'
-    inputs_conf_file = os.path.join(
-        _SPLUNK_PATH, 'etc', 'apps', app_name, 'local', 'inputs.conf')
-    if os.path.exists(inputs_conf_file):
-        inputsConf = cli.readConfFile(inputs_conf_file)
-        for name, content in list(inputsConf.items()):
-            if stanza_name in name:
-                mispconf = content
-                helper.log_info(json.dumps(mispconf))
-        if not mispconf:
-            helper.log_error(
-                "local/inputs.conf does not contain settings for stanza: {}"
-                .format(stanza_name))
-    else:
-        helper.log_error(
-            "local/inputs.conf does not exist. \
-Please configure misp instances first.")
-    # get clear version of misp_key
-    # get session key
+def prepare_alert(helper, app_name):
+    instance = helper.get_param("misp_instance")
     sessionKey = helper.settings['session_key']
     splunkService = client.connect(token=sessionKey)
-    storage_passwords = splunkService.storage_passwords
-    config_args['misp_key'] = None
-    for credential in storage_passwords:
-        # usercreds = {'username':credential.content.get('username'),
-        # 'password':credential.content.get('clear_password')}
-        if misp_instance in credential.content.get('username') and \
-                'misp_key' in credential.content.get('clear_password'):
-            misp_instance_key = json.loads(
-                credential.content.get('clear_password'))
-            config_args['misp_key'] = str(misp_instance_key['misp_key'])
-            helper.log_info('misp_key found for instance \
-                {}'.format(misp_instance))
-    if config_args['misp_key'] is None:
-        helper.log_error('misp_key NOT found for instance \
-            {}'.format(misp_instance))
-
-    # get MISP settings stored in inputs.conf
-    misp_url = mispconf['misp_url']
-    if misp_url.startswith('https://'):
-        config_args['misp_url'] = misp_url
-        helper.log_info(
-            "config_args['misp_url'] {}".format(config_args['misp_url']))
-    else:
-        helper.log_error(
-            "misp_url must starts with HTTPS. Please set a valid misp_url")
-        exit(1)
-    if int(mispconf['misp_verifycert']) == 1:
-        config_args['misp_verifycert'] = True
-    else:
-        config_args['misp_verifycert'] = False
-    helper.log_info(
-        "config_args['misp_verifycert'] {}"
-        .format(config_args['misp_verifycert']))
-    # get client cert parameters
-    if int(mispconf['client_use_cert']) == 1:
-        config_args['client_cert_full_path'] = mispconf['client_cert_full_path']
-    else:
-        config_args['client_cert_full_path'] = None
-    helper.log_info(
-        "config_args['client_cert_full_path'] {}"
-        .format(config_args['client_cert_full_path']))
-    # get proxy parameters if any
-    config_args['proxies'] = dict()
-    if int(mispconf['misp_use_proxy']) == 1:
-        proxy = helper.get_proxy()
-        if proxy:
-            proxy_url = '://'
-            if 'proxy_username' in proxy:
-                if proxy['proxy_username'] not in [None, '']:
-                    proxy_url = proxy_url + proxy['proxy_username'] + \
-                        ':' + proxy['proxy_password'] + '@'
-            proxy_url = proxy_url + proxy['proxy_url'] + \
-                ':' + proxy['proxy_port'] + '/'
-            config_args['proxies'] = {
-                "http": "http" + proxy_url,
-                "https": "https" + proxy_url
-            }
-
+    storage = splunkService.storage_passwords
+    config_args = prepare_config(helper, app_name, instance, storage)
+    if config_args is None:
+        return None
+    alert_args = dict()
     # Get string values from alert form
-    config_args['mode'] = str(helper.get_param("mode"))
-    config_args['type'] = int(helper.get_param("type"))
-    config_args['source'] = str(helper.get_param("source"))
+    alert_args['mode'] = str(helper.get_param("mode"))
+    alert_args['type'] = int(helper.get_param("type"))
+    alert_args['source'] = str(helper.get_param("source"))
     if not helper.get_param("unique"):
-        config_args['unique'] = "no_timestamp_field"
+        alert_args['unique'] = "no_timestamp_field"
     else:
-        config_args['unique'] = str(helper.get_param("unique"))
-
-    # add filename of the file containing the result of the search
-    config_args['filename'] = str(helper.settings['results_file'])
-
+        alert_args['unique'] = str(helper.get_param("unique"))
+    config_args.update(alert_args)
     return config_args
 
 
@@ -198,7 +113,7 @@ def group_values(helper, r, tslabel, ds, source, sighting_type):
     return sightings
 
 
-def create_alert(helper, config, results):
+def create_alert(helper, config):
     # get specific misp url and key if any (from alert configuration)
     misp_url = config['misp_url'] + '/sightings/add'
     misp_key = config['misp_key']
@@ -217,7 +132,7 @@ def create_alert(helper, config, results):
     default_ts = int(time.time())
     tslabel = config['unique']
     source = config['source']
-
+    results = helper.get_events()
     helper.log_info("[AS302] sighting mode is {}".format(mode))
     if mode == 'byvalue':
         sightings = group_values(helper, results, tslabel, default_ts, source, sighting_type)
@@ -289,7 +204,7 @@ def process_event(helper, *args, **kwargs):
     # The following example gets and sets the log level
     helper.set_log_level(helper.log_level)
 
-    # The following example gets the alert action parameters 
+    # The following example gets the alert action parameters
     # and prints them to the log
     title = helper.get_param("title")
     helper.log_info("title={}".format(title))
@@ -333,32 +248,12 @@ def process_event(helper, *args, **kwargs):
     helper.log_info("[AS101] Alert action misp_alert_sighting started.")
 
     # TODO: Implement your alert action logic here
-    config = prepare_alert_config(helper)
-    helper.log_info("[AS102] config dict is ready to use")
-
-    filename = config['filename']
-    if os.path.exists(filename):
-        # file exists - try to open and if successful add path to configuration
-        try:
-            # open the file with gzip lib, start making alerts
-            # can with statements fail gracefully??
-            fh = gzip.open(filename, "rt")
-        except ValueError:
-            # Workaround for Python 2.7 under Windows
-            fh = gzip.open(filename, "r")
-
-        if fh is not None:
-            # DictReader lets us grab the first row as a header row and
-            # other lines will read as a dict mapping the header
-            # to the value instead of reading the first line with a
-            # regular csv reader and zipping the dict manually later at
-            # least, in theory
-            reader = csv.DictReader(fh)
-            create_alert(helper, config, reader)
-        # something went wrong with opening the results file
-        else:
-            helper.log_error(
-                "[AS102] FATAL Results file exists but could not be opened or read")
-            return 2
-
+    misp_app_name = "misp42splunk"
+    misp_config = prepare_alert(helper, misp_app_name)
+    if misp_config is None:
+        helper.log_error("[AS102] FATAL config dict not initialised")
+        return 1
+    else:
+        helper.log_debug("[AS103] config dict is ready to use")
+        create_alert(helper, config)
     return 0

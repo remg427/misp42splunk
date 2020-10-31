@@ -24,7 +24,7 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "3.2.0"
+__version__ = "3.3.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -82,14 +82,16 @@ class MispSightCommand(StreamingCommand):
         doc='''
         **Syntax:** **misp_instance=instance_name*
         **Description:**MISP instance parameters as described \
-        in local/inputs.conf.''',
+        in local/misp42splunk_instances.conf.''',
         require=True)
 
     def stream(self, records):
-        # self.self.logging.debug('mispgetioc.reduce')
-
-        # Generate args
-        my_args = prepare_config(self, 'misp42splunk')
+        # Phase 1: Preparation
+        misp_instance = self.misp_instance
+        storage = self.service.storage_passwords
+        my_args = prepare_config(self, 'misp42splunk', misp_instance, storage)
+        if my_args is None:
+            raise Exception("Sorry, no configuration for misp_instance={}".format(misp_instance))
         # set proper headers
         headers = {'Content-type': 'application/json'}
         headers['Authorization'] = my_args['misp_key']
