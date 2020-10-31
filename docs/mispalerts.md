@@ -34,7 +34,7 @@ Fill in the form to tune your alert to your needs.
 * Alert overall description: this section is for Splunk documentation
     - **title**: The title of this alert.
     - Description: The description to send with the alert.
-    - **misp_instance**: the misp instance name as defined in inputs.conf
+    - **misp_instance**: the misp instance name as defined in misp42splunk_instances.conf
 * Global event parameters: the parameters will apply for all events created by this alert unless overwritten (see above)
     - eventid: the event you want to add attrributes and objects. Leave blank or put 0 to create new events (default)
     - unique: indicate the field containing the unique id to group several rows under a single event. If not defined an default eventkey will be generated and all results will be added to the same event.
@@ -78,7 +78,7 @@ IMPORTANT: for mode **byuuid** , only first uuid is kept. If the field is a mult
 * Global event parameters: the parameters will apply for all events created by this alert unless overwritten (see above)
     - **title**: title of the alert
     - description: description
-    - **misp_instance**: the misp instance name as defined in inputs.conf
+    - **misp_instance**: the misp instance name as defined in misp42splunk_instances.conf
     - unique: indicate the field containing timestamps. If not defined, defaults is now()
     - **mode**; indicate if sighting is by __value__ or __by attribute uuid__
     - **type**; indicate if sighting type is

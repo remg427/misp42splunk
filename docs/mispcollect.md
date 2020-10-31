@@ -15,12 +15,12 @@ example2 = | mispcollect last=10d endpoint=events
 comment2 = retrieve events published in last 10 days and display as events.
 
 # All params
-    # MANDATORY MISP instance for this search
+    ## MANDATORY MISP instance for this search
     misp_instance = Option(
         doc='''
         **Syntax:** **misp_instance=instance_name*
         **Description:** MISP instance parameters
-        as described in local/inputs.conf.''',
+        as described in local/misp42splunk_instances.conf.''',
         require=True)
     # MANDATORY: json_request XOR eventid XOR last XOR date
     json_request = Option(
@@ -46,7 +46,7 @@ comment2 = retrieve events published in last 10 days and display as events.
         **Description:**starting date.
          **eventid**, **last** and **date** are mutually exclusive''',
         require=False)
-    # Other params
+    ## Other params
     category = Option(
         doc='''
         **Syntax:** **category=***CSV string*
@@ -65,18 +65,18 @@ comment2 = retrieve events published in last 10 days and display as events.
         **Description:**Boolean includeEventTags. By default only
          attribute tag(s) are returned.''',
         require=False, validate=validators.Boolean())
-    limit = Option(
-        doc='''
-        **Syntax:** **limit=***<int>*
-        **Description:**define the limit for each MISP search;
-         default 1000. 0 = no pagination.''',
-        require=False, validate=validators.Match("limit", r"^[0-9]+$"))
     keep_related = Option(
         doc='''
         **Syntax:** **keep_related=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
         **Description:**Boolean to keep related events.
         default is to drop  RelatedEvents to reduce volume.''',
         require=False, validate=validators.Boolean())
+    limit = Option(
+        doc='''
+        **Syntax:** **limit=***<int>*
+        **Description:**define the limit for each MISP search;
+         default 1000. 0 = no pagination.''',
+        require=False, validate=validators.Match("limit", r"^[0-9]+$"))
     not_tags = Option(
         doc='''
         **Syntax:** **not_tags=***CSV string*

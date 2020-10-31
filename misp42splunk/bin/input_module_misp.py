@@ -29,7 +29,7 @@ def validate_input(helper, definition):
     # client_cert_full_path = definition.parameters.get('client_cert_full_path', None)
     misp_url = definition.parameters.get('misp_url', None)
     if misp_url and not misp_url.startswith('https://'):
-        helper.log_error("misp_url must starts with HTTPS. Please set a valid misp_url")
+        helper.log_error("misp_url must starts with https://. Please set a valid misp_url")
         exit(1)
 
 

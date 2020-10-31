@@ -2,6 +2,11 @@ RELEASE NOTE
 ----------------------------------------------------------------------------
 
 for latest release check see more on https://github.com/remg427/misp42splunk
+Version 3.3.0 - Oct 25, 2020
+- cleanup lib/ for cloud vetting
+- #167 store misp instance configuration under misp42splunk_instances.conf (copy of inputs.conf)
+- #170 new parameter to select whether to publish or not created events
+
 Version 3.2.3 - Sept 17, 2020
 - move lib under bin for solving logging issuess
 

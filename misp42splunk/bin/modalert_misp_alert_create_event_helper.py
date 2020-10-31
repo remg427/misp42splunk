@@ -9,7 +9,7 @@
 # Copyright: LGPLv3 (https://www.gnu.org/licenses/lgpl-3.0.txt)
 # Feel free to use the code, but please share the changes you've made
 from __future__ import print_function
-
+from misp_common import prepare_config
 import csv
 import datetime
 import gzip
@@ -17,14 +17,13 @@ import json
 import os
 import requests
 import time
-from splunk.clilib import cli_common as cli
 import splunklib.client as client
 from io import open
 
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "3.2.2"
+__version__ = "3.3.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -73,120 +72,46 @@ def get_datatype_dict(helper, config, app_name):
     return datatype_dict
 
 
-def prepare_alert_config(helper):
-    config_args = dict()
-    # get MISP instance to be used
-    misp_instance = helper.get_param("misp_instance")
-    stanza_name = 'misp://' + misp_instance
-    helper.log_info("stanza_name={}".format(stanza_name))
-    # get MISP instance parameters
-    # open local/inputs.conf
-    _SPLUNK_PATH = os.environ['SPLUNK_HOME']
-    app_name = 'misp42splunk'
-    inputs_conf_file = os.path.join(
-        _SPLUNK_PATH, 'etc', 'apps', app_name, 'local', 'inputs.conf')
-    if os.path.exists(inputs_conf_file):
-        input_conf = cli.readConfFile(inputs_conf_file)
-        for name, content in list(input_conf.items()):
-            if stanza_name in name:
-                mispconf = content
-                helper.log_info(json.dumps(mispconf))
-        if not mispconf:
-            helper.log_error("local/inputs.conf does not contain settings for stanza: {}".format(stanza_name))
-    else:
-        helper.log_error("local/inputs.conf does not exist. Please configure misp instances first.")
-    # get clear version of misp_key
-    # get session key
+def prepare_alert(helper, app_name):
+    instance = helper.get_param("misp_instance")
     sessionKey = helper.settings['session_key']
     splunkService = client.connect(token=sessionKey)
-    storage_passwords = splunkService.storage_passwords
-    config_args['misp_key'] = None
-    for credential in storage_passwords:
-        # usercreds = {'username':credential.content.get('username'),
-        # 'password':credential.content.get('clear_password')}
-        if misp_instance in credential.content.get('username') and \
-                'misp_key' in credential.content.get('clear_password'):
-            misp_instance_key = json.loads(
-                credential.content.get('clear_password'))
-            config_args['misp_key'] = str(misp_instance_key['misp_key'])
-            helper.log_info('misp_key found for instance \
-                {}'.format(misp_instance))
-    if config_args['misp_key'] is None:
-        helper.log_error('misp_key NOT found for instance \
-            {}'.format(misp_instance))
-
-    # get MISP settings stored in inputs.conf
-    misp_url = mispconf['misp_url']
-    if misp_url.startswith('https://'):
-        config_args['misp_url'] = misp_url
-        helper.log_info(
-            "config_args['misp_url'] {}".format(config_args['misp_url']))
-    else:
-        helper.log_error(
-            "misp_url must starts with HTTPS. Please set a valid misp_url")
-        exit(1)
-
-    helper.log_info("config_args['misp_url'] \
-        {}".format(config_args['misp_url']))
-    if int(mispconf['misp_verifycert']) == 1:
-        config_args['misp_verifycert'] = True
-    else:
-        config_args['misp_verifycert'] = False
-    helper.log_info("config_args['misp_verifycert'] \
-        {}".format(config_args['misp_verifycert']))
-    # get client cert parameters
-    if int(mispconf['client_use_cert']) == 1:
-        config_args['client_cert_full_path'] = \
-            mispconf['client_cert_full_path']
-    else:
-        config_args['client_cert_full_path'] = None
-    helper.log_info("config_args['client_cert_full_path'] \
-        {}".format(config_args['client_cert_full_path']))
-    # get proxy parameters if any
-    config_args['proxies'] = dict()
-    if int(mispconf['misp_use_proxy']) == 1:
-        proxy = helper.get_proxy()
-        if proxy:
-            proxy_url = '://'
-            if 'proxy_username' in proxy:
-                if proxy['proxy_username'] not in [None, '']:
-                    proxy_url = proxy_url + proxy['proxy_username'] + \
-                        ':' + proxy['proxy_password'] + '@'
-            proxy_url = proxy_url + proxy['proxy_url'] + \
-                ':' + proxy['proxy_port'] + '/'
-            config_args['proxies'] = {
-                "http": "http" + proxy_url,
-                "https": "https" + proxy_url
-            }
+    storage = splunkService.storage_passwords
+    config_args = prepare_config(helper, app_name, instance, storage)
+    if config_args is None:
+        return None
+    alert_args = dict()
     # Get string values from alert form
-    config_args['tlp'] = str(helper.get_param("tlp").replace('_', ':'))
-    config_args['pap'] = str(helper.get_param("pap").replace('_', ':'))
-    helper.log_debug("config_args['pap'] {}".format(config_args['pap']))
+    alert_args['tlp'] = str(helper.get_param("tlp").replace('_', ':'))
+    alert_args['pap'] = str(helper.get_param("pap").replace('_', ':'))
+    helper.log_debug("alert_args['pap'] {}".format(alert_args['pap']))
     if not helper.get_param("eventid"):
-        config_args['eventid'] = "0"
+        alert_args['eventid'] = "0"
     else:
-        config_args['eventid'] = str(helper.get_param("eventid"))
+        alert_args['eventid'] = str(helper.get_param("eventid"))
     if not helper.get_param("unique"):
-        config_args['eventkey'] = "oneEvent"
+        alert_args['eventkey'] = "oneEvent"
     else:
-        config_args['eventkey'] = str(helper.get_param("unique"))
+        alert_args['eventkey'] = str(helper.get_param("unique"))
     if not helper.get_param("info"):
-        config_args['info'] = "notable event"
+        alert_args['info'] = "notable event"
     else:
-        config_args['info'] = str(helper.get_param("info"))
-    tags = helper.get_param("tags")
-    if tags:
-        config_args['tags'] = str(helper.get_param("tags"))
+        alert_args['info'] = str(helper.get_param("info"))
+    published = helper.get_param("publish_on_creation")
+    if published == "TRUE":
+        alert_args['published'] = True
     else:
-        config_args['tags'] = None
+        alert_args['published'] = False
+    if not helper.get_param("tags"):
+        alert_args['tags'] = None
+    else:
+        alert_args['tags'] = str(helper.get_param("tags"))
     # Get numeric values from alert form
-    config_args['analysis'] = int(helper.get_param("analysis"))
-    config_args['threatlevel'] = int(helper.get_param("threatlevel"))
-    config_args['distribution'] = int(helper.get_param("distribution"))
+    alert_args['analysis'] = int(helper.get_param("analysis"))
+    alert_args['threatlevel'] = int(helper.get_param("threatlevel"))
+    alert_args['distribution'] = int(helper.get_param("distribution"))
 
-    # add filename of the file containing the result of the search
-    config_args['filename'] = str(helper.settings['results_file'])
-
+    config_args.update(alert_args)
     return config_args
 
 
@@ -248,7 +173,7 @@ def store_object_attribute(object_attributes, t, v, attribute_tag=None):
     return Attribute
 
 
-def prepare_misp_events(helper, config, results, event_list):
+def prepare_misp_events(helper, config, event_list):
     # print(config)
     # iterate through each row, cleaning multivalue fields and then adding
     # the attributes under same event key
@@ -258,7 +183,7 @@ def prepare_misp_events(helper, config, results, event_list):
         'threat_level_id': config['threatlevel'],
         'analysis': config['analysis'],
         'distribution': config['distribution'],
-        'published': False,
+        'published': config['published'],
         'Attribute': [],
         'Object': []
     }
@@ -274,6 +199,7 @@ def prepare_misp_events(helper, config, results, event_list):
                 tags.append(new_tag)
     event_baseline['Tag'] = tags
 
+    results = helper.get_events()
     for row in results:
         # Splunk makes a bunch of dumb empty multivalue fields
         # - we filter those out here
@@ -318,16 +244,18 @@ def prepare_misp_events(helper, config, results, event_list):
                 event['info'] = row.pop('misp_info')
             else:
                 event['info'] = config['info']
+
         if config['distribution'] == 4:
             if 'misp_sg_id' in row:
                 event['sharing_group_id'] = int(
-                    row.pop('misp_sg_id'))  # "sharing_group_id": "optional",
+                    row.pop('misp_sg_id'))  # "sharing_group_id"
             else:
                 helper.log_error("Distribution is set to Sharing Group but no field misp_sg_id is provided")
         attributes = list(event['Attribute'])
         objects = list(event['Object'])
         tags = list(event['Tag'])
 
+        # Update event metadata
         # append event tags provided in the row
         if 'misp_tag' in row:
             tag_list = row.pop('misp_tag').split(',')
@@ -335,11 +263,28 @@ def prepare_misp_events(helper, config, results, event_list):
                 if tag not in tags:
                     new_tag = {'name': tag}
                     tags.append(new_tag)
-
         # update event tag list
         event['Tag'] = list(tags)
+        if 'misp_publish_on_creation' in row:
+            publish_on_creation = str(row.pop('misp_publish_on_creation'))
+            if publish_on_creation == "TRUE":
+                event['published'] = True
+            elif publish_on_creation == "FALSE":
+                event['published'] = False
 
         # collect attribute value and build type=value entry
+        if 'misp_attribute_tag' in row:
+            attribute_tag = str(row.pop('misp_attribute_tag'))
+        else:
+            attribute_tag = None
+        if 'misp_category' in row:
+            category = str(row.pop('misp_category'))
+        else:
+            category = None
+        if 'misp_comment' in row:
+            comment = str(row.pop('misp_comment'))
+        else:
+            comment = None
         if 'misp_to_ids' in row:
             if str(row.pop('misp_to_ids')) == 'True':
                 to_ids = True
@@ -347,18 +292,6 @@ def prepare_misp_events(helper, config, results, event_list):
                 to_ids = False
         else:
             to_ids = None
-        if 'misp_category' in row:
-            category = str(row.pop('misp_category'))
-        else:
-            category = None
-        if 'misp_attribute_tag' in row:
-            attribute_tag = str(row.pop('misp_attribute_tag'))
-        else:
-            attribute_tag = None
-        if 'misp_comment' in row:
-            comment = str(row.pop('misp_comment'))
-        else:
-            comment = None
 
         # now we take KV pairs starting by misp_
         # to add to event as single attribute(s)
@@ -573,39 +506,22 @@ def process_event(helper, *args, **kwargs):
     """
 
     helper.set_log_level(helper.log_level)
-    helper.log_info("Alert action misp_alert_create_event started.")
+    helper.log_info("[AL101] Alert action misp_alert_create_event started.")
 
     # TODO: Implement your alert action logic here
-    config = prepare_alert_config(helper)
-    helper.log_info("config dict is ready to use")
-
-    filename = config['filename']
-    if os.path.exists(filename):
-        # file exists - try to open and if successful add path to configuration
-        try:
-            # open the file with gzip lib, start making alerts
-            # can with statements fail gracefully??
-            fh = gzip.open(filename, "rt")
-        except ValueError:
-            # Workaround for Python 2.7 under Windows
-            fh = gzip.open(filename, "r")
-
-        if fh is not None:
-            # DictReader lets us grab the first row as a header row and
-            # other lines will read as a dict mapping the header
-            # to the value instead of reading the first line with a
-            # regular csv reader and zipping the dict manually later at
-            # least, in theory
-            reader = csv.DictReader(fh)
-            helper.log_debug("Reader is {}".format(reader))
-            event_list = {}
-            events = prepare_misp_events(helper, config,
-                                         reader, event_list)
-            helper.log_info("Events dict is ready to use")
-            process_misp_events(helper, config, events, event_list)
-        # something went wrong with opening the results file
+    misp_app_name = "misp42splunk"
+    misp_config = prepare_alert(helper, misp_app_name)
+    if misp_config is None:
+        helper.log_error("[AL102] FATAL config dict not initialised")
+        return 1
+    else:
+        helper.log_debug("[AL103] config dict is ready to use")
+        event_list = {}
+        events = prepare_misp_events(helper, misp_config, event_list)
+        if events is not None:
+            helper.log_debug("[AL104] Events dict is ready to use")
+            process_misp_events(helper, misp_config, events, event_list)
         else:
-            helper.log_error("FATAL Results file exists but could not be opened or read")
+            helper.log_error("[AL105] FATAL no event top rocess")
             return 2
-
     return 0

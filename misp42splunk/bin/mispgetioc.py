@@ -28,7 +28,7 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "3.2.1"
+__version__ = "3.3.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -111,7 +111,7 @@ class MispGetIocCommand(GeneratingCommand):
         doc='''
         **Syntax:** **misp_instance=instance_name*
         **Description:** MISP instance parameters
-        as described in local/inputs.conf.''',
+        as described in local/misp42splunk_instances.conf.''',
         require=True)
     # MANDATORY: json_request XOR eventid XOR last XOR date
     json_request = Option(
@@ -182,8 +182,7 @@ class MispGetIocCommand(GeneratingCommand):
     output = Option(
         doc='''
         **Syntax:** **output=***<default|rawy>*
-        **Description:**selection between the default behaviou or \
-        JSON output by event.''',
+        **Description:**selection between the default behaviou or JSON output by attribute.''',
         require=False, validate=validators.Match(
             "output", r"(default|raw)"))
     page = Option(
@@ -257,7 +256,11 @@ class MispGetIocCommand(GeneratingCommand):
     def generate(self):
 
         # Phase 1: Preparation
-        my_args = prepare_config(self, 'misp42splunk')
+        misp_instance = self.misp_instance
+        storage = self.service.storage_passwords
+        my_args = prepare_config(self, 'misp42splunk', misp_instance, storage)
+        if my_args is None:
+            raise Exception("Sorry, no configuration for misp_instance={}".format(misp_instance))
         my_args['host'] = my_args['misp_url'].replace('https://', '')
         my_args['misp_url'] = my_args['misp_url'] + '/attributes/restSearch'
 

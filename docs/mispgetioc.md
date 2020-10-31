@@ -67,7 +67,7 @@ another example:
         doc='''
         **Syntax:** **misp_instance=instance_name*
         **Description:** MISP instance parameters
-        as described in local/inputs.conf.''',
+        as described in local/misp42splunk_instances.conf.''',
         require=True)
     # MANDATORY: json_request XOR eventid XOR last XOR date
     json_request = Option(
@@ -138,8 +138,7 @@ another example:
     output = Option(
         doc='''
         **Syntax:** **output=***<default|rawy>*
-        **Description:**selection between the default behaviou or \
-        JSON output by event.''',
+        **Description:**selection between the default behaviou or JSON output by attribute.''',
         require=False, validate=validators.Match(
             "output", r"(default|raw)"))
     page = Option(
