@@ -258,7 +258,7 @@
       <title>Logs related to misp_alert_create_event</title>
       <table>
         <search>
-          <query>(index=_* OR index=cim_*) sourcetype="*" sourcetype="ta:misp42:log"</query>
+          <query>(index=_* OR index=cim_*) (sourcetype="*misp42*")</query>
           <earliest>-1h@h</earliest>
           <latest>now</latest>
           <sampleRatio>1</sampleRatio>
