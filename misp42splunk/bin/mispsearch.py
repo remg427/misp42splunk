@@ -24,7 +24,7 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "3.3.0"
+__version__ = "4.0.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -102,13 +102,13 @@ class MispSearchCommand(StreamingCommand):
     includeEventTags = Option(
         doc='''
         **Syntax:** **includeEventTags=***y|Y|1|true|True|n|N|0|false|False*
-        **Description:**Boolean to include event UUID(s) to results.''',
+        **Description:**Boolean to include Event Tags to results.''',
         require=False, validate=validators.Boolean())
     last = Option(
         doc='''
         **Syntax:** **last=***<int>d|h|m*
-        **Description:**publication duration in day(s), hour(s) or minute(s). \
-        **eventid**, **last** and **date_from** are mutually exclusive''',
+        **Description:**Publication duration in day(s), hour(s) or minute(s) 
+        to limit search scope only to published events in last X timerange.''',
         require=False, validate=validators.Match("last", r"^[0-9]+[hdm]$"))
     limit = Option(
         doc='''
@@ -120,7 +120,7 @@ class MispSearchCommand(StreamingCommand):
         doc='''
         **Syntax:** **page=***<int>*
         **Description:**define the page for each MISP search; default 1.''',
-        require=False, validate=validators.Match("limit", r"^[0-9]+$"))
+        require=False, validate=validators.Match("page", r"^[0-9]+$"))
     json_request = Option(
         doc='''
         **Syntax:** **json_request=***valid JSON request*

@@ -25,7 +25,7 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "3.3.0"
+__version__ = "4.0.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -315,7 +315,7 @@ class MispGetEventCommand(GeneratingCommand):
         doc='''
         **Syntax:** **page=***<int>*
         **Description:**define the page for each MISP search; default 1.''',
-        require=False, validate=validators.Match("limit", r"^[0-9]+$"))
+        require=False, validate=validators.Match("page", r"^[0-9]+$"))
     pipesplit = Option(
         doc='''
         **Syntax:** **pipesplit=***<1|y|Y|t|true|True|0|n|N|f|false|False>*

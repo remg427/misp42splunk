@@ -1,0 +1,43 @@
+<form>
+  <init>
+    <set token="sample_query">| makeresults | eval domain="www.example.com"</set>
+  </init>
+  <label>mispsight</label>
+  <fieldset submitButton="false" autoRun="false">
+    <input type="dropdown" token="misp_instance" searchWhenChanged="true">
+      <label>misp_instance*</label>
+      <fieldForLabel>misp_instance</fieldForLabel>
+      <fieldForValue>misp_instance</fieldForValue>
+      <search>
+        <query>| rest /services/configs/conf-misp42splunk_instances
+| rename eai:acl.app as app, title as misp_instance
+| fields misp_instance</query>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </search>
+    </input>
+    <input type="text" token="field" searchWhenChanged="true">
+      <label>field*</label>
+    </input>
+    <input type="text" token="sample_query" searchWhenChanged="true">
+      <label>Paste your sample query here</label>
+      <initialValue>| makeresults | eval domain="www.example.com"</initialValue>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Custom command mispsight</title>
+      <table>
+        <search>
+          <query>$sample_query$ | mispsight misp_instance=$misp_instance$ field=$field$</query>
+          <earliest>0</earliest>
+          <latest></latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">5</option>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+</form>

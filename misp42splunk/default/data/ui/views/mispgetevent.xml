@@ -5,17 +5,16 @@
     <set token="param_last"></set>
     <set token="param_date"></set>
     <set token="param_category"></set>
-    <set token="param_type"></set>
     <set token="param_getioc"></set>
+    <set token="param_limit"></set>
+    <set token="param_not_tags"></set>
+    <set token="param_output"></set>
+    <set token="param_page"></set>
     <set token="param_pipesplit"></set>
     <set token="param_published"></set>
     <set token="param_tags"></set>
-    <set token="param_not_tags"></set>
-    <set token="param_to_ids"></set>
+    <set token="param_type"></set>
     <set token="param_warning_list"></set>
-    <set token="param_keep_related"></set>
-    <set token="param_limit"></set>
-    <set token="param_page"></set>
   </init>
   <label>mispgetevent</label>
   <fieldset submitButton="false" autoRun="false">
@@ -24,10 +23,8 @@
       <fieldForLabel>misp_instance</fieldForLabel>
       <fieldForValue>misp_instance</fieldForValue>
       <search>
-        <query>| rest /services/configs/inputs
-| rename eai:acl.app as app
-| where app="misp42splunk" AND isnotnull(misp_url)
-| eval misp_instance=replace(title,"misp://","")
+        <query>| rest /services/configs/conf-misp42splunk_instances
+| rename eai:acl.app as app, title as misp_instance
 | fields misp_instance</query>
         <earliest>-24h@h</earliest>
         <latest>now</latest>
@@ -129,16 +126,6 @@
       <choice value="true">True</choice>
       <choice value="false">False</choice>
     </input>
-    <input type="radio" token="to_ids" searchWhenChanged="true">
-      <label>to_ids</label>
-      <change>
-        <condition>
-          <set token="param_to_ids">to_ids=$to_ids$</set>
-        </condition>
-      </change>
-      <choice value="true">True</choice>
-      <choice value="false">False</choice>
-    </input>
     <input type="radio" token="warning_list" searchWhenChanged="true">
       <label>warning_list</label>
       <change>
@@ -230,11 +217,6 @@
           <th width="50%">Description</th>
         </tr>
         <tr>
-            <td>add_description</td>
-            <td>add_description=1|y|Y|t|true|True|0|n|N|f|false|False </td>
-            <td>return misp_description='MISP e' + event_id + ' attribute ' + a['uuid'] + ' of type "' + type + '" in category "' + category+ " (to_ids:'+ to_ids + ')'</td>
-        </tr>
-        <tr>
             <td>category</td>
             <td>category=CSV string </td>
             <td>Comma(,)-separated string of categories to search for. Wildcard is %.</td>
@@ -280,11 +262,6 @@
             <td>Comma(,)-separated string of tags to search for. Wildcard is %.</td>
         </tr>
         <tr>
-            <td>to_ids</td>
-            <td>to_ids=1|y|Y|t|true|True|0|n|N|f|false|False </td>
-            <td>Boolean to search only attributes with the flag "to_ids" set to true.</td>
-        </tr>
-        <tr>
             <td>type</td>
             <td>type=CSV string </td>
             <td>Comma(,)-separated string of types to search for. Wildcard is %.</td>
@@ -303,7 +280,7 @@
       <title>Custom command mispgetevent</title>
       <table>
         <search>
-          <query>| mispgetevent misp_instance=$misp_instance$ $param_json_request$ $param_eventid$ $param_last$ $param_date$ $param_category$ $param_type$ $param_output$ $param_getioc$ $param_tags$ $param_not_tags$ $param_to_ids$ $param_warning_list$ $param_published$ $param_limit$ $param_page$</query>
+          <query>| mispgetevent misp_instance=$misp_instance$ $param_json_request$ $param_eventid$ $param_last$ $param_date$ $param_category$ $param_type$ $param_output$ $param_getioc$ $param_tags$ $param_not_tags$ $param_warning_list$ $param_published$ $param_limit$ $param_page$</query>
           <earliest>0</earliest>
           <latest></latest>
           <sampleRatio>1</sampleRatio>

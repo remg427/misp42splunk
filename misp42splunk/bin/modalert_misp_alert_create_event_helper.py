@@ -23,7 +23,7 @@ from io import open
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "3.3.0"
+__version__ = "4.0.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -98,7 +98,7 @@ def prepare_alert(helper, app_name):
     else:
         alert_args['info'] = str(helper.get_param("info"))
     published = helper.get_param("publish_on_creation")
-    if published == "TRUE":
+    if published == "True":
         alert_args['published'] = True
     else:
         alert_args['published'] = False
@@ -267,9 +267,9 @@ def prepare_misp_events(helper, config, event_list):
         event['Tag'] = list(tags)
         if 'misp_publish_on_creation' in row:
             publish_on_creation = str(row.pop('misp_publish_on_creation'))
-            if publish_on_creation == "TRUE":
+            if publish_on_creation == "True":
                 event['published'] = True
-            elif publish_on_creation == "FALSE":
+            elif publish_on_creation == "False":
                 event['published'] = False
 
         # collect attribute value and build type=value entry
@@ -412,7 +412,17 @@ def process_misp_events(helper, config, results, event_list):
             r.raise_for_status()
             # response is 200 or we would have thrown an exception
             # response = r.json()
-            helper.log_info("event created")
+            if r.status_code in (200, 201, 204):
+                helper.log_info(
+                    "[AL301] INFO MISP event is successfully created. "
+                    "url={}, HTTP status={}".format(misp_url_create, r.status_code)
+                )
+            else:
+                helper.log_error(
+                    "[AL302] ERROR MISP event creation has failed. "
+                    "url={}, data={}, HTTP Error={}, content={}"
+                    .format(misp_url_create, body, r.status_code, r.text)
+                )
         else:  # edit existing eventid with Attribute and Object
             misp_url_edit = config['misp_url'] + '/events/edit/' + \
                 event_list[eventkey]
@@ -430,7 +440,17 @@ def process_misp_events(helper, config, results, event_list):
             r.raise_for_status()
             # response is 200 or we would have thrown an exception
             # response = r.json()
-            helper.log_info("event edited")
+            if r.status_code in (200, 201, 204):
+                helper.log_info(
+                    "[AL303] INFO MISP event is successfully edited. "
+                    "url={}, HTTP status={}".format(misp_url_edit, r.status_code)
+                )
+            else:
+                helper.log_error(
+                    "[AL304] ERROR MISP event edition has failed. "
+                    "url={}, data={}, HTTP Error={}, content={}"
+                    .format(misp_url_edit, body, r.status_code, r.text)
+                )
     return status
 
 

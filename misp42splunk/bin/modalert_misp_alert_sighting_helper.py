@@ -29,7 +29,7 @@ import splunklib.client as client
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "3.3.0"
+__version__ = "4.0.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -255,5 +255,5 @@ def process_event(helper, *args, **kwargs):
         return 1
     else:
         helper.log_debug("[AS103] config dict is ready to use")
-        create_alert(helper, config)
+        create_alert(helper, misp_config)
     return 0

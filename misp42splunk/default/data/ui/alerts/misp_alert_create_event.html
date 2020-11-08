@@ -1,5 +1,14 @@
 <form class="form-horizontal form-complex">
     <div class="control-group">
+        <label class="control-label" for="misp_alert_create_event_misp_instance">misp_instance  <span class="required">*</span></label>
+        <div class="controls">
+            <input type="text" name="action.misp_alert_create_event.param.misp_instance" id="misp_alert_create_event_misp_instance"/>
+            <span class="help-block"> 
+                misp_instance.
+            </span>
+        </div>
+    </div>
+    <div class="control-group">
     	<label class="control-label" for="misp_alert_create_event_title">Title <span class="required">*</span></label>
         <div class="controls">
             <input type="text" name="action.misp_alert_create_event.param.title" id="misp_alert_create_event_title"/>
@@ -14,15 +23,6 @@
             <input type="text" name="action.misp_alert_create_event.param.description" id="misp_alert_create_event_description"/>
             <span class="help-block"> 
                 The description to send with the alert.
-            </span>
-        </div>
-    </div>
-    <div class="control-group">
-        <label class="control-label" for="misp_alert_create_event_misp_instance">misp_instance  <span class="required">*</span></label>
-        <div class="controls">
-            <input type="text" name="action.misp_alert_create_event.param.misp_instance" id="misp_alert_create_event_misp_instance"/>
-            <span class="help-block"> 
-                misp_instance (leave blank to use default settings).
             </span>
         </div>
     </div>
@@ -127,11 +127,11 @@
         <label class="control-label" for="misp_alert_create_event_publish_on_creation">Publish event on creation? <span class="required">*</span></label>
         <div class="controls">
             <select name="action.misp_alert_create_event.param.publish_on_creation" id="misp_alert_create_event_publish_on_creation">
-                    <option value="FALSE" selected>FALSE</option>
-                    <option value="TRUE">TRUE</option>
+                    <option value="FALSE" selected>False</option>
+                    <option value="TRUE">True</option>
             </select>
             <span class="help-block"> 
-                By default events are not published (FALSE).
+                By default events are not published (False).
             </span>
         </div>
     </div>

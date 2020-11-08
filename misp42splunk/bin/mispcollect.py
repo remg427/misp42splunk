@@ -24,7 +24,7 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "3.3.0"
+__version__ = "4.0.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -174,7 +174,7 @@ class MispCollectCommand(GeneratingCommand):
         doc='''
         **Syntax:** **page=***<int>*
         **Description:**define the page for each MISP search; default 1.''',
-        require=False, validate=validators.Match("limit", r"^[0-9]+$"))
+        require=False, validate=validators.Match("page", r"^[0-9]+$"))
     tags = Option(
         doc='''
         **Syntax:** **tags=***CSV string*
@@ -232,10 +232,6 @@ class MispCollectCommand(GeneratingCommand):
         if my_args is None:
             raise Exception("Sorry, no configuration for misp_instance={}".format(misp_instance))
         my_args['host'] = my_args['misp_url'].replace('https://', '')
-        if self.endpoint == 'events':
-            my_args['misp_url'] = my_args['misp_url'] + '/events/restSearch'
-        else:
-            my_args['misp_url'] = my_args['misp_url'] + '/attributes/restSearch'
         # check that ONE of mandatory fields is present
         mandatory_arg = 0
         if self.json_request is not None:
@@ -306,6 +302,20 @@ class MispCollectCommand(GeneratingCommand):
         # manage to_ids and enforceWarninglist
         # to avoid FP enforceWarninglist is set to True if
         # to_ids is set to True (search criterion)
+        if self.category is not None:
+            if "," in self.category:
+                cat_criteria = {}
+                cat_list = self.category.split(",")
+                cat_criteria['OR'] = cat_list
+                body_dict['category'] = cat_criteria
+            else:
+                body_dict['category'] = self.category
+        if self.endpoint == 'events':
+            my_args['misp_url'] = my_args['misp_url'] + '/events/restSearch'
+        else:
+            my_args['misp_url'] = my_args['misp_url'] + '/attributes/restSearch'
+        if self.geteventtag is True:
+            body_dict['includeEventTags'] = True
         if self.keep_related is True:
             keep_related = True
         else:
@@ -315,20 +325,6 @@ class MispCollectCommand(GeneratingCommand):
             body_dict['enforceWarninglist'] = True  # protection
         elif self.to_ids is False:
             body_dict['to_ids'] = False
-        if self.warning_list is True:
-            body_dict['enforceWarninglist'] = True
-        elif self.warning_list is False:
-            body_dict['enforceWarninglist'] = False
-        if self.geteventtag is True:
-            body_dict['includeEventTags'] = True
-        if self.category is not None:
-            if "," in self.category:
-                cat_criteria = {}
-                cat_list = self.category.split(",")
-                cat_criteria['OR'] = cat_list
-                body_dict['category'] = cat_criteria
-            else:
-                body_dict['category'] = self.category
         if self.type is not None:
             if "," in self.type:
                 type_criteria = {}
@@ -337,6 +333,10 @@ class MispCollectCommand(GeneratingCommand):
                 body_dict['type'] = type_criteria
             else:
                 body_dict['type'] = self.type
+        if self.warning_list is True:
+            body_dict['enforceWarninglist'] = True
+        elif self.warning_list is False:
+            body_dict['enforceWarninglist'] = False
         if self.tags is not None or self.not_tags is not None:
             tags_criteria = {}
             if self.tags is not None:

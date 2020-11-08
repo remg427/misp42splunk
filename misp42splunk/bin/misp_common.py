@@ -6,7 +6,7 @@ from splunk.clilib import cli_common as cli
 from io import open
 
 __license__ = "LGPLv3"
-__version__ = "3.3.0"
+__version__ = "4.0.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -22,10 +22,8 @@ def logging_level(app_name):
     # retrieve log level
     _SPLUNK_PATH = os.environ['SPLUNK_HOME']
     settings_file = os.path.join(
-        _SPLUNK_PATH, 'etc', 'apps',
-        app_name,
-        'local',
-        app_name + '_settings.conf'
+        _SPLUNK_PATH, 'etc', 'apps', app_name,
+        'local', app_name + '_settings.conf'
     )
     run_level = 'ERROR'
     if os.path.exists(settings_file):
@@ -43,21 +41,16 @@ def logging_level(app_name):
 def prepare_config(helper, app_name, misp_instance, storage_passwords):
     config_args = dict()
     # get MISP instance to be used
-    stanza_name = 'misp://' + misp_instance
-    logging.debug("[MC201] stanza_name={}".format(stanza_name))
-    # get MISP instance parameters
-    # open local/misp42splunk_instances_file into a dict:  app_config
     _SPLUNK_PATH = os.environ['SPLUNK_HOME']
     misp_instances_file = os.path.join(
-        _SPLUNK_PATH, 'etc', 'apps',
-        app_name,
-        'local', 'misp42splunk_instances.conf'
+        _SPLUNK_PATH, 'etc', 'apps', app_name,
+        'local', app_name + '_instances.conf'
     )
     if os.path.exists(misp_instances_file):
         inputsConf = cli.readConfFile(misp_instances_file)
         foundStanza = False
         for name, content in list(inputsConf.items()):
-            if stanza_name == str(name):
+            if misp_instance == str(name):
                 app_config = content
                 foundStanza = True
                 logging.debug(
@@ -67,7 +60,7 @@ def prepare_config(helper, app_name, misp_instance, storage_passwords):
         if not foundStanza:
             raise Exception(
                 "local/misp42splunk_instances.conf does not contain "
-                "any stanza %s ", str(stanza_name)
+                "any stanza %s ", str(misp_instance)
             )
             return None
     else:

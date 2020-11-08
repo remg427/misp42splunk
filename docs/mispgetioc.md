@@ -61,6 +61,7 @@ another example:
     + geteventtag will return event tags in the result
     + **if you want to split multivalue attributes set pipesplit to "True" **
 
+
 ## All params
 
     misp_instance = Option(
@@ -106,6 +107,12 @@ another example:
         **Description:**Comma(,)-separated string of categories to search for.
          Wildcard is %.''',
         require=False)
+    expand_object = Option(
+        doc='''
+        **Syntax:** **gexpand_object=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
+        **Description:**Boolean to have object attributes expanded (one per line).
+        By default, attributes of one object are displayed on same line.''',
+        require=False, validate=validators.Boolean())
     geteventtag = Option(
         doc='''
         **Syntax:** **geteventtag=***<1|y|Y|t|true|True|0|n|N|f|false|False>*

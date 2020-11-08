@@ -7,6 +7,7 @@
     <set token="param_category"></set>
     <set token="param_type"></set>
     <set token="param_add_description"></set>
+    <set token="param_expand_object"></set>
     <set token="param_geteventtag"></set>
     <set token="param_getorg"></set>
     <set token="param_getuuid"></set>
@@ -26,10 +27,8 @@
       <fieldForLabel>misp_instance</fieldForLabel>
       <fieldForValue>misp_instance</fieldForValue>
       <search>
-        <query>| rest /services/configs/inputs
-| rename eai:acl.app as app
-| where app="misp42splunk" AND isnotnull(misp_url)
-| eval misp_instance=replace(title,"misp://","")
+        <query>| rest /services/configs/conf-misp42splunk_instances
+| rename eai:acl.app as app, title as misp_instance
 | fields misp_instance</query>
         <earliest>-24h@h</earliest>
         <latest>now</latest>
@@ -107,6 +106,16 @@
       <change>
         <condition>
           <set token="param_add_description">add_description=$add_description$</set>
+        </condition>
+      </change>
+      <choice value="true">True</choice>
+      <choice value="false">False</choice>
+    </input>
+    <input type="radio" token="expand_object" searchWhenChanged="true">
+      <label>expand_object</label>
+      <change>
+        <condition>
+          <set token="param_expand_object">expand_object=$expand_object$</set>
         </condition>
       </change>
       <choice value="true">True</choice>
@@ -262,6 +271,11 @@
             <td>Comma(,)-separated string of categories to search for. Wildcard is %.</td>
         </tr>
         <tr>
+            <td>expand_object</td>
+            <td>expand_object=1|y|Y|t|true|True|0|n|N|f|false|False </td>
+            <td>Boolean to have object attributes expanded (one per line). By default, attributes of one object are displayed on same line.</td>
+        </tr>
+        <tr>
             <td>geteventtag</td>
             <td>geteventtag=1|y|Y|t|true|True|0|n|N|f|false|False </td>
             <td>include Event Tags.</td>
@@ -330,7 +344,7 @@
       <title>Custom command mispgetioc</title>
       <table>
         <search>
-          <query>| mispgetioc misp_instance=$misp_instance$ $param_json_request$ $param_eventid$ $param_last$ $param_date$ $param_category$ $param_type$ $param_output$ $param_add_description$ $param_geteventtag$ $param_getorg$ $param_getuuid$ $param_tags$ $param_not_tags$ $param_to_ids$ $param_warning_list$ $param_keep_related$ $param_limit$ $param_page$</query>
+          <query>| mispgetioc misp_instance=$misp_instance$ $param_json_request$ $param_eventid$ $param_last$ $param_date$ $param_category$ $param_type$ $param_output$ $param_add_description$ $param_expand_object$ $param_geteventtag$ $param_getorg$ $param_getuuid$ $param_tags$ $param_not_tags$ $param_to_ids$ $param_warning_list$ $param_keep_related$ $param_limit$ $param_page$</query>
           <earliest>0</earliest>
           <latest></latest>
           <sampleRatio>1</sampleRatio>

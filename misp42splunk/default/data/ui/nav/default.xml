@@ -1,5 +1,5 @@
 <nav search_view="search" color="#2FA1DB">
-	<view name="misp-overview" label="Overview"/>
+	<view name="misp-overview" label="Overview" default="true"/>
 	<collection label="MISP custom commands">
 		<view name="mispgetioc" label="Get MISP attributes"/>
       	<view name="mispgetevent" label="Get MISP events"/>
@@ -11,7 +11,6 @@
 		<view name="misp_alert_create_event" label="Creete MISP events"/>
       	<view name="misp_alert_sighting" label="Increment sighting counters"/>
 		<view name="misp_alert_logs" label="MISP Alert logs"/>
-		<view name="alerts" />
 	</collection>
 	<collection label="Search">
 		<view name="search" />
@@ -19,9 +18,6 @@
 		<view name="dashboards" />
 		<view name="alerts" />
 	</collection>
-	<collection label="Configure">
-		<view name="inputs" default="true"/>
-		<view name="configuration" />
-	</collection>  
-	<a href="search">Run a search</a>
+	<view name="configuration" />
+	<view name="search">Run a search</view>
 </nav>

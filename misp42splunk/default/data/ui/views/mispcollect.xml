@@ -5,15 +5,16 @@
     <set token="param_last"></set>
     <set token="param_date"></set>
     <set token="param_category"></set>
-    <set token="param_type"></set>
+    <set token="param_endpoint"></set>
     <set token="param_geteventtag"></set>
-    <set token="param_tags"></set>
-    <set token="param_not_tags"></set>
-    <set token="param_to_ids"></set>
-    <set token="param_warning_list"></set>
     <set token="param_keep_related"></set>
     <set token="param_limit"></set>
+    <set token="param_not_tags"></set>
     <set token="param_page"></set>
+    <set token="param_tags"></set>
+    <set token="param_to_ids"></set>
+    <set token="param_type"></set>
+    <set token="param_warning_list"></set>
   </init>
   <label>mispcollect</label>
   <fieldset submitButton="false" autoRun="false">
@@ -22,10 +23,8 @@
       <fieldForLabel>misp_instance</fieldForLabel>
       <fieldForValue>misp_instance</fieldForValue>
       <search>
-        <query>| rest /services/configs/inputs
-| rename eai:acl.app as app
-| where app="misp42splunk" AND isnotnull(misp_url)
-| eval misp_instance=replace(title,"misp://","")
+        <query>| rest /services/configs/conf-misp42splunk_instances
+| rename eai:acl.app as app, title as misp_instance
 | fields misp_instance</query>
         <earliest>-24h@h</earliest>
         <latest>now</latest>
@@ -75,6 +74,24 @@
         </condition>
       </change>
     </input>
+    <input type="dropdown" token="endpoint" searchWhenChanged="true">
+      <label>endpoint</label>
+      <choice value="">not set</choice>
+      <choice value="attributes">attributes</choice>
+      <choice value="events">events</choice>
+      <change>
+        <condition match="$value$=&quot;&quot;">
+          <set token="param_endpoint"></set>
+        </condition>
+        <condition match="$value$=&quot;attributes&quot;">
+          <set token="param_endpoint">endpoint=attributes</set>
+        </condition>
+        <condition match="$value$=&quot;events&quot;">
+          <set token="param_endpoint">endpoint=events</set>
+        </condition>
+      </change>
+      <default></default>
+    </input>
     <input type="text" token="category" searchWhenChanged="true">
       <label>category</label>
       <change>
@@ -97,35 +114,45 @@
         </condition>
       </change>
     </input>
-    <input type="dropdown" token="endpoint" searchWhenChanged="true">
-      <label>endpoint</label>
-      <choice value="default">default</choice>
-      <choice value="attribute">attributes</choice>
-      <choice value="event">events</choice>
-      <change>
-        <condition match="$value$=&quot;default&quot;">
-          <set token="param_endpoint"></set>
-        </condition>
-        <condition match="$value$=&quot;attribute&quot;">
-          <set token="param_endpoint">endpoint=attributes</set>
-        </condition>
-        <condition match="$value$=&quot;event&quot;">
-          <set token="param_endpoint">endpoint=events</set>
-        </condition>
-      </change>
-      <default>default</default>
-      <initialValue>default</initialValue>
-    </input>
-    <input type="text" token="geteventtag" searchWhenChanged="true">
+    <input type="radio" token="geteventtag" searchWhenChanged="true">
       <label>geteventtag</label>
       <change>
-        <condition match="$value$=&quot;&quot;">
-          <set token="param_geteventtag"></set>
-        </condition>
         <condition>
           <set token="param_geteventtag">geteventtag=$geteventtag$</set>
         </condition>
       </change>
+      <choice value="true">True</choice>
+      <choice value="false">False</choice>
+    </input>
+    <input type="radio" token="keep_related" searchWhenChanged="true">
+      <label>keep_related</label>
+      <change>
+        <condition>
+          <set token="param_keep_related">keep_related=$keep_related$</set>
+        </condition>
+      </change>
+      <choice value="true">True</choice>
+      <choice value="false">False</choice>
+    </input>
+    <input type="radio" token="to_ids" searchWhenChanged="true">
+      <label>to_ids</label>
+      <change>
+        <condition>
+          <set token="param_to_ids">to_ids=$to_ids$</set>
+        </condition>
+      </change>
+      <choice value="true">True</choice>
+      <choice value="false">False</choice>
+    </input>
+    <input type="radio" token="warning_list" searchWhenChanged="true">
+      <label>warning_list</label>
+      <change>
+        <condition>
+          <set token="param_warning_list">warning_list=$warning_list$</set>
+        </condition>
+      </change>
+      <choice value="true">True</choice>
+      <choice value="false">False</choice>
     </input>
     <input type="text" token="tags" searchWhenChanged="true">
       <label>tags</label>
@@ -146,39 +173,6 @@
         </condition>
         <condition>
           <set token="param_not_tags">not_tags=$not_tags$</set>
-        </condition>
-      </change>
-    </input>
-    <input type="text" token="to_ids" searchWhenChanged="true">
-      <label>to_ids</label>
-      <change>
-        <condition match="$value$=&quot;&quot;">
-          <set token="param_to_ids"></set>
-        </condition>
-        <condition>
-          <set token="param_to_ids">to_ids=$to_ids$</set>
-        </condition>
-      </change>
-    </input>
-    <input type="text" token="warning_list" searchWhenChanged="true">
-      <label>warning_list</label>
-      <change>
-        <condition match="$value$=&quot;&quot;">
-          <set token="param_warning_list"></set>
-        </condition>
-        <condition>
-          <set token="param_warning_list">warning_list=$warning_list$</set>
-        </condition>
-      </change>
-    </input>
-    <input type="text" token="keep_related" searchWhenChanged="true">
-      <label>keep_related</label>
-      <change>
-        <condition match="$value$=&quot;&quot;">
-          <set token="param_keep_related"></set>
-        </condition>
-        <condition>
-          <set token="param_keep_related">keep_related=$keep_related$</set>
         </condition>
       </change>
     </input>
@@ -276,7 +270,7 @@
       <title>Custom command mispcollect</title>
       <event>
         <search>
-          <query>| mispcollect misp_instance=$misp_instance$ $param_json_request$ $param_eventid$ $param_last$ $param_date$ $param_category$ $param_type$ $param_endpoint$  $param_geteventtag$ $param_tags$ $param_not_tags$ $param_to_ids$ $param_warning_list$ $param_keep_related$ $param_limit$ $param_page$</query>
+          <query>| mispcollect misp_instance=$misp_instance$ $param_json_request$ $param_eventid$ $param_last$ $param_date$ $param_category$ $param_type$ $param_endpoint$ $param_geteventtag$ $param_tags$ $param_not_tags$ $param_to_ids$ $param_warning_list$ $param_keep_related$ $param_limit$ $param_page$</query>
           <earliest>0</earliest>
           <latest></latest>
           <sampleRatio>1</sampleRatio>

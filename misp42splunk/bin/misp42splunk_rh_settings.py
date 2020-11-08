@@ -84,7 +84,7 @@ fields_logging = [
         'loglevel',
         required=False,
         encrypted=False,
-        default='INFO',
+        default='ERROR',
         validator=None
     )
 ]

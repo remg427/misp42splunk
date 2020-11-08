@@ -1,4 +1,4 @@
-[misp://<name>]
+[<name>] 
 misp_url = provide MISP URL. Do not end with a /
 misp_key = provide one authkey for the instance
 misp_verifycert = set to check TLS certificate
