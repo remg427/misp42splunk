@@ -20,7 +20,7 @@
     <set token="param_limit"></set>
     <set token="param_page"></set>
   </init>
-  <label>mispgetioc</label>
+  <label>MISP custom command mispgetioc</label>
   <fieldset submitButton="false" autoRun="false">
     <input type="dropdown" token="misp_instance" searchWhenChanged="true">
       <label>misp_instance*</label>

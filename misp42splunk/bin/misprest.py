@@ -155,7 +155,6 @@ class MispRestCommand(GeneratingCommand):
         else:
             body_dict = {}
 
-        logging.debug('[MR-202] misprest request body: {}'.format(body_dict))
         # set proper headers
         headers = {'Content-type': 'application/json'}
         headers['Authorization'] = my_args['misp_key']
@@ -186,7 +185,24 @@ class MispRestCommand(GeneratingCommand):
                 " it was {}.".format(self.method)
             )
 
-        r.raise_for_status()
+        # check if status is anything other than 200;
+        # throw an exception if it is
+        if r.status_code in (200, 201, 204):
+            logging.info(
+                "[RE301] INFO mispcollect successful. "
+                "url={}, HTTP status={}".format(my_args['misp_url'], r.status_code)
+            )
+        else:
+            logging.error(
+                "[RE302] ERROR mispcollect failed. "
+                "url={}, data={}, HTTP Error={}, content={}"
+                .format(my_args['misp_url'], body_dict, r.status_code, r.text)
+            )
+            raise Exception(
+                "[RE302] ERROR mispcollect failed. "
+                "url={}, data={}, HTTP Error={}, content={}"
+                .format(my_args['misp_url'], body_dict, r.status_code, r.text)
+            )
         # response is 200 by this point or we would have thrown an exception
         data = {'_time': time.time(), '_raw': json.dumps(r.json())}
         yield data

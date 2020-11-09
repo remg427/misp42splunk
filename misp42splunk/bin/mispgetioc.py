@@ -412,7 +412,6 @@ class MispGetIocCommand(GeneratingCommand):
             body_dict['page'] = page
             body_dict['limit'] = limit
         body = json.dumps(body_dict)
-        logging.debug('mispgetioc request body: %s', body)
         # search
         r = requests.post(my_args['misp_url'], headers=headers, data=body,
                           verify=my_args['misp_verifycert'],
@@ -420,7 +419,22 @@ class MispGetIocCommand(GeneratingCommand):
                           proxies=my_args['proxies'])
         # check if status is anything other than 200;
         # throw an exception if it is
-        r.raise_for_status()
+        if r.status_code in (200, 201, 204):
+            logging.info(
+                "[IO301] INFO mispgetioc successful. "
+                "url={}, HTTP status={}".format(my_args['misp_url'], r.status_code)
+            )
+        else:
+            logging.error(
+                "[IO302] ERROR mispgetioc failed. "
+                "url={}, data={}, HTTP Error={}, content={}"
+                .format(my_args['misp_url'], body, r.status_code, r.text)
+            )
+            raise Exception(
+                "[IO302] ERROR mispgetioc failed. "
+                "url={}, data={}, HTTP Error={}, content={}"
+                .format(my_args['misp_url'], body, r.status_code, r.text)
+            )
 
         # response is 200 by this point or we would have thrown an exception
         response = r.json()
@@ -491,7 +505,6 @@ class MispGetIocCommand(GeneratingCommand):
                         current_type = str(a['type'])
                         # combined: not part of an object
                         # AND multivalue attribute AND to be split
-                        # logging.debug('misp_event: %s', json.dumps(v))
                         if int(a['object_id']) == 0 and '|' in current_type \
                            and my_args['pipe'] is True:
                             mv_type_list = current_type.split('|')
@@ -622,7 +635,6 @@ class MispGetIocCommand(GeneratingCommand):
                             attribute_names.append(key)
                     attribute_names.sort()
                     init_attribute_names = False
-                    logging.debug(json.dumps(attribute_names))
                 yield MispGetIocCommand._record(
                     serial_number, v['misp_timestamp'], my_args['host'],
                     v, attribute_names, encoder, True)

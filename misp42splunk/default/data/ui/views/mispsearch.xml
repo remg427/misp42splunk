@@ -9,7 +9,7 @@
     <set token="param_page"></set>
     <set token="sample_query">| makeresults | eval domain="www.example.com"</set>
   </init>
-  <label>mispsearch</label>
+  <label>MISP custom command mispsearch</label>
   <fieldset submitButton="false" autoRun="false">
     <input type="dropdown" token="misp_instance" searchWhenChanged="true">
       <label>misp_instance*</label>

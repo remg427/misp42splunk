@@ -126,7 +126,6 @@ class MispSightCommand(StreamingCommand):
                         'l_id': 0
                     }
                     # search
-                    logging.debug('mispsight request body: %s', search_body)
                     rs = requests.post(
                         search_url,
                         headers=headers,
@@ -137,15 +136,31 @@ class MispSightCommand(StreamingCommand):
                     )
                     # check if status is anything other than 200;
                     # throw an exception if it is
-                    rs.raise_for_status()
+                    # check if status is anything other than 200;
+                    # throw an exception if it is
+                    if rs.status_code in (200, 201, 204):
+                        logging.info(
+                            "[SI301] INFO mispsight part 1 successful. "
+                            "url={}, HTTP status={}".format(my_args['misp_url'], rs.status_code)
+                        )
+                    else:
+                        logging.error(
+                            "[SI302] ERROR mispsight part 1 failed. "
+                            "url={}, data={}, HTTP Error={}, content={}"
+                            .format(my_args['misp_url'], search_body, rs.status_code, rs.text)
+                        )
+                        raise Exception(
+                            "[SI302] ERROR mispsight part 1 failed. "
+                            "url={}, data={}, HTTP Error={}, content={}"
+                            .format(my_args['misp_url'], search_body, rs.status_code, rs.text)
+                        )
                     # response is 200 by this point or we would
                     # have thrown an exception
                     response = rs.json()
-                    logging.info("MISP REST API %s has got a response with status code 200", search_url)
                     if 'response' in response:
                         if 'Attribute' in response['response']:
                             r_number = len(response['response']['Attribute'])
-                            logging.debug(
+                            logging.info(
                                 "MISP REST API %s: response: with %s records"
                                 % (search_url, str(r_number))
                             )
@@ -165,20 +180,25 @@ class MispSightCommand(StreamingCommand):
                                     )
                                     # check if status is anything
                                     # other than 200; throw an exception
-                                    rt.raise_for_status()
+                                    if rt.status_code in (200, 201, 204):
+                                        logging.info(
+                                            "[SI301] INFO mispsight part 2 successful. "
+                                            "url={}, HTTP status={}".format(my_args['misp_url'], rt.status_code)
+                                        )
+                                    else:
+                                        logging.error(
+                                            "[SI302] ERROR mispsight part 2 failed. "
+                                            "url={}, data={}, HTTP Error={}, content={}"
+                                            .format(my_args['misp_url'], sight_body, rt.status_code, rt.text)
+                                        )
+                                        raise Exception(
+                                            "[SI302] ERROR mispsight part 2 failed. "
+                                            "url={}, data={}, HTTP Error={}, content={}"
+                                            .format(my_args['misp_url'], sight_body, rt.status_code, rt.text)
+                                        )
                                     # response is 200 by this point or we
                                     # would have thrown an exception
                                     sight = rt.json()
-                                    logging.info(
-                                        "MISP REST API %s has got a response with status code 200",
-                                        sight_url
-                                    )
-                                    logging.debug(
-                                        "MISP REST API %s has got a response: with %s records" % (
-                                            sight_url,
-                                            len(sight)
-                                        )
-                                    )
                                     if 'response' in sight:
                                         for s in sight['response']:
                                             if 'Sighting' in s:

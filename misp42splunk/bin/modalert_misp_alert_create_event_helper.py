@@ -41,22 +41,15 @@ def get_datatype_dict(helper, config, app_name):
     directory = os.path.join(
         _SPLUNK_PATH, 'etc', 'apps', app_name, 'lookups'
     )
-    helper.log_debug("[HC301]---: {} ".format(directory))
     dt_filename = os.path.join(directory, 'misp_datatypes.csv')
     if os.path.exists(dt_filename):
         try:
             # open the file with gzip lib, start making alerts
             # can with statements fail gracefully??
             fh = open(dt_filename, "rt")
-            helper.log_debug(
-                "[HC302] file {} is open with first try".format(dt_filename)
-            )
         except ValueError:
             # Workaround for Python 2.7 under Windows
             fh = gzip.open(dt_filename, "r")
-            helper.log_debug(
-                "[HC303] file {} is open with alternate".format(dt_filename)
-            )
         if fh is not None:
             try:
                 csv_reader = csv.DictReader(fh)
@@ -84,7 +77,6 @@ def prepare_alert(helper, app_name):
     # Get string values from alert form
     alert_args['tlp'] = str(helper.get_param("tlp").replace('_', ':'))
     alert_args['pap'] = str(helper.get_param("pap").replace('_', ':'))
-    helper.log_debug("alert_args['pap'] {}".format(alert_args['pap']))
     if not helper.get_param("eventid"):
         alert_args['eventid'] = "0"
     else:
@@ -438,6 +430,7 @@ def process_misp_events(helper, config, results, event_list):
             # check if status is anything other than 200;
             # throw an exception if it is
             r.raise_for_status()
+            status = r.status_code
             # response is 200 or we would have thrown an exception
             # response = r.json()
             if r.status_code in (200, 201, 204):
@@ -535,11 +528,11 @@ def process_event(helper, *args, **kwargs):
         helper.log_error("[AL102] FATAL config dict not initialised")
         return 1
     else:
-        helper.log_debug("[AL103] config dict is ready to use")
+        helper.log_info("[AL103] config dict is ready to use")
         event_list = {}
         events = prepare_misp_events(helper, misp_config, event_list)
         if events is not None:
-            helper.log_debug("[AL104] Events dict is ready to use")
+            helper.log_info("[AL104] Events dict is ready to use")
             process_misp_events(helper, misp_config, events, event_list)
         else:
             helper.log_error("[AL105] FATAL no event top rocess")

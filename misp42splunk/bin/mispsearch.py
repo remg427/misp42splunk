@@ -199,14 +199,30 @@ class MispSearchCommand(StreamingCommand):
                         body_dict['page'] = page
                         body_dict['limit'] = limit
                     body = json.dumps(body_dict)
-                    logging.debug('mispsearch request body: %s', body)
                     r = requests.post(my_args['misp_url'], headers=headers,
                                       data=body,
                                       verify=my_args['misp_verifycert'],
                                       cert=my_args['client_cert_full_path'],
                                       proxies=my_args['proxies'])
 # check if status is anything other than 200; throw an exception if it is
-                    r.raise_for_status()
+                    # check if status is anything other than 200;
+                    # throw an exception if it is
+                    if r.status_code in (200, 201, 204):
+                        logging.info(
+                            "[SE301] INFO mispsearch successful. "
+                            "url={}, HTTP status={}".format(my_args['misp_url'], r.status_code)
+                        )
+                    else:
+                        logging.error(
+                            "[SE302] ERROR mispsearch failed. "
+                            "url={}, data={}, HTTP Error={}, content={}"
+                            .format(my_args['misp_url'], body, r.status_code, r.text)
+                        )
+                        raise Exception(
+                            "[SE302] ERROR mispsearch failed. "
+                            "url={}, data={}, HTTP Error={}, content={}"
+                            .format(my_args['misp_url'], body, r.status_code, r.text)
+                        )
 # response is 200 by this point or we would have thrown an exception
 # print >> sys.stderr, "DEBUG MISP REST API response: %s" % response.json()
                     response = r.json()

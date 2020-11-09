@@ -53,10 +53,6 @@ def prepare_config(helper, app_name, misp_instance, storage_passwords):
             if misp_instance == str(name):
                 app_config = content
                 foundStanza = True
-                logging.debug(
-                    '[MC202] misp42splunk config: {}'
-                    .format(json.dumps(app_config))
-                )
         if not foundStanza:
             raise Exception(
                 "local/misp42splunk_instances.conf does not contain "
@@ -134,10 +130,6 @@ def prepare_config(helper, app_name, misp_instance, storage_passwords):
                 "http": "http" + proxy_url,
                 "https": "https" + proxy_url
             }
-    # if mode=DEBUG, log config before getting API key
-    logging.debug(
-        "[MC205] config_args: {}".format(json.dumps(config_args))
-    )
 
     # get clear version of misp_key
     config_args['misp_key'] = None

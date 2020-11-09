@@ -2,7 +2,7 @@
   <init>
     <set token="sample_query">| makeresults | eval domain="www.example.com"</set>
   </init>
-  <label>mispsight</label>
+  <label>MISP custom command mispsight</label>
   <fieldset submitButton="false" autoRun="false">
     <input type="dropdown" token="misp_instance" searchWhenChanged="true">
       <label>misp_instance*</label>

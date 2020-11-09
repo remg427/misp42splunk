@@ -6,6 +6,7 @@
 		<view name="mispsearch" label="Search MISP for matching attributes"/>
 		<view name="mispsight" label="Search MISP for sightings"/>
       	<view name="mispcollect" label="Collect as JSON events"/>
+      	<view name="misprest" label="MISP REST wrapper"/>
 	</collection>
 	<collection label="MISP alert actions">
 		<view name="misp_alert_create_event" label="Creete MISP events"/>

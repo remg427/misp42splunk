@@ -166,7 +166,6 @@ def create_alert(helper, config):
                         timestamp=timestamp,
                         type=sighting_type
                     )
-                    helper.log_debug("[AS304] sighting is {}".format(sighting))
                     sightings.append(sighting)
 
     # set proper headers
@@ -177,7 +176,6 @@ def create_alert(helper, config):
     # iterate in dict events to create events
     for sighting in sightings:
         payload = json.dumps(sighting)
-        helper.log_debug("[AS301] sighting body has been prepared {}".format(payload))
         # byvalue: sighting contains
         # {"timestamp": timestamp, "values":["value1", "value2,etc. "]}
         # byuuid:  sighting contains
@@ -189,7 +187,17 @@ def create_alert(helper, config):
         # throw an exception if it is
         r.raise_for_status()
         # response is 200 by this point or we would have thrown an exception
-
+        if r.status_code in (200, 201, 204):
+            helper.log_info(
+                "[AL303] INFO MISP event is successfully edited. "
+                "url={}, HTTP status={}".format(misp_url, r.status_code)
+            )
+        else:
+            helper.log_error(
+                "[AL304] ERROR MISP event edition has failed. "
+                "url={}, data={}, HTTP Error={}, content={}"
+                .format(misp_url, payload, r.status_code, r.text)
+            )
 
 def process_event(helper, *args, **kwargs):
     """
@@ -254,6 +262,6 @@ def process_event(helper, *args, **kwargs):
         helper.log_error("[AS102] FATAL config dict not initialised")
         return 1
     else:
-        helper.log_debug("[AS103] config dict is ready to use")
+        helper.log_info("[AS103] config dict is ready to use")
         create_alert(helper, misp_config)
     return 0

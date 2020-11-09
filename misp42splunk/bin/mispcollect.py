@@ -360,7 +360,22 @@ class MispCollectCommand(GeneratingCommand):
                           proxies=my_args['proxies'])
         # check if status is anything other than 200;
         # throw an exception if it is
-        r.raise_for_status()
+        if r.status_code in (200, 201, 204):
+            logging.info(
+                "[CO301] INFO mispcollect successful. "
+                "url={}, HTTP status={}".format(my_args['misp_url'], r.status_code)
+            )
+        else:
+            logging.error(
+                "[CO302] ERROR mispcollect failed. "
+                "url={}, data={}, HTTP Error={}, content={}"
+                .format(my_args['misp_url'], body, r.status_code, r.text)
+            )
+            raise Exception(
+                "[CO302] ERROR mispcollect failed. "
+                "url={}, data={}, HTTP Error={}, content={}"
+                .format(my_args['misp_url'], body, r.status_code, r.text)
+            )
         # response is 200 by this point or we would have thrown an exception
         response = r.json()
         encoder = json.JSONEncoder(ensure_ascii=False, separators=(',', ':'))

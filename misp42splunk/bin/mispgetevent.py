@@ -177,8 +177,6 @@ def format_output_table(input_json, output_table, list_of_types,
                                                          object_id,
                                                          object_name,
                                                          object_comment))
-                    logging.debug(
-                        'event UUID is %s', str(v['misp_event_uuid']))
                     output_table.append(v)
 
         if output_table is not None:
@@ -520,7 +518,24 @@ class MispGetEventCommand(GeneratingCommand):
                           proxies=my_args['proxies'])
         # check if status is anything other than 200;
         # throw an exception if it is
-        r.raise_for_status()
+        # check if status is anything other than 200;
+        # throw an exception if it is
+        if r.status_code in (200, 201, 204):
+            logging.info(
+                "[EV301] INFO mispgetevent successful. "
+                "url={}, HTTP status={}".format(my_args['misp_url'], r.status_code)
+            )
+        else:
+            logging.error(
+                "[EV302] ERROR mispgetevent failed. "
+                "url={}, data={}, HTTP Error={}, content={}"
+                .format(my_args['misp_url'], body, r.status_code, r.text)
+            )
+            raise Exception(
+                "[EV302] ERROR mispgetevent failed. "
+                "url={}, data={}, HTTP Error={}, content={}"
+                .format(my_args['misp_url'], body, r.status_code, r.text)
+            )
         # response is 200 by this point or we would have thrown an exception
         response = r.json()
 
@@ -554,14 +569,12 @@ class MispGetEventCommand(GeneratingCommand):
                 init_attribute_names = True
                 serial_number = 0
                 for e in events:
-                    # logging.debug('event is %s', json.dumps(e))
                     if init_attribute_names is True:
                         for key in e.keys():
                             if key not in attribute_names:
                                 attribute_names.append(key)
                         attribute_names.sort()
                         init_attribute_names = False
-                        logging.debug(json.dumps(attribute_names))
                     yield MispGetEventCommand._record(
                         serial_number, e['misp_timestamp'],
                         my_args['host'], e, attribute_names, encoder, True)
@@ -635,7 +648,6 @@ class MispGetEventCommand(GeneratingCommand):
                                     attribute_names.append(key)
                             attribute_names.sort()
                             init_attribute_names = False
-                            logging.debug(json.dumps(attribute_names))
                         yield MispGetEventCommand._record(
                             serial_number, v['misp_timestamp'],
                             my_args['host'], v, attribute_names, encoder, True)
