@@ -1,135 +1,147 @@
 <form class="form-horizontal form-complex">
-<div class="control-group">
-	<label class="control-label" for="misp_alert_create_event_title">Title <span class="required">*</span> </label>
-    <div class="controls">
-	<input type="text" name="action.misp_alert_create_event.param.title" id="misp_alert_create_event_title"/>
-                <span class="help-block"> 
-                    The title of this alert.
-                </span>
+    <div class="control-group">
+        <label class="control-label" for="misp_alert_create_event_misp_instance">misp_instance  <span class="required">*</span></label>
+        <div class="controls">
+            <input type="text" name="action.misp_alert_create_event.param.misp_instance" id="misp_alert_create_event_misp_instance"/>
+            <span class="help-block"> 
+                misp_instance.
+            </span>
+        </div>
     </div>
-</div>
-<div class="control-group">
-	<label class="control-label" for="misp_alert_create_event_description">Description  </label>
-    <div class="controls">
-	<input type="text" name="action.misp_alert_create_event.param.description" id="misp_alert_create_event_description"/>
-                <span class="help-block"> 
-                    The description to send with the alert.
-                </span>
+    <div class="control-group">
+    	<label class="control-label" for="misp_alert_create_event_title">Title <span class="required">*</span></label>
+        <div class="controls">
+            <input type="text" name="action.misp_alert_create_event.param.title" id="misp_alert_create_event_title"/>
+            <span class="help-block"> 
+                The title of this alert.
+            </span>
+        </div>
     </div>
-</div>
-<div class="control-group">
-    <label class="control-label" for="misp_alert_create_event_misp_instance">misp_instance  <span class="required">*</span></label>
-    <div class="controls">
-    <input type="text" name="action.misp_alert_create_event.param.misp_instance" id="misp_alert_create_event_misp_instance"/>
-                <span class="help-block"> 
-                    misp_instance (leave blank to use default settings).
-                </span>
+    <div class="control-group">
+    	<label class="control-label" for="misp_alert_create_event_description">Description <span class="required">*</span></label>
+        <div class="controls">
+            <input type="text" name="action.misp_alert_create_event.param.description" id="misp_alert_create_event_description"/>
+            <span class="help-block"> 
+                The description to send with the alert.
+            </span>
+        </div>
     </div>
-</div>
-<div class="control-group">
-	<label class="control-label" for="misp_alert_create_event_eventid">EventID  </label>
-    <div class="controls">
-	<input type="text" name="action.misp_alert_create_event.param.eventid" id="misp_alert_create_event_eventid"/>
-                <span class="help-block"> 
-                    to update existing event, a valid event (UU)ID or a field containing it.<br>
-                </span>
+    <div class="control-group">
+    	<label class="control-label" for="misp_alert_create_event_eventid">EventID  </label>
+        <div class="controls">
+    	    <input type="text" name="action.misp_alert_create_event.param.eventid" id="misp_alert_create_event_eventid"/>
+            <span class="help-block"> 
+                to update existing event, a valid event (UU)ID or a field containing it.<br>
+            </span>
+        </div>
     </div>
-</div>
-<div class="control-group">
-	<label class="control-label" for="misp_alert_create_event_unique">Unique ID  </label>
-    <div class="controls">
-	<input type="text" name="action.misp_alert_create_event.param.unique" id="misp_alert_create_event_unique"/>
-                <span class="help-block"> 
-                    A field name that contains a unique identifier per event to be created.
-                </span>
+    <div class="control-group">
+    	<label class="control-label" for="misp_alert_create_event_unique">Unique ID  </label>
+        <div class="controls">
+        	<input type="text" name="action.misp_alert_create_event.param.unique" id="misp_alert_create_event_unique"/>
+            <span class="help-block"> 
+                A field name that contains a unique identifier per event to be created.
+            </span>
+        </div>
     </div>
-</div>
-<div class="control-group">
-	<label class="control-label" for="misp_alert_create_event_info">Info  </label>
-    <div class="controls">
-	<input type="text" name="action.misp_alert_create_event.param.info" id="misp_alert_create_event_info"/>
-                <span class="help-block"> 
-                    The default Info field for the MISP events if not provided in results.
-                </span>
+    <div class="control-group">
+    	<label class="control-label" for="misp_alert_create_event_info">Info  </label>
+        <div class="controls">
+        	<input type="text" name="action.misp_alert_create_event.param.info" id="misp_alert_create_event_info"/>
+            <span class="help-block"> 
+                The default Info field for the MISP events if not provided in results.
+            </span>
+        </div>
     </div>
-</div>
-<div class="control-group">
-	<label class="control-label" for="misp_alert_create_event_distribution">Distribution <span class="required">*</span> </label>
-    <div class="controls">
-<select name="action.misp_alert_create_event.param.distribution" id="misp_alert_create_event_distribution">
-        <option value="4">Sharing Group</option>
-        <option value="3">All communities</option>
-        <option value="1">This community only</option>
-        <option value="2">Connected communities</option>
-        <option value="0">Your organisation only</option>
-</select>
-                <span class="help-block"> 
-                    Change the Distribution. Defaults to Your organisation only
-                </span>
+    <div class="control-group">
+    	<label class="control-label" for="misp_alert_create_event_distribution">Distribution <span class="required">*</span> </label>
+        <div class="controls">
+            <select name="action.misp_alert_create_event.param.distribution" id="misp_alert_create_event_distribution">
+                    <option value="4">Sharing Group</option>
+                    <option value="3">All communities</option>
+                    <option value="1">This community only</option>
+                    <option value="2">Connected communities</option>
+                    <option value="0">Your organisation only</option>
+            </select>
+            <span class="help-block"> 
+                Change the Distribution. Defaults to Your organisation only
+            </span>
+        </div>
     </div>
-</div>
-<div class="control-group">
-	<label class="control-label" for="misp_alert_create_event_threatlevel">Threat Level <span class="required">*</span> </label>
-    <div class="controls">
-<select name="action.misp_alert_create_event.param.threatlevel" id="misp_alert_create_event_threatlevel">
-        <option value="2">Medium</option>
-        <option value="4">Undefined</option>
-        <option value="1">High</option>
-        <option value="3">Low</option>
-</select>
-                <span class="help-block"> 
-                    Change the Threat Level. Defaults to Undefined
-                </span>
+    <div class="control-group">
+    	<label class="control-label" for="misp_alert_create_event_threatlevel">Threat Level <span class="required">*</span> </label>
+        <div class="controls">
+            <select name="action.misp_alert_create_event.param.threatlevel" id="misp_alert_create_event_threatlevel">
+                    <option value="2">Medium</option>
+                    <option value="4">Undefined</option>
+                    <option value="1">High</option>
+                    <option value="3">Low</option>
+            </select>
+            <span class="help-block"> 
+                Change the Threat Level. Defaults to Undefined
+            </span>
+        </div>
     </div>
-</div>
-<div class="control-group">
-	<label class="control-label" for="misp_alert_create_event_analysis">Analysis <span class="required">*</span> </label>
-    <div class="controls">
-<select name="action.misp_alert_create_event.param.analysis" id="misp_alert_create_event_analysis">
-        <option value="1">Ongoing</option>
-        <option value="2">Complete</option>
-        <option value="0">Initial</option>
-</select>
-                <span class="help-block"> 
-                    Change Analysis status. Default to Initial
-                </span>
+    <div class="control-group">
+    	<label class="control-label" for="misp_alert_create_event_analysis">Analysis <span class="required">*</span> </label>
+        <div class="controls">
+            <select name="action.misp_alert_create_event.param.analysis" id="misp_alert_create_event_analysis">
+                    <option value="1">Ongoing</option>
+                    <option value="2">Complete</option>
+                    <option value="0">Initial</option>
+            </select>
+            <span class="help-block"> 
+                Change Analysis status. Default to Initial
+            </span>
+        </div>
     </div>
-</div>
-<div class="control-group">
-	<label class="control-label" for="misp_alert_create_event_tlp">TLP <span class="required">*</span> </label>
-    <div class="controls">
-<select name="action.misp_alert_create_event.param.tlp" id="misp_alert_create_event_tlp">
-        <option value="TLP_AMBER">AMBER</option>
-        <option value="TLP_WHITE">WHITE</option>
-        <option value="TLP_GREEN">GREEN</option>
-        <option value="TLP_RED">RED</option>
-</select>
-                <span class="help-block"> 
-                    Change the TLP of the created alert. Defaults to TLP-Amber
-                </span>
+    <div class="control-group">
+    	<label class="control-label" for="misp_alert_create_event_tlp">TLP <span class="required">*</span> </label>
+        <div class="controls">
+            <select name="action.misp_alert_create_event.param.tlp" id="misp_alert_create_event_tlp">
+                    <option value="TLP_AMBER">AMBER</option>
+                    <option value="TLP_WHITE">WHITE</option>
+                    <option value="TLP_GREEN">GREEN</option>
+                    <option value="TLP_RED">RED</option>
+            </select>
+            <span class="help-block"> 
+                Change the TLP of the created alert. Defaults to TLP-Amber
+            </span>
+        </div>
     </div>
-</div>
-<div class="control-group">
-	<label class="control-label" for="misp_alert_create_event_pap">PAP <span class="required">*</span> </label>
-    <div class="controls">
-<select name="action.misp_alert_create_event.param.pap" id="misp_alert_create_event_pap">
-        <option value="PAP_AMBER">AMBER</option>
-        <option value="PAP_WHITE">WHITE</option>
-        <option value="PAP_GREEN">GREEN</option>
-        <option value="PAP_RED">RED</option>
-</select>
-                <span class="help-block"> 
-                    Permissible Actions Protocol
-                </span>
+    <div class="control-group">
+    	<label class="control-label" for="misp_alert_create_event_pap">PAP <span class="required">*</span></label>
+        <div class="controls">
+            <select name="action.misp_alert_create_event.param.pap" id="misp_alert_create_event_pap">
+                    <option value="PAP_AMBER">AMBER</option>
+                    <option value="PAP_WHITE">WHITE</option>
+                    <option value="PAP_GREEN">GREEN</option>
+                    <option value="PAP_RED">RED</option>
+            </select>
+            <span class="help-block"> 
+                Permissible Actions Protocol
+            </span>
+        </div>
     </div>
-</div>
-<div class="control-group">
-	<label class="control-label" for="misp_alert_create_event_tags">Tags  </label>
-    <div class="controls">
-	<input type="text" name="action.misp_alert_create_event.param.tags" id="misp_alert_create_event_tags"/>
-                <span class="help-block"> 
-                    Use single comma-separated string without quotes for multiple tags (ex. badIP,spam).
-                </span>
+    <div class="control-group">
+        <label class="control-label" for="misp_alert_create_event_publish_on_creation">Publish event on creation? <span class="required">*</span></label>
+        <div class="controls">
+            <select name="action.misp_alert_create_event.param.publish_on_creation" id="misp_alert_create_event_publish_on_creation">
+                    <option value="FALSE" selected>False</option>
+                    <option value="TRUE">True</option>
+            </select>
+            <span class="help-block"> 
+                By default events are not published (False).
+            </span>
+        </div>
     </div>
-</div>
+    <div class="control-group">
+    	<label class="control-label" for="misp_alert_create_event_tags">Tags  </label>
+        <div class="controls">
+    	   <input type="text" name="action.misp_alert_create_event.param.tags" id="misp_alert_create_event_tags"/>
+            <span class="help-block"> 
+                Use single comma-separated string without quotes for multiple tags (ex. badIP,spam).
+            </span>
+        </div>
+    </div>
 </form>

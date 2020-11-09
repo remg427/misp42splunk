@@ -61,13 +61,14 @@ another example:
     + geteventtag will return event tags in the result
     + **if you want to split multivalue attributes set pipesplit to "True" **
 
+
 ## All params
 
     misp_instance = Option(
         doc='''
         **Syntax:** **misp_instance=instance_name*
         **Description:** MISP instance parameters
-        as described in local/inputs.conf.''',
+        as described in local/misp42splunk_instances.conf.''',
         require=True)
     # MANDATORY: json_request XOR eventid XOR last XOR date
     json_request = Option(
@@ -106,6 +107,12 @@ another example:
         **Description:**Comma(,)-separated string of categories to search for.
          Wildcard is %.''',
         require=False)
+    expand_object = Option(
+        doc='''
+        **Syntax:** **gexpand_object=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
+        **Description:**Boolean to have object attributes expanded (one per line).
+        By default, attributes of one object are displayed on same line.''',
+        require=False, validate=validators.Boolean())
     geteventtag = Option(
         doc='''
         **Syntax:** **geteventtag=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
@@ -138,8 +145,7 @@ another example:
     output = Option(
         doc='''
         **Syntax:** **output=***<default|rawy>*
-        **Description:**selection between the default behaviou or \
-        JSON output by event.''',
+        **Description:**selection between the default behaviou or JSON output by attribute.''',
         require=False, validate=validators.Match(
             "output", r"(default|raw)"))
     page = Option(

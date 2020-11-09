@@ -1,0 +1,277 @@
+<form>
+  <init>
+    <set token="eventid"></set>
+    <set token="unique"></set>
+    <set token="info"></set>
+    <set token="tags"></set>
+    <set token="misp_eventid"></set>
+    <set token="misp_unique"></set>
+    <set token="misp_info"></set>
+    <set token="misp_tags"></set>
+    <unset token="launch_alert"></unset>
+    <set token="sample_query">| makeresults | eval misp_domain="www.example.com"</set>
+  </init>
+  <label>misp_alert_create_event</label>
+  <fieldset submitButton="true">
+    <input type="dropdown" token="misp_instance" searchWhenChanged="true">
+      <label>misp_instance*</label>
+      <fieldForLabel>misp_instance</fieldForLabel>
+      <fieldForValue>misp_instance</fieldForValue>
+      <search>
+        <query>| rest /services/configs/conf-misp42splunk_instances
+| rename eai:acl.app as app, title as misp_instance
+| fields misp_instance</query>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </search>
+    </input>
+    <input type="text" token="title" searchWhenChanged="true">
+      <label>title*</label>
+    </input>
+    <input type="text" token="description" searchWhenChanged="true">
+      <label>description*</label>
+    </input>
+    <input type="text" token="eventid" searchWhenChanged="true">
+      <label>EventID</label>
+      <change>
+        <condition match="$value$=&quot;&quot;">
+          <set token="misp_eventid"></set>
+        </condition>
+        <condition>
+          <set token="misp_eventid">param.eventid="$eventid$"</set>
+        </condition>
+      </change>
+    </input>
+    <input type="text" token="unique" searchWhenChanged="true">
+      <label>unique</label>
+      <change>
+        <condition match="$value$=&quot;&quot;">
+          <set token="misp_unique"></set>
+        </condition>
+        <condition>
+          <set token="misp_unique">param.unique="$unique$"</set>
+        </condition>
+      </change>
+    </input>
+    <input type="text" token="info" searchWhenChanged="true">
+      <label>info</label>
+      <change>
+        <condition match="$value$=&quot;&quot;">
+          <set token="misp_info"></set>
+        </condition>
+        <condition>
+          <set token="misp_info">param.info="$info$"</set>
+        </condition>
+      </change>
+    </input>
+    <input type="dropdown" token="distribution" searchWhenChanged="true">
+      <label>distribution*</label>
+      <choice value="4">Sharing Group</choice>
+      <choice value="3">All communities</choice>
+      <choice value="1">This community only</choice>
+      <choice value="2">Connected communities</choice>
+      <choice value="0">Your organisation only</choice>
+      <default>0</default>
+      <initialValue>0</initialValue>
+    </input>
+    <input type="dropdown" token="threatlevel" searchWhenChanged="true">
+      <label>threatlevel*</label>
+      <choice value="2">Medium</choice>
+      <choice value="4">Undefined</choice>
+      <choice value="1">High</choice>
+      <choice value="3">Low</choice>
+      <default>4</default>
+      <initialValue>4</initialValue>
+    </input>
+    <input type="dropdown" token="analysis" searchWhenChanged="true">
+      <label>analysis*</label>
+      <choice value="1">Ongoing</choice>
+      <choice value="2">Complete</choice>
+      <choice value="0">Initial</choice>
+      <default>0</default>
+      <initialValue>0</initialValue>
+    </input>
+    <input type="dropdown" token="tlp" searchWhenChanged="true">
+      <label>TLP *</label>
+      <choice value="TLP_AMBER">AMBER</choice>
+      <choice value="TLP_WHITE">WHITE</choice>
+      <choice value="TLP_GREEN">GREEN</choice>
+      <choice value="TLP_RED">RED</choice>
+      <default>TLP_AMBER</default>
+      <initialValue>TLP_AMBER</initialValue>
+    </input>
+    <input type="dropdown" token="pap" searchWhenChanged="true">
+      <label>PAP *</label>
+      <choice value="PAP_AMBER">AMBER</choice>
+      <choice value="PAP_WHITE">WHITE</choice>
+      <choice value="PAP_GREEN">GREEN</choice>
+      <choice value="PAP_RED">RED</choice>
+      <default>PAP_AMBER</default>
+      <initialValue>PAP_AMBER</initialValue>
+    </input>
+    <input type="dropdown" token="publish_on_creation" searchWhenChanged="true">
+      <label>Publish event on creation*</label>
+      <choice value="False">False</choice>
+      <choice value="True">True</choice>
+      <default>False</default>
+      <initialValue>False</initialValue>
+    </input>
+    <input type="text" token="tags" searchWhenChanged="true">
+      <label>tags (CSV)</label>
+      <change>
+        <condition match="$value$=&quot;&quot;">
+          <set token="misp_tags"></set>
+        </condition>
+        <condition>
+          <set token="misp_tags">param.tags="$tags$"</set>
+        </condition>
+      </change>
+    </input>
+    <input type="time" token="GlobalTimePicker" searchWhenChanged="true">
+      <label>Time range for sample search</label>
+      <default>
+        <earliest>-15m</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+    <input type="text" token="sample_query" searchWhenChanged="true">
+      <label>Paste your sample query here</label>
+      <initialValue>| makeresults | eval misp_domain="www.example.com"</initialValue>
+    </input>
+    <input type="radio" token="launch_alert" searchWhenChanged="true">
+      <label>Launch alert action</label>
+      <choice value="True">Run</choice>
+      <choice value="False">Preparation</choice>
+      <change>
+        <condition match="$value$=&quot;False&quot;">
+          <unset token="launch_alert"></unset>
+        </condition>
+      </change>
+      <default>False</default>
+      <initialValue>False</initialValue>
+    </input>
+  </fieldset>
+ <row>
+    <html>
+      <h3>In addition to parameters above, you can also set additional inline fields.</h3>
+      <table border="1" cedllspacing="20px" width="100%" align="center">
+        <tr>
+          <th width="10%">field name</th>
+          <th width="90%">Description</th>
+        </tr>
+        <tr>
+            <td>misp_attribute_tag</td>
+            <td>Comma(,)-separated string of tags to add to attributes defined on the same row.</td>
+        </tr>
+        <tr>
+            <td>misp_category</td>
+            <td>Use this field to define the category for attributes defined on the same row. This way you can help MISP to create the proper attribute when a same type is avalaible for several categories</td>
+        </tr>
+        <tr>
+            <td>misp_comment</td>
+            <td>Inline comment string for attributes on the same row.</td>
+        </tr>
+        <tr>
+            <td>misp_info</td>
+            <td>If provided on the row, it replaces the string provided in alert configuration form for a given event. To work, misp_info must be provided at least on the last row of an event (see eventkey) otherwise the value will be set to the test set in alert form.</td>
+        </tr>
+        <tr>
+            <td>misp_publish_on_creation</td>
+            <td>String 'True' or 'False' (case sensitive) to dynamically publish or not MISP events on creation. This field overwrites for the current MISP event the staic value defined in alert form.</td>
+        </tr>
+        <tr>
+            <td>misp_sg_id</td>
+            <td>If distribution is set to Sharing Group, field 'misp_sg_id' must be present and provide Sharing Group ID on target MISP instance.</td>
+        </tr>
+        <tr>
+            <td>misp_tag</td>
+            <td>Comma(,)-separated string of tags to dynamically add to event tag list (in additional to static list provided in alert form). Only new tags are added.</td>
+        </tr>
+        <tr>
+            <td>misp_time</td>
+            <td>It must contain a timestamp. The first value found for a given event is taken into account to define MISP event data %Y-%m-%d. 
+          (misp_time on additional rows belonging to the same MISP events are discarded). 
+          If not provided MISP event date is set to today().</td>
+        </tr>
+        <tr>
+            <td>misp_to_ids</td>
+            <td>String 'True' or 'False' (case sensitive) to define to_ids for all attributes on the same row. (If not provided, default values defined in MISP will apply to each attribute).</td>
+        </tr>
+      </table>
+    </html>
+  </row>
+  <row>
+    <panel>
+      <title>Create an alert in MISP instance $misp_instance$. If result looks good, select "run" above</title>
+      <table>
+        <search>
+          <query>$sample_query$
+| eval param_eventid="$eventid$", param_unique="$unique$", param_info="$info$", param_tags="$tags$"
+| eval sendalert_cmd="sendalert misp_alert_create_event param.misp_instance=$misp_instance$ param.title=\"$title$\" param.description=\"$description$\" param.distribution=$distribution$ param.threatlevel=$threatlevel$ param.analysis=$analysis$ param.tlp=$tlp$ param.pap=$pap$ param.publish_on_creation=$publish_on_creation$ "
+| eval sendalert_cmd=if(param_eventid!="", sendalert_cmd+" param.eventid=\""+param_eventid+"\"",sendalert_cmd)
+| eval sendalert_cmd=if(param_unique!="", sendalert_cmd+" param.unique=\""+param_unique+"\"", sendalert_cmd)
+| eval sendalert_cmd=if(param_info!="", sendalert_cmd+" param.info=\""+param_info+"\"",sendalert_cmd)
+| eval sendalert_cmd=if(param_tags!="", sendalert_cmd+" param.tags=\""+param_tags+"\"",sendalert_cmd)
+| fields - param_*</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel depends="$launch_alert$">
+      <title>Create an alert in MISP. Once the result is displayed below, an alert should have been created in MISP instance $misp_instance$. If not check logs below</title>
+      <table>
+        <search>
+          <query>$sample_query$
+| eval switch="$launch_alert$"
+| where switch=="True"
+| fields - switch
+| sendalert misp_alert_create_event param.misp_instance=$misp_instance$ param.title="$title$" param.description="$description$" $misp_eventid$ $misp_unique$ $misp_info$ param.distribution=$distribution$ param.threatlevel=$threatlevel$ param.analysis=$analysis$ param.tlp="$tlp$" param.pap="$pap$" param.publish_on_creation="$publish_on_creation$" $misp_tags$</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Logs related to misp_alert_create_event</title>
+      <table>
+        <search>
+          <query>(index=_* OR index=cim_*) (sourcetype="*misp42*")</query>
+          <earliest>-1h@h</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+</form>

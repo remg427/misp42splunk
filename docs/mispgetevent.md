@@ -67,7 +67,7 @@ in the app, you can set the logging level. logs are written to search.log (acces
         doc='''
         **Syntax:** **misp_instance=instance_name*
         **Description:**MISP instance parameters as described
-         in local/inputs.conf.''',
+         in local/misp42splunk_instances.conf.''',
         require=True)
     # MANDATORY: json_request XOR eventid XOR last XOR date
     json_request = Option(

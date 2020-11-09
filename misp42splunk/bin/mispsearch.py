@@ -24,7 +24,7 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "3.2.0"
+__version__ = "4.0.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -81,7 +81,7 @@ class MispSearchCommand(StreamingCommand):
         doc='''
         **Syntax:** **misp_instance=instance_name*
         **Description:**MISP instance parameters as \
-        described in local/inputs.conf''',
+        described in local/misp42splunk_instances.conf''',
         require=True)
     field = Option(
         doc='''
@@ -102,13 +102,13 @@ class MispSearchCommand(StreamingCommand):
     includeEventTags = Option(
         doc='''
         **Syntax:** **includeEventTags=***y|Y|1|true|True|n|N|0|false|False*
-        **Description:**Boolean to include event UUID(s) to results.''',
+        **Description:**Boolean to include Event Tags to results.''',
         require=False, validate=validators.Boolean())
     last = Option(
         doc='''
         **Syntax:** **last=***<int>d|h|m*
-        **Description:**publication duration in day(s), hour(s) or minute(s). \
-        **eventid**, **last** and **date_from** are mutually exclusive''',
+        **Description:**Publication duration in day(s), hour(s) or minute(s) 
+        to limit search scope only to published events in last X timerange.''',
         require=False, validate=validators.Match("last", r"^[0-9]+[hdm]$"))
     limit = Option(
         doc='''
@@ -120,7 +120,7 @@ class MispSearchCommand(StreamingCommand):
         doc='''
         **Syntax:** **page=***<int>*
         **Description:**define the page for each MISP search; default 1.''',
-        require=False, validate=validators.Match("limit", r"^[0-9]+$"))
+        require=False, validate=validators.Match("page", r"^[0-9]+$"))
     json_request = Option(
         doc='''
         **Syntax:** **json_request=***valid JSON request*
@@ -128,8 +128,12 @@ class MispSearchCommand(StreamingCommand):
         require=False)
 
     def stream(self, records):
-        # Generate args
-        my_args = prepare_config(self, 'misp42splunk')
+        # Phase 1: Preparation
+        misp_instance = self.misp_instance
+        storage = self.service.storage_passwords
+        my_args = prepare_config(self, 'misp42splunk', misp_instance, storage)
+        if my_args is None:
+            raise Exception("Sorry, no configuration for misp_instance={}".format(misp_instance))
         my_args['misp_url'] = my_args['misp_url'] + '/attributes/restSearch'
         # set proper headers
         headers = {'Content-type': 'application/json'}
@@ -195,14 +199,30 @@ class MispSearchCommand(StreamingCommand):
                         body_dict['page'] = page
                         body_dict['limit'] = limit
                     body = json.dumps(body_dict)
-                    logging.debug('mispsearch request body: %s', body)
                     r = requests.post(my_args['misp_url'], headers=headers,
                                       data=body,
                                       verify=my_args['misp_verifycert'],
                                       cert=my_args['client_cert_full_path'],
                                       proxies=my_args['proxies'])
 # check if status is anything other than 200; throw an exception if it is
-                    r.raise_for_status()
+                    # check if status is anything other than 200;
+                    # throw an exception if it is
+                    if r.status_code in (200, 201, 204):
+                        logging.info(
+                            "[SE301] INFO mispsearch successful. "
+                            "url={}, HTTP status={}".format(my_args['misp_url'], r.status_code)
+                        )
+                    else:
+                        logging.error(
+                            "[SE302] ERROR mispsearch failed. "
+                            "url={}, data={}, HTTP Error={}, content={}"
+                            .format(my_args['misp_url'], body, r.status_code, r.text)
+                        )
+                        raise Exception(
+                            "[SE302] ERROR mispsearch failed. "
+                            "url={}, data={}, HTTP Error={}, content={}"
+                            .format(my_args['misp_url'], body, r.status_code, r.text)
+                        )
 # response is 200 by this point or we would have thrown an exception
 # print >> sys.stderr, "DEBUG MISP REST API response: %s" % response.json()
                     response = r.json()

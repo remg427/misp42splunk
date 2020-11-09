@@ -25,7 +25,7 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "3.2.0"
+__version__ = "4.0.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -177,8 +177,6 @@ def format_output_table(input_json, output_table, list_of_types,
                                                          object_id,
                                                          object_name,
                                                          object_comment))
-                    logging.debug(
-                        'event UUID is %s', str(v['misp_event_uuid']))
                     output_table.append(v)
 
         if output_table is not None:
@@ -255,7 +253,7 @@ class MispGetEventCommand(GeneratingCommand):
         doc='''
         **Syntax:** **misp_instance=instance_name*
         **Description:**MISP instance parameters as described
-         in local/inputs.conf.''',
+         in local/misp42splunk_instances.conf.''',
         require=True)
     # MANDATORY: json_request XOR eventid XOR last XOR date
     json_request = Option(
@@ -315,7 +313,7 @@ class MispGetEventCommand(GeneratingCommand):
         doc='''
         **Syntax:** **page=***<int>*
         **Description:**define the page for each MISP search; default 1.''',
-        require=False, validate=validators.Match("limit", r"^[0-9]+$"))
+        require=False, validate=validators.Match("page", r"^[0-9]+$"))
     pipesplit = Option(
         doc='''
         **Syntax:** **pipesplit=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
@@ -381,7 +379,11 @@ class MispGetEventCommand(GeneratingCommand):
     def generate(self):
 
         # Phase 1: Preparation
-        my_args = prepare_config(self, 'misp42splunk')
+        misp_instance = self.misp_instance
+        storage = self.service.storage_passwords
+        my_args = prepare_config(self, 'misp42splunk', misp_instance, storage)
+        if my_args is None:
+            raise Exception("Sorry, no configuration for misp_instance={}".format(misp_instance))
         my_args['host'] = my_args['misp_url'].replace('https://', '')
         my_args['misp_url'] = my_args['misp_url'] + '/events/restSearch'
 
@@ -516,7 +518,24 @@ class MispGetEventCommand(GeneratingCommand):
                           proxies=my_args['proxies'])
         # check if status is anything other than 200;
         # throw an exception if it is
-        r.raise_for_status()
+        # check if status is anything other than 200;
+        # throw an exception if it is
+        if r.status_code in (200, 201, 204):
+            logging.info(
+                "[EV301] INFO mispgetevent successful. "
+                "url={}, HTTP status={}".format(my_args['misp_url'], r.status_code)
+            )
+        else:
+            logging.error(
+                "[EV302] ERROR mispgetevent failed. "
+                "url={}, data={}, HTTP Error={}, content={}"
+                .format(my_args['misp_url'], body, r.status_code, r.text)
+            )
+            raise Exception(
+                "[EV302] ERROR mispgetevent failed. "
+                "url={}, data={}, HTTP Error={}, content={}"
+                .format(my_args['misp_url'], body, r.status_code, r.text)
+            )
         # response is 200 by this point or we would have thrown an exception
         response = r.json()
 
@@ -550,14 +569,12 @@ class MispGetEventCommand(GeneratingCommand):
                 init_attribute_names = True
                 serial_number = 0
                 for e in events:
-                    # logging.debug('event is %s', json.dumps(e))
                     if init_attribute_names is True:
                         for key in e.keys():
                             if key not in attribute_names:
                                 attribute_names.append(key)
                         attribute_names.sort()
                         init_attribute_names = False
-                        logging.debug(json.dumps(attribute_names))
                     yield MispGetEventCommand._record(
                         serial_number, e['misp_timestamp'],
                         my_args['host'], e, attribute_names, encoder, True)
@@ -631,7 +648,6 @@ class MispGetEventCommand(GeneratingCommand):
                                     attribute_names.append(key)
                             attribute_names.sort()
                             init_attribute_names = False
-                            logging.debug(json.dumps(attribute_names))
                         yield MispGetEventCommand._record(
                             serial_number, v['misp_timestamp'],
                             my_args['host'], v, attribute_names, encoder, True)
