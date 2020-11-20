@@ -237,7 +237,7 @@ class MispSightCommand(StreamingCommand):
                                 record['misp_fp_event_id'] = str(
                                     misp_fp_id
                                 )
-                            if ms_seen is True:
+                            elif ms_seen is True:
                                 record['misp_value'] = misp_value
                                 record['misp_count'] = str(ms['count'])
                                 record['misp_first'] = str(ms['first'])
@@ -248,6 +248,10 @@ class MispSightCommand(StreamingCommand):
                                 record['misp_last_event_id'] = str(
                                     ms['l_id']
                                 )
+                            else:
+                                record['misp_value'] = misp_value
+                                record['misp_fp'] = "False"
+
             yield record
 
 
