@@ -26,10 +26,14 @@ from misp_common import prepare_config
 import requests
 import time
 import splunklib.client as client
+import sys
+if sys.version_info[0] > 2:
+    from requests.packages.urllib3.exceptions import InsecureRequestWarning
+    requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "4.0.0"
+__version__ = "4.0.1"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 

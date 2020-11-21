@@ -19,16 +19,17 @@ import json
 import logging
 from misp_common import prepare_config, logging_level
 import requests
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from splunklib.searchcommands import dispatch, GeneratingCommand, Configuration, Option, validators
 # from splunklib.searchcommands import splunklib_logger as logger
-import sys
 from splunklib.six.moves import map
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+import sys
+if sys.version_info[0] > 2:
+    from requests.packages.urllib3.exceptions import InsecureRequestWarning
+    requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "4.0.0"
+__version__ = "4.0.1"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
