@@ -2,9 +2,11 @@ RELEASE NOTE
 ----------------------------------------------------------------------------
 
 for latest release check see more on https://github.com/remg427/misp42splunk
-Version 4.0.1 - Nov, 21 2020
+Version 4.0.1 - Dec, 1 2020
 - #176 fix python2 compatibility due to urlib3
 - #179 included and extended to return sighting counters when value(s) match(es)
+- #180 replace get_proxy() by standard method
+- fixed logging for custom commands
 
 Version 4.0.0 - Nov, 8 2020
 - cleanup lib/ for cloud vetting

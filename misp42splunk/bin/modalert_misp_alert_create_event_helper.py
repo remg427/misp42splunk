@@ -297,27 +297,27 @@ def prepare_misp_events(helper, config, event_list):
         no_template = init_object_template('domain-ip')
         no_attribute = []
         for key, value in list(row.items()):
-            if key.startswith("misp_") and value != "":
+            if key.startswith("misp_") and value not in [None, '']:
                 misp_key = str(key).replace('misp_', '').replace('_', '-')
                 attributes.append(store_attribute(misp_key, str(value),
                                   to_ids=to_ids, category=category,
                                   attribute_tag=attribute_tag,
                                   comment=comment))
-            elif key.startswith("fo_") and value != "":
+            elif key.startswith("fo_") and value not in [None, '']:
                 fo_key = str(key).replace('fo_', '').replace('_', '-')
                 object_attribute = store_object_attribute(
                     fo_template['attributes'], fo_key, str(value),
                     attribute_tag=attribute_tag)
                 if object_attribute:
                     fo_attribute.append(object_attribute)
-            elif key.startswith("eo_") and value != "":
+            elif key.startswith("eo_") and value not in [None, '']:
                 eo_key = str(key).replace('eo_', '').replace('_', '-')
                 object_attribute = store_object_attribute(
                     eo_template['attributes'], eo_key, str(value),
                     attribute_tag=attribute_tag)
                 if object_attribute:
                     eo_attribute.append(object_attribute)
-            elif key.startswith("no_") and value != "":
+            elif key.startswith("no_") and value not in [None, '']:
                 no_key = str(key).replace('no_', '').replace('_', '-')
                 object_attribute = store_object_attribute(
                     no_template['attributes'], no_key, str(value),

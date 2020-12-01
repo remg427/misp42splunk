@@ -86,6 +86,25 @@ class MispSightCommand(StreamingCommand):
         in local/misp42splunk_instances.conf.''',
         require=True)
 
+    def log_error(self, msg):
+        logging.error(msg)
+
+    def log_info(self, msg):
+        logging.info(msg)
+
+    def log_debug(self, msg):
+        logging.debug(msg)
+
+    def log_warn(self, msg):
+        logging.warning(msg)
+
+    def set_log_level(self):
+        logging.root
+        loglevel = logging_level('misp42splunk')
+        logging.root.setLevel(loglevel)
+        logging.error('[SI-101] logging level is set to %s', loglevel)
+        logging.error('[SI-102] PYTHON VERSION: ' + sys.version)
+
     @staticmethod
     def _sight_metric(m, sname, srec):
         ds = int(srec['date_sighting'])
@@ -111,6 +130,8 @@ class MispSightCommand(StreamingCommand):
         # m['misp_sightings'] = s_list
 
     def stream(self, records):
+        # loggging
+        self.set_log_level()
         # Phase 1: Preparation
         misp_instance = self.misp_instance
         storage = self.service.storage_passwords
@@ -153,12 +174,12 @@ class MispSightCommand(StreamingCommand):
                     # check if status is anything other than 200;
                     # throw an exception if it is
                     if rs.status_code in (200, 201, 204):
-                        logging.info(
+                        self.log_info(
                             "[SI301] INFO mispsight part 1 successful. "
                             "url={}, HTTP status={}".format(my_args['misp_url'], rs.status_code)
                         )
                     else:
-                        logging.error(
+                        self.log_error(
                             "[SI302] ERROR mispsight part 1 failed. "
                             "url={}, data={}, HTTP Error={}, content={}"
                             .format(my_args['misp_url'], search_body, rs.status_code, rs.text)
@@ -175,9 +196,9 @@ class MispSightCommand(StreamingCommand):
                         if 'Attribute' in response['response']:
                             # MISP API returned a JSON response
                             r_number = len(response['response']['Attribute'])
-                            logging.info(
-                                "MISP REST API %s: response: with %s records"
-                                % (search_url, str(r_number))
+                            self.log_info(
+                                "MISP REST API {}: response: with {} records"
+                                .format(search_url, str(r_number))
                             )
                             sightings = dict()
                             sight_types = ['t0', 't1', 't2']
@@ -219,12 +240,12 @@ class MispSightCommand(StreamingCommand):
                                 # check if status is anything
                                 # other than 200; throw an exception
                                 if rt.status_code in (200, 201, 204):
-                                    logging.info(
+                                    self.log_info(
                                         "[SI301] INFO mispsight part 2 successful. "
                                         "url={}, HTTP status={}".format(my_args['misp_url'], rt.status_code)
                                     )
                                 else:
-                                    logging.error(
+                                    self.log_error(
                                         "[SI302] ERROR mispsight part 2 failed. "
                                         "url={}, data={}, HTTP Error={}, content={}"
                                         .format(my_args['misp_url'], sight_body, rt.status_code, rt.text)
@@ -253,7 +274,7 @@ class MispSightCommand(StreamingCommand):
 
                             init_record = True
                             for srec in sightings.values():
-                                logging.debug("[SI401] srec={}".format(json.dumps(srec)))
+                                self.log_debug("[SI401] srec={}".format(json.dumps(srec)))
                                 if init_record is True:
                                     for key, value in sorted(srec.items()):
                                         record[key] = [value]
@@ -266,10 +287,4 @@ class MispSightCommand(StreamingCommand):
 
 
 if __name__ == "__main__":
-    # set up custom logger for the app commands
-    logging.root
-    loglevel = logging_level('misp42splunk')
-    logging.root.setLevel(loglevel)
-    logging.error('logging level is set to %s', loglevel)
-    logging.error('PYTHON VERSION: ' + sys.version)
     dispatch(MispSightCommand, sys.argv, sys.stdin, sys.stdout, __name__)

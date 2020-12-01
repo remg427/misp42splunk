@@ -144,7 +144,7 @@
                 },
                 {
                     "options": {
-                        "saveValidator": "function(formData) { if(!formData.proxy_enabled || formData.proxy_enabled === '0') {return true; } if(!formData.proxy_url) { return 'Proxy Host can not be empty'; } if(!formData.proxy_port) { return 'Proxy Port can not be empty'; } return true; }"
+                        "saveValidator": "function(formData) { if(!formData.proxy_enabled || formData.proxy_enabled === '0') {return true; } if(!formData.proxy_hostname) { return 'Proxy Host can not be empty'; } if(!formData.proxy_port) { return 'Proxy Port can not be empty'; } return true; }"
                     }, 
                     "name": "proxy", 
                     "entity": [
@@ -185,7 +185,7 @@
                                     "type": "string"
                                 }
                             ], 
-                            "field": "proxy_url", 
+                            "field": "proxy_hostname", 
                             "label": "Host", 
                             "type": "text"
                         }, 

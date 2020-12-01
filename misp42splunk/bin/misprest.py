@@ -138,9 +138,28 @@ class MispRestCommand(GeneratingCommand):
         **Description:**target of MISP API.''',
         require=True, validate=validators.Match("target", r"^/(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+$"))
 
+    def log_error(self, msg):
+        logging.error(msg)
+
+    def log_info(self, msg):
+        logging.info(msg)
+
+    def log_debug(self, msg):
+        logging.debug(msg)
+
+    def log_warn(self, msg):
+        logging.warning(msg)
+
+    def set_log_level(self):
+        logging.root
+        loglevel = logging_level('misp42splunk')
+        logging.root.setLevel(loglevel)
+        logging.error('[MR-101] logging level is set to %s', loglevel)
+        logging.error('[MR-102] PYTHON VERSION: ' + sys.version)
 
     def generate(self):
-
+        # loggging
+        self.set_log_level()
         # Phase 1: Preparation
         misp_instance = self.misp_instance
         storage = self.service.storage_passwords
@@ -152,7 +171,7 @@ class MispRestCommand(GeneratingCommand):
             my_args['misp_url'] = my_args['misp_url'] + self.target
         if self.json_request not in [None, '']:
             body_dict = json.loads(self.json_request)
-            logging.debug('[MR-201] body_dict is {}'.format(body_dict))
+            self.log_debug('[MR-201] body_dict is {}'.format(body_dict))
         else:
             body_dict = {}
 
@@ -189,12 +208,12 @@ class MispRestCommand(GeneratingCommand):
         # check if status is anything other than 200;
         # throw an exception if it is
         if r.status_code in (200, 201, 204):
-            logging.info(
+            self.log_info(
                 "[RE301] INFO mispcollect successful. "
                 "url={}, HTTP status={}".format(my_args['misp_url'], r.status_code)
             )
         else:
-            logging.error(
+            self.log_error(
                 "[RE302] ERROR mispcollect failed. "
                 "url={}, data={}, HTTP Error={}, content={}"
                 .format(my_args['misp_url'], body_dict, r.status_code, r.text)
@@ -210,10 +229,4 @@ class MispRestCommand(GeneratingCommand):
 
 
 if __name__ == "__main__":
-    # set up custom logger for the app commands
-    logging.root
-    loglevel = logging_level('misp42splunk')
-    logging.root.setLevel(loglevel)
-    logging.error('logging level is set to %s', loglevel)
-    logging.error('PYTHON VERSION: ' + sys.version)
     dispatch(MispRestCommand, sys.argv, sys.stdin, sys.stdout, __name__)

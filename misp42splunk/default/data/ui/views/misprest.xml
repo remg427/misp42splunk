@@ -52,9 +52,13 @@
   <row>
     <panel>
       <html>
-        <h3>Select a misp_instance and one (and only one) parameter amongst:</h3>
+        <h3>Select a misp_instance, a target API endpoint and provide a valid JSON</h3>
+        <p>in JSON, escape each " like this \"</p>
+        <p>for example </p>
         <ul>
-          <li>json_request: a valid JSON payload with \"</li>
+          <li>method: POST</li>
+          <li>target: /attributes/restSearch</li>
+          <li>json_request: {\"returnFormat\": \"json\", \"last\": \"20d\"}</li>
         </ul>
     </html>
     </panel>

@@ -128,7 +128,28 @@ class MispSearchCommand(StreamingCommand):
         **Description:**Valid JSON request''',
         require=False)
 
+    def log_error(self, msg):
+        logging.error(msg)
+
+    def log_info(self, msg):
+        logging.info(msg)
+
+    def log_debug(self, msg):
+        logging.debug(msg)
+
+    def log_warn(self, msg):
+        logging.warning(msg)
+
+    def set_log_level(self):
+        logging.root
+        loglevel = logging_level('misp42splunk')
+        logging.root.setLevel(loglevel)
+        logging.error('[SE-101] logging level is set to %s', loglevel)
+        logging.error('[SE-102] PYTHON VERSION: ' + sys.version)
+
     def stream(self, records):
+        # loggging
+        self.set_log_level()
         # Phase 1: Preparation
         misp_instance = self.misp_instance
         storage = self.service.storage_passwords
@@ -157,7 +178,7 @@ class MispSearchCommand(StreamingCommand):
 
         if self.json_request is not None:
             body_dict = json.loads(self.json_request)
-            logging.info('Option "json_request" set')
+            self.log_info('Option "json_request" set')
             body_dict['returnFormat'] = 'json'
             body_dict['withAttachments'] = False
             if 'limit' in body_dict:
@@ -205,16 +226,16 @@ class MispSearchCommand(StreamingCommand):
                                       verify=my_args['misp_verifycert'],
                                       cert=my_args['client_cert_full_path'],
                                       proxies=my_args['proxies'])
-# check if status is anything other than 200; throw an exception if it is
+                    # check if status is anything other than 200; throw an exception if it is
                     # check if status is anything other than 200;
                     # throw an exception if it is
                     if r.status_code in (200, 201, 204):
-                        logging.info(
+                        self.log_info(
                             "[SE301] INFO mispsearch successful. "
                             "url={}, HTTP status={}".format(my_args['misp_url'], r.status_code)
                         )
                     else:
-                        logging.error(
+                        self.log_error(
                             "[SE302] ERROR mispsearch failed. "
                             "url={}, data={}, HTTP Error={}, content={}"
                             .format(my_args['misp_url'], body, r.status_code, r.text)
@@ -224,8 +245,7 @@ class MispSearchCommand(StreamingCommand):
                             "url={}, data={}, HTTP Error={}, content={}"
                             .format(my_args['misp_url'], body, r.status_code, r.text)
                         )
-# response is 200 by this point or we would have thrown an exception
-# print >> sys.stderr, "DEBUG MISP REST API response: %s" % response.json()
+                    # response is 200 by this point or we would have thrown an exception
                     response = r.json()
                     if 'response' in response:
                         if 'Attribute' in response['response']:
@@ -271,10 +291,4 @@ class MispSearchCommand(StreamingCommand):
 
 
 if __name__ == "__main__":
-    # set up custom logger for the app commands
-    logging.root
-    loglevel = logging_level('misp42splunk')
-    logging.root.setLevel(loglevel)
-    logging.error('logging level is set to %s', loglevel)
-    logging.error('PYTHON VERSION: ' + sys.version)
     dispatch(MispSearchCommand, sys.argv, sys.stdin, sys.stdout, __name__)
