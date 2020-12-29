@@ -6,6 +6,7 @@ Version 4.0.1 - Dec, 1 2020
 - #176 fix python2 compatibility due to urlib3
 - #179 included and extended to return sighting counters when value(s) match(es)
 - #180 replace get_proxy() by standard method
+- #182 check that proxy credentials belongs to misp42splunk
 - fixed logging for custom commands
 
 Version 4.0.0 - Nov, 8 2020

@@ -117,19 +117,19 @@ def prepare_config(helper, app_name, misp_instance, storage_passwords):
     config_args['misp_key'] = None
     proxy_clear_password = None
     for credential in storage_passwords:
-        # usercreds = {'username':credential.content.get('username'),
-        # 'password':credential.content.get('clear_password')}
-        username = credential.content.get('username')
-        if misp_instance in username:
-            clear_credentials = credential.content.get('clear_password')
-            if 'misp_key' in clear_credentials:
-                misp_instance_key = json.loads(clear_credentials)
-                config_args['misp_key'] = str(misp_instance_key['misp_key'])
-        elif 'proxy' in username:
-            clear_credentials = credential.content.get('clear_password')
-            if 'proxy_password' in clear_credentials:
-                proxy_creds = json.loads(clear_credentials)
-                proxy_clear_password = str(proxy_creds['proxy_password'])
+        cred_app_name = credential.access.get('app')
+        if (app_name in cred_app_name) and (cred_app_name is not None):
+            username = credential.content.get('username')
+            if misp_instance in username:
+                clear_credentials = credential.content.get('clear_password')
+                if 'misp_key' in clear_credentials:
+                    misp_instance_key = json.loads(clear_credentials)
+                    config_args['misp_key'] = str(misp_instance_key['misp_key'])
+            elif 'proxy' in username:
+                clear_credentials = credential.content.get('clear_password')
+                if 'proxy_password' in clear_credentials:
+                    proxy_creds = json.loads(clear_credentials)
+                    proxy_clear_password = str(proxy_creds['proxy_password'])
 
     if config_args['misp_key'] is None:
         raise Exception(
