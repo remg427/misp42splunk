@@ -209,19 +209,14 @@ class MispRestCommand(GeneratingCommand):
         # throw an exception if it is
         if r.status_code in (200, 201, 204):
             self.log_info(
-                "[RE301] INFO mispcollect successful. "
-                "url={}, HTTP status={}".format(my_args['misp_url'], r.status_code)
+                "[RE301] INFO mispcollect successful. url={}, HTTP status={}".format(my_args['misp_url'], r.status_code)
             )
         else:
             self.log_error(
-                "[RE302] ERROR mispcollect failed. "
-                "url={}, data={}, HTTP Error={}, content={}"
-                .format(my_args['misp_url'], body_dict, r.status_code, r.text)
+                "[RE302] ERROR mispcollect failed. url={}, data={}, HTTP Error={}, content={}".format(my_args['misp_url'], body_dict, r.status_code, r.text)
             )
             raise Exception(
-                "[RE302] ERROR mispcollect failed. "
-                "url={}, data={}, HTTP Error={}, content={}"
-                .format(my_args['misp_url'], body_dict, r.status_code, r.text)
+                "[RE302] ERROR mispcollect failed for url={} with HTTP Error={}. Check search.log for details".format(my_args['misp_url'], r.status_code)
             )
         # response is 200 by this point or we would have thrown an exception
         data = {'_time': time.time(), '_raw': json.dumps(r.json())}

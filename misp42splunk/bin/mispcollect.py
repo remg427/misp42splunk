@@ -382,19 +382,14 @@ class MispCollectCommand(GeneratingCommand):
         # throw an exception if it is
         if r.status_code in (200, 201, 204):
             self.log_info(
-                "[CO301] INFO mispcollect successful. "
-                "url={}, HTTP status={}".format(my_args['misp_url'], r.status_code)
+                "[CO301] INFO mispcollect successful. url={}, HTTP status={}".format(my_args['misp_url'], r.status_code)
             )
         else:
             self.log_error(
-                "[CO302] ERROR mispcollect failed. "
-                "url={}, data={}, HTTP Error={}, content={}"
-                .format(my_args['misp_url'], body, r.status_code, r.text)
+                "[CO302] ERROR mispcollect failed. url={}, data={}, HTTP Error={}, content={}".format(my_args['misp_url'], body, r.status_code, r.text)
             )
             raise Exception(
-                "[CO302] ERROR mispcollect failed. "
-                "url={}, data={}, HTTP Error={}, content={}"
-                .format(my_args['misp_url'], body, r.status_code, r.text)
+                "[CO302] ERROR mispcollect failed for url={} with HTTP Error={}. Check search.log for details".format(my_args['misp_url'], r.status_code)
             )
         # response is 200 by this point or we would have thrown an exception
         response = r.json()

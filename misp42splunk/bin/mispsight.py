@@ -175,19 +175,14 @@ class MispSightCommand(StreamingCommand):
                     # throw an exception if it is
                     if rs.status_code in (200, 201, 204):
                         self.log_info(
-                            "[SI301] INFO mispsight part 1 successful. "
-                            "url={}, HTTP status={}".format(my_args['misp_url'], rs.status_code)
+                            "[SI301] INFO mispsight part 1 successful. url={}, HTTP status={}".format(my_args['misp_url'], rs.status_code)
                         )
                     else:
                         self.log_error(
-                            "[SI302] ERROR mispsight part 1 failed. "
-                            "url={}, data={}, HTTP Error={}, content={}"
-                            .format(my_args['misp_url'], search_body, rs.status_code, rs.text)
+                            "[SI302] ERROR mispsight part 1 failed. url={}, data={}, HTTP Error={}, content={}".format(my_args['misp_url'], search_body, rs.status_code, rs.text)
                         )
                         raise Exception(
-                            "[SI302] ERROR mispsight part 1 failed. "
-                            "url={}, data={}, HTTP Error={}, content={}"
-                            .format(my_args['misp_url'], search_body, rs.status_code, rs.text)
+                            "[SI302] ERROR mispsight part 1 failed for url={} with HTTP Error={}. Check search.log for details".format(my_args['misp_url'], rs.status_code)
                         )
                     # response is 200 by this point or we would
                     # have thrown an exception
@@ -241,19 +236,14 @@ class MispSightCommand(StreamingCommand):
                                 # other than 200; throw an exception
                                 if rt.status_code in (200, 201, 204):
                                     self.log_info(
-                                        "[SI301] INFO mispsight part 2 successful. "
-                                        "url={}, HTTP status={}".format(my_args['misp_url'], rt.status_code)
+                                        "[SI301] INFO mispsight part 2 successful. url={}, HTTP status={}".format(my_args['misp_url'], rt.status_code)
                                     )
                                 else:
                                     self.log_error(
-                                        "[SI302] ERROR mispsight part 2 failed. "
-                                        "url={}, data={}, HTTP Error={}, content={}"
-                                        .format(my_args['misp_url'], sight_body, rt.status_code, rt.text)
+                                        "[SI302] ERROR mispsight part 2 failed. url={}, data={}, HTTP Error={}, content={}".format(my_args['misp_url'], sight_body, rt.status_code, rt.text)
                                     )
                                     raise Exception(
-                                        "[SI302] ERROR mispsight part 2 failed. "
-                                        "url={}, data={}, HTTP Error={}, content={}"
-                                        .format(my_args['misp_url'], sight_body, rt.status_code, rt.text)
+                                        "[SI302] ERROR mispsight part 2 failed for url={} with HTTP Error={}. Check search.log for details".format(my_args['misp_url'], rt.status_code)
                                     )
                                 # response is 200 by this point or we
                                 # would have thrown an exception

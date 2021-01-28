@@ -14,7 +14,7 @@
         "company": null
       }
     ],
-    "releaseDate": "2020-12-29",
+    "releaseDate": "2021-01-28",
     "description": "TA to pull data from MISP (custom commands) or push (alert actions)",
     "classification": {
       "intendedAudience": null,
