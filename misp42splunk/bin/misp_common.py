@@ -48,6 +48,7 @@ def prepare_config(helper, app_name, misp_instance, storage_passwords):
     if len(misp_instances) > 0:
         foundStanza = False
         for instance in list(misp_instances):
+            helper.log_debug("[MC1000] instance set: {}".format(instance))
             if misp_instance == str(instance['title']):
                 app_config = instance['content']
                 foundStanza = True
