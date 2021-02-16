@@ -29,7 +29,7 @@ fields_proxy = [
         validator=None
     ),
     field.RestField(
-        'proxy_url',
+        'proxy_hostname',
         required=False,
         encrypted=False,
         default=None,

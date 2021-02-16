@@ -26,10 +26,14 @@ from misp_common import prepare_config
 import requests
 import time
 import splunklib.client as client
+import sys
+if sys.version_info[0] > 2:
+    from requests.packages.urllib3.exceptions import InsecureRequestWarning
+    requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "4.0.0"
+__version__ = "4.0.1"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -40,7 +44,7 @@ def prepare_alert(helper, app_name):
     sessionKey = helper.settings['session_key']
     splunkService = client.connect(token=sessionKey)
     storage = splunkService.storage_passwords
-    config_args = prepare_config(helper, app_name, instance, storage)
+    config_args = prepare_config(helper, app_name, instance, storage, sessionKey)
     if config_args is None:
         return None
     alert_args = dict()

@@ -91,3 +91,4 @@ IMPORTANT: for mode **byuuid** , only first uuid is kept. If the field is a mult
 
 ### logging
 logs are in /opt/splunk/var/log/splunk/misp_alert_sighting_modalert.log
+

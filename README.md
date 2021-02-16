@@ -61,7 +61,7 @@ you can also use this example (thanks @xg-simon for sharing):
 
 ```conf
 | mispgetioc misp_instance=default_misp pipesplit=true  add_description=true category="External analysis,Financial fraud,Internal reference,Network activity,Other,Payload delivery,Payload installation,Payload type,Persistence mechanism,Person,Social network,Support Tool,Targeting data" last=90d to_ids=true geteventtag=true warning_list=true not_tags="osint:source-type=\"block-or-filter-list\""
-| eval ip=coalesce(misp_ip_dst, misp_ip_src,misp_ip)
+| eval ip=coalesce(misp_ip_dst, misp_ip_src, misp_ip)
 | eval domain=misp_domain
 | eval src_user=coalesce(misp_email_src, misp_email_src_display_name)
 | eval subject=misp_email_subject
@@ -80,10 +80,11 @@ you can also use this example (thanks @xg-simon for sharing):
     * [mispgetioc](docs/mispgetioc.md) Generating command leveraging /attributes/restSearch endpoint
     * [mispgetevent](docs/mispgetevent.md) Generating command leveraging /events/restSearch endpoint
     * [mispcollect](docs/mispcollect.md) Generating command for events leveraging /attributes/restSearch or /events/restSearch endpoints
+    * [misprest](docs/misprest.md) Generating command as a wrapper for MISP REST API.
     * [mispsearch](docs/mispsearch.md) streaming command
     * [mispsight](docs/mispsight.md) streaming command
 - Splunk alert actions to [update MISP](docs/mispalerts.md)
-    *  Alert to create MISP event(s)
+    *  Alert to create MISP event(s) with an option to publish them at same time.
     *  Alert for attribute sighting in MISP.  
    
 ## Credits

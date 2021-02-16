@@ -54,6 +54,12 @@ class AlertActionWorkermisp_alert_create_event(ModularAlertBase):
             )
             return False
 
+        if not self.get_param("publish_on_creation"):
+            self.log_error(
+                'publish_on_creation is a mandatory parameter, but its value is None.'
+            )
+            return False
+
         if not self.get_param("misp_instance"):
             self.log_error(
                 'misp_instance is a mandatory parameter, \

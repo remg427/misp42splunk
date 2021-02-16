@@ -19,11 +19,14 @@ import requests
 import time
 import splunklib.client as client
 from io import open
-
+import sys
+if sys.version_info[0] > 2:
+    from requests.packages.urllib3.exceptions import InsecureRequestWarning
+    requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "4.0.0"
+__version__ = "4.0.1"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -66,11 +69,13 @@ def get_datatype_dict(helper, config, app_name):
 
 
 def prepare_alert(helper, app_name):
+    # Get parameters for calling prepare_config
     instance = helper.get_param("misp_instance")
     sessionKey = helper.settings['session_key']
     splunkService = client.connect(token=sessionKey)
     storage = splunkService.storage_passwords
-    config_args = prepare_config(helper, app_name, instance, storage)
+    helper.log_debug("[AL-PA-001] successfully retrieved storage object")
+    config_args = prepare_config(helper, app_name, instance, storage, sessionKey)
     if config_args is None:
         return None
     alert_args = dict()
@@ -90,7 +95,7 @@ def prepare_alert(helper, app_name):
     else:
         alert_args['info'] = str(helper.get_param("info"))
     published = helper.get_param("publish_on_creation")
-    if published == "True":
+    if published == "1":
         alert_args['published'] = True
     else:
         alert_args['published'] = False
@@ -259,9 +264,9 @@ def prepare_misp_events(helper, config, event_list):
         event['Tag'] = list(tags)
         if 'misp_publish_on_creation' in row:
             publish_on_creation = str(row.pop('misp_publish_on_creation'))
-            if publish_on_creation == "True":
+            if publish_on_creation == "1":
                 event['published'] = True
-            elif publish_on_creation == "False":
+            elif publish_on_creation == "0":
                 event['published'] = False
 
         # collect attribute value and build type=value entry
@@ -294,27 +299,27 @@ def prepare_misp_events(helper, config, event_list):
         no_template = init_object_template('domain-ip')
         no_attribute = []
         for key, value in list(row.items()):
-            if key.startswith("misp_") and value != "":
+            if key.startswith("misp_") and value not in [None, '']:
                 misp_key = str(key).replace('misp_', '').replace('_', '-')
                 attributes.append(store_attribute(misp_key, str(value),
                                   to_ids=to_ids, category=category,
                                   attribute_tag=attribute_tag,
                                   comment=comment))
-            elif key.startswith("fo_") and value != "":
+            elif key.startswith("fo_") and value not in [None, '']:
                 fo_key = str(key).replace('fo_', '').replace('_', '-')
                 object_attribute = store_object_attribute(
                     fo_template['attributes'], fo_key, str(value),
                     attribute_tag=attribute_tag)
                 if object_attribute:
                     fo_attribute.append(object_attribute)
-            elif key.startswith("eo_") and value != "":
+            elif key.startswith("eo_") and value not in [None, '']:
                 eo_key = str(key).replace('eo_', '').replace('_', '-')
                 object_attribute = store_object_attribute(
                     eo_template['attributes'], eo_key, str(value),
                     attribute_tag=attribute_tag)
                 if object_attribute:
                     eo_attribute.append(object_attribute)
-            elif key.startswith("no_") and value != "":
+            elif key.startswith("no_") and value not in [None, '']:
                 no_key = str(key).replace('no_', '').replace('_', '-')
                 object_attribute = store_object_attribute(
                     no_template['attributes'], no_key, str(value),
@@ -376,7 +381,7 @@ def prepare_misp_events(helper, config, event_list):
 
 
 def process_misp_events(helper, config, results, event_list):
-
+    # get parameters for requests
     misp_url_create = config['misp_url'] + '/events/add'
     misp_key = config['misp_key']
     misp_verifycert = config['misp_verifycert']
@@ -393,7 +398,7 @@ def process_misp_events(helper, config, results, event_list):
     for eventkey in results:
         if event_list[eventkey] == "0":  # create new event
             body = json.dumps(results[eventkey])
-            helper.log_info("create body has been prepared for eventkey {}"
+            helper.log_info("[AL-PME-I01] create body has been prepared for eventkey {}"
                             .format(eventkey))
             # POST json data to create events
             r = requests.post(misp_url_create, headers=headers, data=body,
@@ -406,12 +411,12 @@ def process_misp_events(helper, config, results, event_list):
             # response = r.json()
             if r.status_code in (200, 201, 204):
                 helper.log_info(
-                    "[AL301] INFO MISP event is successfully created. "
+                    "[AL-PME-I02] INFO MISP event is successfully created. "
                     "url={}, HTTP status={}".format(misp_url_create, r.status_code)
                 )
             else:
                 helper.log_error(
-                    "[AL302] ERROR MISP event creation has failed. "
+                    "[AL-PME-E01]ERROR MISP event creation has failed. "
                     "url={}, data={}, HTTP Error={}, content={}"
                     .format(misp_url_create, body, r.status_code, r.text)
                 )
@@ -422,7 +427,7 @@ def process_misp_events(helper, config, results, event_list):
             edit_body['Attribute'] = results[eventkey]['Attribute']
             edit_body['Object'] = results[eventkey]['Object']
             body = json.dumps(edit_body)
-            helper.log_info("edit body has been prepared for eventid {}".format(event_list[eventkey]))
+            helper.log_info("[AL-PME-I03] edit body has been prepared for eventid {}".format(event_list[eventkey]))
             # POST json data to create events
             r = requests.post(misp_url_edit, headers=headers, data=body,
                               verify=misp_verifycert, cert=client_cert,
@@ -435,12 +440,12 @@ def process_misp_events(helper, config, results, event_list):
             # response = r.json()
             if r.status_code in (200, 201, 204):
                 helper.log_info(
-                    "[AL303] INFO MISP event is successfully edited. "
+                    "[AL-PME-I04] INFO MISP event is successfully edited. "
                     "url={}, HTTP status={}".format(misp_url_edit, r.status_code)
                 )
             else:
                 helper.log_error(
-                    "[AL304] ERROR MISP event edition has failed. "
+                    "[AL-PME-E02] ERROR MISP event edition has failed. "
                     "url={}, data={}, HTTP Error={}, content={}"
                     .format(misp_url_edit, body, r.status_code, r.text)
                 )
@@ -519,22 +524,23 @@ def process_event(helper, *args, **kwargs):
     """
 
     helper.set_log_level(helper.log_level)
-    helper.log_info("[AL101] Alert action misp_alert_create_event started.")
+    helper.log_info("[AL-PE-I01] Alert action misp_alert_create_event started.")
 
     # TODO: Implement your alert action logic here
     misp_app_name = "misp42splunk"
     misp_config = prepare_alert(helper, misp_app_name)
     if misp_config is None:
-        helper.log_error("[AL102] FATAL config dict not initialised")
+        helper.log_error("[AL-PE-E01] FATAL config dict not initialised")
         return 1
     else:
-        helper.log_info("[AL103] config dict is ready to use")
+        helper.log_info("[AL-PE-I02] config dict is ready to use")
         event_list = {}
         events = prepare_misp_events(helper, misp_config, event_list)
         if events is not None:
-            helper.log_info("[AL104] Events dict is ready to use")
+            helper.log_info("[AL-PE-I03] Events dict is ready to use")
             process_misp_events(helper, misp_config, events, event_list)
+            helper.log_info("[AL-PE-I04] Alert action misp_alert_create_event completed")
         else:
-            helper.log_error("[AL105] FATAL no event top rocess")
+            helper.log_error("[AL-PE-E02] FATAL no event to process")
             return 2
     return 0

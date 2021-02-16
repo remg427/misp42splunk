@@ -1,8 +1,8 @@
 # coding=utf-8
 import json
-import logging
 import os
 from splunk.clilib import cli_common as cli
+import splunklib
 from io import open
 
 __license__ = "LGPLv3"
@@ -38,46 +38,56 @@ def logging_level(app_name):
     return run_level
 
 
-def prepare_config(helper, app_name, misp_instance, storage_passwords):
+def prepare_config(helper, app_name, misp_instance, storage_passwords, session_key=None):
     config_args = dict()
-    # get MISP instance to be used
-    _SPLUNK_PATH = os.environ['SPLUNK_HOME']
-    misp_instances_file = os.path.join(
-        _SPLUNK_PATH, 'etc', 'apps', app_name,
-        'local', app_name + '_instances.conf'
-    )
-    if os.path.exists(misp_instances_file):
-        inputsConf = cli.readConfFile(misp_instances_file)
-        foundStanza = False
-        for name, content in list(inputsConf.items()):
-            if misp_instance == str(name):
-                app_config = content
-                foundStanza = True
-        if not foundStanza:
-            raise Exception(
-                "local/misp42splunk_instances.conf does not contain "
-                "any stanza %s ", str(misp_instance)
-            )
-            return None
+    # get settings for MISP instance
+    if session_key is None:
+        response = helper.service.get('misp42splunk_account')
     else:
-        raise Exception(
-            "local/misp42splunk_instances.conf does not exist. Please "
-            "configure an inputs entry for %s", misp_instance
-        )
+        service = splunklib.client.connect(token=session_key)
+        response = service.get('misp42splunk_account')
+    helper.log_debug("[MC-PC-D01] response.status={}".format(response.status))
+    if response.status == 200:
+        data_body = splunklib.data.load(response.body.read())
+    else:
+        helper.log_error("[MC-PC-E01] Unexpected status received {}".format(response.status))
+        raise Exception("[MC-PC-E01] Unexpected status received %s", str(response.status))
         return None
 
-    # save MISP settings stored in misp42splunk_instances_file into config_arg
-    misp_url = str(app_config['misp_url']).rstrip('/')
+    foundStanza = False
+    instance_count = int(data_body['feed']['totalResults'])
+    helper.log_debug("[MC-PC-D02] instance_count={}".format(instance_count))
+    if instance_count == 0:  # No misp instance configured
+        helper.log_error("[MC-PC-E02] no misp instance configured")
+        raise Exception("[MC-PC-E02] no misp instance configured. Please configure an entry for %s", str(misp_instance))
+        return None
+    elif instance_count == 1:  # Single misp instance configured
+        instance = data_body['feed']['entry']
+        helper.log_debug("[MC-PC-D03] single instance={}".format(instance))
+        if misp_instance == str(instance['title']):
+            app_config = instance['content']
+            foundStanza = True
+    else:  # Multiple misp instances configured
+        misp_instances = data_body['feed']['entry']
+        for instance in list(misp_instances):
+            helper.log_debug("[MC-PC-D04] instance item={}".format(instance))
+            if misp_instance == str(instance['title']):
+                app_config = instance['content']
+                foundStanza = True
+
+    if not foundStanza:
+        raise Exception("[MC-PC-E03] no misp_instance with specified name found: %s ", str(misp_instance))
+        return None
+
+    # save MISP settings stored in app_config into config_arg
+    misp_url = str(app_config.get('misp_url', '')).rstrip('/')
     if misp_url.startswith('https://'):
         config_args['misp_url'] = misp_url
     else:
-        raise Exception(
-            "[MC203] misp_url must start with https://. "
-            "Please set a valid misp_url"
-        )
+        raise Exception("[MC-PC-E04] misp_url must start with https://. Please set a valid misp_url")
         return None
 
-    if int(app_config['misp_verifycert']) == 1:
+    if int(app_config.get('misp_verifycert', '0')) == 1:
         misp_ca_full_path = app_config.get('misp_ca_full_path', '')
         if misp_ca_full_path != '':
             config_args['misp_verifycert'] = misp_ca_full_path
@@ -87,9 +97,8 @@ def prepare_config(helper, app_name, misp_instance, storage_passwords):
         config_args['misp_verifycert'] = False
 
     # get client cert parameters
-    if int(app_config['client_use_cert']) == 1:
-        config_args['client_cert_full_path'] = \
-            app_config['client_cert_full_path']
+    if int(app_config.get('client_use_cert', '0')) == 1:
+        config_args['client_cert_full_path'] = app_config.get('client_cert_full_path', 'no_path')
     else:
         config_args['client_cert_full_path'] = None
 
@@ -98,57 +107,67 @@ def prepare_config(helper, app_name, misp_instance, storage_passwords):
         try:
             # open client_cert_full_path if exists and log.
             with open(config_args['client_cert_full_path'], 'rb'):
-                logging.info(
-                    "client_cert_full_path file at %s was successfully opened",
-                    str(config_args['client_cert_full_path'])
-                )
+                helper.log_info(
+                    "client_cert_full_path file at {} was successfully opened".format(config_args['client_cert_full_path']))
         except IOError:  # file misp_instances.csv not readable
-            logging.error(
-                "[MC204] client_cert_full_path file at %s not readable",
-                str(config_args['client_cert_full_path'])
+            helper.log_error(
+                "[MC-PC-E05] client_cert_full_path file at {} not readable".format(config_args['client_cert_full_path'])
             )
             raise Exception(
-                "client_cert_full_path file at %s not readable",
-                str(config_args['client_cert_full_path'])
+                "[MC-PC-E05] client_cert_full_path file at {} not readable".format(config_args['client_cert_full_path'])
             )
             return None
 
+    # get clear version of misp_key and proxy password
+    config_args['misp_key'] = None
+    proxy_clear_password = None
+    # avoid picking wrong key if stanza is a substring of another stanza
+    misp_instance_index = misp_instance + "``splunk_cred_sep``"
+    for credential in storage_passwords:
+        cred_app_name = credential.access.get('app')
+        if (app_name in cred_app_name) and (cred_app_name is not None):
+            username = credential.content.get('username')
+            if misp_instance_index in username:
+                clear_credentials = credential.content.get('clear_password')
+                if 'misp_key' in clear_credentials:
+                    misp_instance_key = json.loads(clear_credentials)
+                    config_args['misp_key'] = str(misp_instance_key['misp_key'])
+            elif 'proxy' in username:
+                clear_credentials = credential.content.get('clear_password')
+                if 'proxy_password' in clear_credentials:
+                    proxy_creds = json.loads(clear_credentials)
+                    proxy_clear_password = str(proxy_creds['proxy_password'])
+
+    if config_args['misp_key'] is None:
+        raise Exception("[MC205] misp_key NOT found for instance {}".format(misp_instance))
+        return None
+
     # get proxy parameters if any
     config_args['proxies'] = dict()
-    if int(app_config['misp_use_proxy']) == 1:
-        proxy = helper.get_proxy()
+    if int(app_config.get('misp_use_proxy', '0')) == 1:
+        proxy = None
+        settings_file = os.path.join(
+            os.environ['SPLUNK_HOME'], 'etc', 'apps', app_name,
+            'local', app_name + '_settings.conf'
+        )
+        if os.path.exists(settings_file):
+            app_settings = cli.readConfFile(settings_file)
+            for name, content in list(app_settings.items()):
+                if 'proxy' in name:
+                    proxy = content
         if proxy:
             proxy_url = '://'
-            if 'proxy_username' in proxy:
+            if 'proxy_username' in proxy \
+               and proxy_clear_password is not None:
                 if proxy['proxy_username'] not in ['', None]:
                     proxy_url = proxy_url + \
                         proxy['proxy_username'] + ':' \
-                        + proxy['proxy_password'] + '@'
-            proxy_url = proxy_url + proxy['proxy_url'] + \
+                        + proxy_clear_password + '@'
+            proxy_url = proxy_url + proxy['proxy_hostname'] + \
                 ':' + proxy['proxy_port'] + '/'
             config_args['proxies'] = {
                 "http": "http" + proxy_url,
                 "https": "https" + proxy_url
             }
-
-    # get clear version of misp_key
-    config_args['misp_key'] = None
-    for credential in storage_passwords:
-        # usercreds = {'username':credential.content.get('username'),
-        # 'password':credential.content.get('clear_password')}
-        username = credential.content.get('username')
-        if misp_instance in username \
-           and 'misp_key' in credential.content.get('clear_password'):
-            misp_instance_key = json.loads(
-                credential.content.get('clear_password')
-            )
-            config_args['misp_key'] = str(misp_instance_key['misp_key'])
-
-    if config_args['misp_key'] is None:
-        raise Exception(
-            "misp_key NOT found for instance %s", misp_instance
-        )
-        return None
-    # settings
 
     return config_args

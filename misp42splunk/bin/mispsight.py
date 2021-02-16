@@ -16,15 +16,16 @@ from misp_common import prepare_config, logging_level
 import json
 import logging
 import requests
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
 # from splunklib.searchcommands import splunklib_logger as logger
-import sys
 from splunklib.six.moves import map
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+import sys
+if sys.version_info[0] > 2:
+    from requests.packages.urllib3.exceptions import InsecureRequestWarning
+    requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "4.0.0"
+__version__ = "4.0.1"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -85,7 +86,52 @@ class MispSightCommand(StreamingCommand):
         in local/misp42splunk_instances.conf.''',
         require=True)
 
+    def log_error(self, msg):
+        logging.error(msg)
+
+    def log_info(self, msg):
+        logging.info(msg)
+
+    def log_debug(self, msg):
+        logging.debug(msg)
+
+    def log_warn(self, msg):
+        logging.warning(msg)
+
+    def set_log_level(self):
+        logging.root
+        loglevel = logging_level('misp42splunk')
+        logging.root.setLevel(loglevel)
+        logging.error('[SI-101] logging level is set to %s', loglevel)
+        logging.error('[SI-102] PYTHON VERSION: ' + sys.version)
+
+    @staticmethod
+    def _sight_metric(m, sname, srec):
+        ds = int(srec['date_sighting'])
+        m['misp_sight_' + sname + '_count'] = m['misp_sight_' + sname + '_count'] + 1
+        if m['misp_sight_' + sname + '_et'] in [None, ''] or \
+           int(m['misp_sight_' + sname + '_et']) > ds:
+            m['misp_sight_' + sname + '_et'] = ds
+            m['misp_sight_' + sname + '_first_a_id'] = srec['attribute_id']
+            m['misp_sight_' + sname + '_first_e_id'] = srec['event_id']
+            m['misp_sight_' + sname + '_first_org_id'] = srec['org_id']
+            m['misp_sight_' + sname + '_first_source'] = srec['source']
+
+        if m['misp_sight_' + sname + '_lt'] in [None, ''] or \
+           int(m['misp_sight_' + sname + '_lt']) < ds:
+            m['misp_sight_' + sname + '_lt'] = ds
+            m['misp_sight_' + sname + '_last_a_id'] = srec['attribute_id']
+            m['misp_sight_' + sname + '_last_e_id'] = srec['event_id']
+            m['misp_sight_' + sname + '_last_org_id'] = srec['org_id']
+            m['misp_sight_' + sname + '_last_source'] = srec['source']
+
+        # s_list = m['misp_sightings']
+        # s_list.append(json.dumps(srec))
+        # m['misp_sightings'] = s_list
+
     def stream(self, records):
+        # loggging
+        self.set_log_level()
         # Phase 1: Preparation
         misp_instance = self.misp_instance
         storage = self.service.storage_passwords
@@ -102,29 +148,18 @@ class MispSightCommand(StreamingCommand):
         sight_url = my_args['misp_url'] + \
             '/sightings/restSearch/attribute'
 
+        # iterate through records from SPL
         for record in records:
+            # if a record contains the field passed to mispsight command
+            # search by value in MISP to get attribute local ID.
             if fieldname in record:
                 value = record.get(fieldname, None)
                 if value is not None:
-                    search_dict = {"returnFormat": "json"}
-                    search_dict['value'] = str(value)
-                    search_dict['withAttachments'] = "false",
+                    search_dict = dict(
+                        returnFormat='json',
+                        value=str(value),
+                        withAttachments="false")
                     search_body = json.dumps(search_dict)
-
-                    sight_dict = {"returnFormat": "json"}
-
-                    misp_value = ''
-                    misp_fp = False
-                    misp_fp_ts = 0
-                    misp_fp_id = ''
-                    ms_seen = False
-                    ms = {
-                        'count': 0,
-                        'first': 0,
-                        'f_id': 0,
-                        'last': 0,
-                        'l_id': 0
-                    }
                     # search
                     rs = requests.post(
                         search_url,
@@ -139,123 +174,107 @@ class MispSightCommand(StreamingCommand):
                     # check if status is anything other than 200;
                     # throw an exception if it is
                     if rs.status_code in (200, 201, 204):
-                        logging.info(
-                            "[SI301] INFO mispsight part 1 successful. "
-                            "url={}, HTTP status={}".format(my_args['misp_url'], rs.status_code)
+                        self.log_info(
+                            "[SI301] INFO mispsight part 1 successful. url={}, HTTP status={}".format(my_args['misp_url'], rs.status_code)
                         )
                     else:
-                        logging.error(
-                            "[SI302] ERROR mispsight part 1 failed. "
-                            "url={}, data={}, HTTP Error={}, content={}"
-                            .format(my_args['misp_url'], search_body, rs.status_code, rs.text)
+                        self.log_error(
+                            "[SI302] ERROR mispsight part 1 failed. url={}, data={}, HTTP Error={}, content={}".format(my_args['misp_url'], search_body, rs.status_code, rs.text)
                         )
                         raise Exception(
-                            "[SI302] ERROR mispsight part 1 failed. "
-                            "url={}, data={}, HTTP Error={}, content={}"
-                            .format(my_args['misp_url'], search_body, rs.status_code, rs.text)
+                            "[SI302] ERROR mispsight part 1 failed for url={} with HTTP Error={}. Check search.log for details".format(my_args['misp_url'], rs.status_code)
                         )
                     # response is 200 by this point or we would
                     # have thrown an exception
                     response = rs.json()
                     if 'response' in response:
                         if 'Attribute' in response['response']:
+                            # MISP API returned a JSON response
                             r_number = len(response['response']['Attribute'])
-                            logging.info(
-                                "MISP REST API %s: response: with %s records"
-                                % (search_url, str(r_number))
+                            self.log_info(
+                                "MISP REST API {}: response: with {} records"
+                                .format(search_url, str(r_number))
                             )
+                            sightings = dict()
+                            sight_types = ['t0', 't1', 't2']
+                            metrics = [
+                                'et', 'lt',
+                                'first_a_id', 'last_a_id',
+                                'first_e_id', 'last_e_id',
+                                'first_org_id', 'last_org_id',
+                                'first_source', 'last_source']
+                            sight_counter = {
+                                'misp_value': ''
+                                # 'misp_sightings': []
+                            }
+                            for stype in sight_types:
+                                skey = 'misp_sight_' + stype + '_count'
+                                sight_counter[skey] = 0
+                                for metric in metrics:
+                                    skey = 'misp_sight_' + stype + '_' + metric
+                                    sight_counter[skey] = ''
+                            # iterate through results to get sighting counters
                             for a in response['response']['Attribute']:
-                                if misp_value == '':
-                                    misp_value = str(a['value'])
-                                if misp_fp is False:
-                                    sight_dict['id'] = str(a['id'])
-                                    sight_body = json.dumps(sight_dict)
-                                    rt = requests.post(
-                                        sight_url,
-                                        headers=headers,
-                                        data=sight_body,
-                                        verify=my_args['misp_verifycert'],
-                                        cert=my_args['client_cert_full_path'],
-                                        proxies=my_args['proxies']
+                                misp_value = str(a['value'])
+                                if misp_value in sightings:
+                                    a_sight = sightings[misp_value]
+                                else:
+                                    a_sight = sight_counter.copy()
+                                    a_sight['misp_value'] = misp_value
+                                sight_dict = {"returnFormat": "json"}
+                                sight_dict['id'] = str(a['id'])
+                                sight_body = json.dumps(sight_dict)
+                                rt = requests.post(
+                                    sight_url,
+                                    headers=headers,
+                                    data=sight_body,
+                                    verify=my_args['misp_verifycert'],
+                                    cert=my_args['client_cert_full_path'],
+                                    proxies=my_args['proxies']
+                                )
+                                # check if status is anything
+                                # other than 200; throw an exception
+                                if rt.status_code in (200, 201, 204):
+                                    self.log_info(
+                                        "[SI301] INFO mispsight part 2 successful. url={}, HTTP status={}".format(my_args['misp_url'], rt.status_code)
                                     )
-                                    # check if status is anything
-                                    # other than 200; throw an exception
-                                    if rt.status_code in (200, 201, 204):
-                                        logging.info(
-                                            "[SI301] INFO mispsight part 2 successful. "
-                                            "url={}, HTTP status={}".format(my_args['misp_url'], rt.status_code)
-                                        )
-                                    else:
-                                        logging.error(
-                                            "[SI302] ERROR mispsight part 2 failed. "
-                                            "url={}, data={}, HTTP Error={}, content={}"
-                                            .format(my_args['misp_url'], sight_body, rt.status_code, rt.text)
-                                        )
-                                        raise Exception(
-                                            "[SI302] ERROR mispsight part 2 failed. "
-                                            "url={}, data={}, HTTP Error={}, content={}"
-                                            .format(my_args['misp_url'], sight_body, rt.status_code, rt.text)
-                                        )
-                                    # response is 200 by this point or we
-                                    # would have thrown an exception
-                                    sight = rt.json()
-                                    if 'response' in sight:
-                                        for s in sight['response']:
-                                            if 'Sighting' in s:
-                                                # true sighting
-                                                ty = s['Sighting']['type']
-                                                ds = int(
-                                                    s['Sighting']
-                                                    ['date_sighting']
-                                                )
-                                                ev = str(
-                                                    s['Sighting']
-                                                    ['event_id']
-                                                )
-                                                if int(ty) == 0:
-                                                    ms_seen = True
-                                                    ms['count'] = \
-                                                        ms['count'] + 1
-                                                    if ms['first'] == 0 or \
-                                                       ms['first'] > ds:
-                                                        ms['first'] = ds
-                                                        ms['f_id'] = ev
-                                                    if ms['last'] < int(ds):
-                                                        ms['last'] = int(ds)
-                                                        ms['l_id'] = ev
-                                                # false positive
-                                                elif int(ty) == 1:
-                                                    misp_fp = True
-                                                    misp_fp_ts = ds
-                                                    misp_fp_id = ev
-                            if misp_fp is True:
-                                record['misp_value'] = misp_value
-                                record['misp_fp'] = "True"
-                                record['misp_fp_timestamp'] = str(
-                                    misp_fp_ts
-                                )
-                                record['misp_fp_event_id'] = str(
-                                    misp_fp_id
-                                )
-                            if ms_seen is True:
-                                record['misp_value'] = misp_value
-                                record['misp_count'] = str(ms['count'])
-                                record['misp_first'] = str(ms['first'])
-                                record['misp_first_event_id'] = str(
-                                    ms['f_id']
-                                )
-                                record['misp_last'] = str(ms['last'])
-                                record['misp_last_event_id'] = str(
-                                    ms['l_id']
-                                )
+                                else:
+                                    self.log_error(
+                                        "[SI302] ERROR mispsight part 2 failed. url={}, data={}, HTTP Error={}, content={}".format(my_args['misp_url'], sight_body, rt.status_code, rt.text)
+                                    )
+                                    raise Exception(
+                                        "[SI302] ERROR mispsight part 2 failed for url={} with HTTP Error={}. Check search.log for details".format(my_args['misp_url'], rt.status_code)
+                                    )
+                                # response is 200 by this point or we
+                                # would have thrown an exception
+                                sight = rt.json()
+                                if 'response' in sight:
+                                    for s in sight['response']:
+                                        if 'Sighting' in s:
+                                            # true sighting
+                                            sr = s['Sighting']
+                                            ty = int(sr['type'])
+                                            if ty == 0:
+                                                MispSightCommand._sight_metric(a_sight, 't0', sr)
+                                            elif ty == 1:
+                                                MispSightCommand._sight_metric(a_sight, 't1', sr)
+                                            elif ty == 2:
+                                                MispSightCommand._sight_metric(a_sight, 't2', sr)
+                                sightings[misp_value] = a_sight
+
+                            init_record = True
+                            for srec in sightings.values():
+                                self.log_debug("[SI401] srec={}".format(json.dumps(srec)))
+                                if init_record is True:
+                                    for key, value in sorted(srec.items()):
+                                        record[key] = [value]
+                                    init_record = False
+                                else:
+                                    for key, value in sorted(srec.items()):
+                                        record[key].append(value)
+
             yield record
 
 
 if __name__ == "__main__":
-    # set up custom logger for the app commands
-    logging.root
-    loglevel = logging_level('misp42splunk')
-    logging.root.setLevel(loglevel)
-    logging.error('logging level is set to %s', loglevel)
-    logging.error('PYTHON VERSION: ' + sys.version)
     dispatch(MispSightCommand, sys.argv, sys.stdin, sys.stdout, __name__)

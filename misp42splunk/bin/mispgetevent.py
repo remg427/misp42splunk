@@ -16,16 +16,17 @@ import json
 import logging
 from misp_common import prepare_config, logging_level
 import requests
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from splunklib.searchcommands import dispatch, GeneratingCommand, Configuration, Option, validators
 # from splunklib.searchcommands import splunklib_logger as logger
-import sys
 from splunklib.six.moves import map
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+import sys
+if sys.version_info[0] > 2:
+    from requests.packages.urllib3.exceptions import InsecureRequestWarning
+    requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "4.0.0"
+__version__ = "4.0.1"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -342,6 +343,25 @@ class MispGetEventCommand(GeneratingCommand):
         **Description:**Boolean to filter out well known values.''',
         require=False, validate=validators.Boolean())
 
+    def log_error(self, msg):
+        logging.error(msg)
+
+    def log_info(self, msg):
+        logging.info(msg)
+
+    def log_debug(self, msg):
+        logging.debug(msg)
+
+    def log_warn(self, msg):
+        logging.warning(msg)
+
+    def set_log_level(self):
+        logging.root
+        loglevel = logging_level('misp42splunk')
+        logging.root.setLevel(loglevel)
+        logging.error('[EV-101] logging level is set to %s', loglevel)
+        logging.error('[EV-102] PYTHON VERSION: ' + sys.version)
+
     @staticmethod
     def _record(
             serial_number, time_stamp, host, attributes,
@@ -377,7 +397,8 @@ class MispGetEventCommand(GeneratingCommand):
         return record
 
     def generate(self):
-
+        # loggging
+        self.set_log_level()
         # Phase 1: Preparation
         misp_instance = self.misp_instance
         storage = self.service.storage_passwords
@@ -399,12 +420,12 @@ class MispGetEventCommand(GeneratingCommand):
             mandatory_arg = mandatory_arg + 1
 
         if mandatory_arg == 0:
-            logging.error('Missing "json_request", eventid", \
+            self.log_error('Missing "json_request", eventid", \
                 "last" or "date" argument')
             raise Exception('Missing "json_request", "eventid", \
                 "last" or "date" argument')
         elif mandatory_arg > 1:
-            logging.error('Options "json_request", eventid", "last" \
+            self.log_error('Options "json_request", eventid", "last" \
                 and "date" are mutually exclusive')
             raise Exception('Options "json_request", "eventid", "last" \
                 and "date" are mutually exclusive')
@@ -413,7 +434,7 @@ class MispGetEventCommand(GeneratingCommand):
         # Only ONE combination was provided
         if self.json_request is not None:
             body_dict = json.loads(self.json_request)
-            logging.info('Option "json_request" set')
+            self.log_info('Option "json_request" set')
         elif self.eventid:
             if "," in self.eventid:
                 event_criteria = {}
@@ -422,15 +443,16 @@ class MispGetEventCommand(GeneratingCommand):
                 body_dict['eventid'] = event_criteria
             else:
                 body_dict['eventid'] = self.eventid
-            logging.info('Option "eventid" set with %s',
-                         json.dumps(body_dict['eventid']))
+            self.log_info('Option "eventid" set with {}'
+                          .format(json.dumps(body_dict['eventid'])))
         elif self.last:
             body_dict['last'] = self.last
-            logging.info('Option "last" set with %s', str(body_dict['last']))
+            self.log_info('Option "last" set with {}'
+                          .format(body_dict['last']))
         else:
             body_dict['date'] = self.date.split()
-            logging.info('Option "date" set with %s',
-                         json.dumps(body_dict['date']))
+            self.log_info('Option "date" set with {}'
+                          .format(json.dumps(body_dict['date'])))
 
         # Force some values on JSON request
         body_dict['returnFormat'] = 'json'
@@ -510,7 +532,6 @@ class MispGetEventCommand(GeneratingCommand):
             body_dict['limit'] = limit
 
         body = json.dumps(body_dict)
-        logging.error('MispGetEventCommand request body: %s', body)
         # search
         r = requests.post(my_args['misp_url'], headers=headers, data=body,
                           verify=my_args['misp_verifycert'],
@@ -521,20 +542,15 @@ class MispGetEventCommand(GeneratingCommand):
         # check if status is anything other than 200;
         # throw an exception if it is
         if r.status_code in (200, 201, 204):
-            logging.info(
-                "[EV301] INFO mispgetevent successful. "
-                "url={}, HTTP status={}".format(my_args['misp_url'], r.status_code)
+            self.log_info(
+                "[EV301] INFO mispgetevent successful. url={}, HTTP status={}".format(my_args['misp_url'], r.status_code)
             )
         else:
-            logging.error(
-                "[EV302] ERROR mispgetevent failed. "
-                "url={}, data={}, HTTP Error={}, content={}"
-                .format(my_args['misp_url'], body, r.status_code, r.text)
+            self.log_error(
+                "[EV302] ERROR mispgetevent failed for url={}, data={}, HTTP Error={}, content={}".format(my_args['misp_url'], body, r.status_code, r.text)
             )
             raise Exception(
-                "[EV302] ERROR mispgetevent failed. "
-                "url={}, data={}, HTTP Error={}, content={}"
-                .format(my_args['misp_url'], body, r.status_code, r.text)
+                "[EV302] ERROR mispgetevent failed. for url={} with HTTP Error={}. Check search.log for details".format(my_args['misp_url'], r.status_code)
             )
         # response is 200 by this point or we would have thrown an exception
         response = r.json()
@@ -558,11 +574,11 @@ class MispGetEventCommand(GeneratingCommand):
             typelist = []
             column_list = format_output_table(response, events, typelist,
                                               getioc, pipesplit)
-            logging.info(
-                'typelist containss %s values', str(len(typelist)))
-            logging.debug(
-                'typelist is %s', json.dumps(typelist))
-            logging.info('results contains %s records', str(len(events)))
+            self.log_info(
+                'typelist containss {} values'.format(len(typelist)))
+            self.log_debug(
+                'typelist is {}'.format(json.dumps(typelist)))
+            self.log_info('results contains {} records'.format(len(events)))
 
             if getioc is False:
                 attribute_names = list()
@@ -656,10 +672,4 @@ class MispGetEventCommand(GeneratingCommand):
 
 
 if __name__ == "__main__":
-    # set up custom logger for the app commands
-    logging.root
-    loglevel = logging_level('misp42splunk')
-    logging.root.setLevel(loglevel)
-    logging.error('logging level is set to %s', loglevel)
-    logging.error('PYTHON VERSION: ' + sys.version)
     dispatch(MispGetEventCommand, sys.argv, sys.stdin, sys.stdout, __name__)
