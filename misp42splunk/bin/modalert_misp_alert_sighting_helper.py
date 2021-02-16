@@ -44,7 +44,7 @@ def prepare_alert(helper, app_name):
     sessionKey = helper.settings['session_key']
     splunkService = client.connect(token=sessionKey)
     storage = splunkService.storage_passwords
-    config_args = prepare_config(helper, app_name, instance, storage)
+    config_args = prepare_config(helper, app_name, instance, storage, sessionKey)
     if config_args is None:
         return None
     alert_args = dict()

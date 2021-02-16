@@ -38,25 +38,45 @@ def logging_level(app_name):
     return run_level
 
 
-def prepare_config(helper, app_name, misp_instance, storage_passwords):
+def prepare_config(helper, app_name, misp_instance, storage_passwords, session_key=None):
     config_args = dict()
     # get settings for MISP instance
-    response = helper.service.get('misp42splunk_account')
+    if session_key is None:
+        response = helper.service.get('misp42splunk_account')
+    else:
+        service = splunklib.client.connect(token=session_key)
+        response = service.get('misp42splunk_account')
+    helper.log_debug("[MC-PC-D01] response.status={}".format(response.status))
     if response.status == 200:
         data_body = splunklib.data.load(response.body.read())
+    else:
+        helper.log_error("[MC-PC-E01] Unexpected status received {}".format(response.status))
+        raise Exception("[MC-PC-E01] Unexpected status received %s", str(response.status))
+        return None
+
+    foundStanza = False
+    instance_count = int(data_body['feed']['totalResults'])
+    helper.log_debug("[MC-PC-D02] instance_count={}".format(instance_count))
+    if instance_count == 0:  # No misp instance configured
+        helper.log_error("[MC-PC-E02] no misp instance configured")
+        raise Exception("[MC-PC-E02] no misp instance configured. Please configure an entry for %s", str(misp_instance))
+        return None
+    elif instance_count == 1:  # Single misp instance configured
+        instance = data_body['feed']['entry']
+        helper.log_debug("[MC-PC-D03] single instance={}".format(instance))
+        if misp_instance == str(instance['title']):
+            app_config = instance['content']
+            foundStanza = True
+    else:  # Multiple misp instances configured
         misp_instances = data_body['feed']['entry']
-    if len(misp_instances) > 0:
-        foundStanza = False
         for instance in list(misp_instances):
-            helper.log_debug("[MC1000] instance set: {}".format(instance))
+            helper.log_debug("[MC-PC-D04] instance item={}".format(instance))
             if misp_instance == str(instance['title']):
                 app_config = instance['content']
                 foundStanza = True
-        if not foundStanza:
-            raise Exception("[MC201] no misp_instance with specified name found: %s ", str(misp_instance))
-            return None
-    else:
-        raise Exception("[MC202] no misp instance configured. Please onfigure an entry for %s", str(misp_instance))
+
+    if not foundStanza:
+        raise Exception("[MC-PC-E03] no misp_instance with specified name found: %s ", str(misp_instance))
         return None
 
     # save MISP settings stored in app_config into config_arg
@@ -64,11 +84,11 @@ def prepare_config(helper, app_name, misp_instance, storage_passwords):
     if misp_url.startswith('https://'):
         config_args['misp_url'] = misp_url
     else:
-        raise Exception("[MC203] misp_url must start with https://. Please set a valid misp_url")
+        raise Exception("[MC-PC-E04] misp_url must start with https://. Please set a valid misp_url")
         return None
 
     if int(app_config.get('misp_verifycert', '0')) == 1:
-        misp_ca_full_path = app_config.get('misp_ca_full_path', 'no_path')
+        misp_ca_full_path = app_config.get('misp_ca_full_path', '')
         if misp_ca_full_path != '':
             config_args['misp_verifycert'] = misp_ca_full_path
         else:
@@ -91,10 +111,10 @@ def prepare_config(helper, app_name, misp_instance, storage_passwords):
                     "client_cert_full_path file at {} was successfully opened".format(config_args['client_cert_full_path']))
         except IOError:  # file misp_instances.csv not readable
             helper.log_error(
-                "[MC204] client_cert_full_path file at {} not readable".format(config_args['client_cert_full_path'])
+                "[MC-PC-E05] client_cert_full_path file at {} not readable".format(config_args['client_cert_full_path'])
             )
             raise Exception(
-                "[MC204] client_cert_full_path file at {} not readable".format(config_args['client_cert_full_path'])
+                "[MC-PC-E05] client_cert_full_path file at {} not readable".format(config_args['client_cert_full_path'])
             )
             return None
 

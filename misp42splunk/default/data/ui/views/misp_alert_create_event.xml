@@ -111,10 +111,10 @@
     </input>
     <input type="dropdown" token="publish_on_creation" searchWhenChanged="true">
       <label>Publish event on creation*</label>
-      <choice value="False">False</choice>
-      <choice value="True">True</choice>
-      <default>False</default>
-      <initialValue>False</initialValue>
+      <choice value="0">No (0)</choice>
+      <choice value="1">Yes (1)</choice>
+      <default>0</default>
+      <initialValue>0</initialValue>
     </input>
     <input type="text" token="tags" searchWhenChanged="true">
       <label>tags (CSV)</label>
@@ -177,7 +177,7 @@
         </tr>
         <tr>
             <td>misp_publish_on_creation</td>
-            <td>String 'True' or 'False' (case sensitive) to dynamically publish or not MISP events on creation. This field overwrites for the current MISP event the staic value defined in alert form.</td>
+            <td>String '1' or '0' to dynamically publish or not MISP events on creation. This field overwrites for the current MISP event the staic value defined in alert form.</td>
         </tr>
         <tr>
             <td>misp_sg_id</td>

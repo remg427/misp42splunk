@@ -114,14 +114,14 @@
                         {
                             "required": false, 
                             "field": "misp_use_proxy", 
-                            "help": "Use proxy settings for default instance", 
+                            "help": "Use proxy settings for this instance", 
                             "label": "Use proxy settings", 
                             "type": "checkbox"
                         }, 
                         {
                             "required": false, 
                             "field": "client_use_cert", 
-                            "help": "Use a client certificate to authenticate on default instance", 
+                            "help": "Use a client certificate to authenticate on this instance", 
                             "label": "Use a client certificate", 
                             "type": "checkbox"
                         }, 

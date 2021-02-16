@@ -2,12 +2,15 @@ RELEASE NOTE
 ----------------------------------------------------------------------------
 
 for latest release check see more on https://github.com/remg427/misp42splunk
-Version 4.0.1 - Jan, 28 2021
+Version 4.0.1 - feb, 16 2021
+
+bugs fixed
 - #176 fix python2 compatibility due to urlib3
 - #179 included and extended to return sighting counters when value(s) match(es)
 - #180 replace get_proxy() by standard method
 - #182 check that proxy credentials belongs to misp42splunk
-- #183 get configuration via REST instead of local/misp42splunk_instances.conf
+- #183 get configuration via REST instead of local/misp42splunk_instances.conf thanks norbertt911 for contrib
+- #186 handle when only one instance is declared - thanks skalvaro for contrib
 - fixed logging for custom commands
 
 Version 4.0.0 - Nov, 8 2020

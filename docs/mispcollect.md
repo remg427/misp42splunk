@@ -1,4 +1,4 @@
-# custom command mispcollect 3.2.2
+# custom command mispcollect
 
 This custom command is a wrapper to call the MISP API endpoint /attributes/restSearch or /events/restSearch and return results as events with field mapping
 ## [mispcollect-command]
