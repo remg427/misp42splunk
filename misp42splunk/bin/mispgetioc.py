@@ -174,6 +174,12 @@ class MispGetIocCommand(GeneratingCommand):
         **Syntax:** **getuuid=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
         **Description:**Boolean to return attribute UUID.''',
         require=False, validate=validators.Boolean())
+    include_deleted = Option(
+        doc='''
+        **Syntax:** **include_deleted=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
+        **Description:**Boolean include£_deleted. By default only noon deleted
+        attribute are returned.''',
+        require=False, validate=validators.Boolean())
     limit = Option(
         doc='''
         **Syntax:** **limit=***<int>*
@@ -336,7 +342,6 @@ class MispGetIocCommand(GeneratingCommand):
         # Force some values on JSON request
         body_dict['returnFormat'] = 'json'
         body_dict['withAttachments'] = False
-        body_dict['deleted'] = False
         body_dict['includeEventUuid'] = True
         # set proper headers
         headers = {'Content-type': 'application/json'}
@@ -362,8 +367,12 @@ class MispGetIocCommand(GeneratingCommand):
 
         # Search parameters: boolean and filter
         # manage to_ids and enforceWarninglist
-        # to avoid FP enforceWarninglist is set to True if 
+        # to avoid FP enforceWarninglist is set to True if
         # to_ids is set to True (search criterion)
+        if self.include_deleted is True:
+            body_dict['deleted'] = True
+        else:
+            body_dict['deleted'] = False
         if self.to_ids is True:
             body_dict['to_ids'] = True
             body_dict['enforceWarninglist'] = True  # protection

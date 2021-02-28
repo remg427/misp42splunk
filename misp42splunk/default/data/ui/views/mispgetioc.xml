@@ -7,6 +7,7 @@
     <set token="param_category"></set>
     <set token="param_type"></set>
     <set token="param_add_description"></set>
+    <set token="param_deleted"></set>
     <set token="param_expand_object"></set>
     <set token="param_geteventtag"></set>
     <set token="param_getorg"></set>
@@ -151,6 +152,16 @@
       <choice value="true">True</choice>
       <choice value="false">False</choice>
     </input>
+    <input type="radio" token="deleted" searchWhenChanged="true">
+      <label>include soft deleted</label>
+      <change>
+        <condition>
+          <set token="param_deleted">include_deleted=$deleted$</set>
+        </condition>
+      </change>
+      <choice value="true">True</choice>
+      <choice value="false">False</choice>
+    </input>
     <input type="radio" token="pipesplit" searchWhenChanged="true">
       <label>pipesplit</label>
       <change>
@@ -198,7 +209,8 @@
         </condition>
       </change>
       <default></default>
-    </input>    <input type="text" token="tags" searchWhenChanged="true">
+    </input>
+    <input type="text" token="tags" searchWhenChanged="true">
       <label>tags</label>
       <change>
         <condition match="$value$=&quot;&quot;">
@@ -291,6 +303,11 @@
             <td>Boolean to return attribute UUIDs</td>
         </tr>
         <tr>
+            <td>include_deleted</td>
+            <td>include_deleted=1|y|Y|t|true|True|0|n|N|f|false|False </td>
+            <td>Boolean to include soft deleted attributes with the flag "deleted" set to true. By default this is set to False.</td>
+        </tr>
+        <tr>
             <td>limit</td>
             <td>limit=int </td>
             <td>define the limit for each MISP search; default 1000. 0 = no pagination.</td>
@@ -344,7 +361,7 @@
       <title>Custom command mispgetioc</title>
       <table>
         <search>
-          <query>| mispgetioc misp_instance=$misp_instance$ $param_json_request$ $param_eventid$ $param_last$ $param_date$ $param_category$ $param_type$ $param_output$ $param_add_description$ $param_expand_object$ $param_geteventtag$ $param_getorg$ $param_getuuid$ $param_tags$ $param_not_tags$ $param_to_ids$ $param_warning_list$ $param_keep_related$ $param_limit$ $param_page$</query>
+          <query>| mispgetioc misp_instance=$misp_instance$ $param_json_request$ $param_eventid$ $param_last$ $param_date$ $param_category$ $param_type$ $param_output$ $param_add_description$ $param_deleted$ $param_expand_object$ $param_geteventtag$ $param_getorg$ $param_getuuid$ $param_tags$ $param_not_tags$ $param_to_ids$ $param_warning_list$ $param_keep_related$ $param_limit$ $param_page$</query>
           <earliest>0</earliest>
           <latest></latest>
           <sampleRatio>1</sampleRatio>

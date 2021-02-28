@@ -2,8 +2,10 @@ RELEASE NOTE
 ----------------------------------------------------------------------------
 
 for latest release check see more on https://github.com/remg427/misp42splunk
-Version 4.0.2 - feb, 24 2021
+Version 4.0.2 - feb, 28 2021
+- #188 add a param to keep soft deleted attributes in mispgetioc
 - #192 missing some libraries under aob_py2 and aob_py3 for compatibility on 7.x
+- improve documentation
 
 Version 4.0.1 - feb, 16 2021
 

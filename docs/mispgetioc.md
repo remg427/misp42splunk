@@ -14,9 +14,11 @@ The command syntax is as follow:
     |mispgetioc **[misp_instance=instance_name] ( [json_request=@JSON] [eventid=(uu)id] or string (comma-separated)| [last=interval]  | [date="YYYY-mm-dd"] )**
             add_description = boolean
             category = string (comma-separated)
+            expand_object = boolean
             geteventtag = boolean
             getorg = boolean
             getuuid = boolean
+            include_deleted = boolean
             limit = integer
             not_tags = string (comma-separated)
             output = (default|raw)
@@ -132,6 +134,12 @@ another example:
         doc='''
         **Syntax:** **getuuid=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
         **Description:**Boolean to return attribute UUID.''',
+        require=False, validate=validators.Boolean())
+    include_deleted = Option(
+        doc='''
+        **Syntax:** **include_deleted=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
+        **Description:**Boolean include_deleted. By default only not-deleted
+        attribute are returned.''',
         require=False, validate=validators.Boolean())
     limit = Option(
         doc='''
