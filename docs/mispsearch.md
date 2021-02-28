@@ -30,8 +30,8 @@ will add following fields
     misp_event_id
     misp_tag (if gettag is set to yes)
 
-see also:
-    * ![mispsearch](images/misp42_custom_command_mispsearch_dashboard.png) for example for a srtreaming command to enrich events
+see also for example for a streaming command to enrich events
+![mispsearch](../images/misp42_custom_command_mispsearch_dashboard.png) 
     
 - The other parameters are optional
     + you may filter the results using

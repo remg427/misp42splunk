@@ -36,8 +36,8 @@ The command syntax is as follow:
     + date is any valid time filter
 
 ## examples
-see also 
-![mispgetioc](images/misp42_custom_command_mispgetioc_dashboard.png) for example for a generating command (first line of SPL)
+see also for example for a generating command (first line of SPL)
+![mispgetioc](../images/misp42_custom_command_mispgetioc_dashboard.png) 
 
 one example:
 
