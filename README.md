@@ -88,10 +88,10 @@ you can also use this example (thanks @xg-simon for sharing):
     *  Alert for attribute sighting in MISP.  
    
 - Each custome command and alert action comes with a dashboard to demonstrate how to use them.
-    * ![mispgetioc](images/misp42_custom_command_mispgetioc_dashboard.png) for example for a generating command (first line of SPL)
-    * ![mispsearch](images/misp42_custom_command_mispsearch_dashboard.png) for example for a srtreaming command to enrich events
-    * ![mispgetioc](images/misp42_custom_command_misprest_dashboard.png) for example for the more versdatile wrapper of MISP API
-    * ![mispgetioc](images/misp42_alert_action_create_dashboard.png) for example for an alert action 
+    * mispgetioc for example for a generating command (first line of SPL) ![mispgetioc](images/misp42_custom_command_mispgetioc_dashboard.png) 
+    * mispsearch for example for a srtreaming command to enrich events ![mispsearch](images/misp42_custom_command_mispsearch_dashboard.png) 
+    * misprest for example for the more versdatile wrapper of MISP API ![misprest](images/misp42_custom_command_misprest_dashboard.png) 
+    * Create event for example for an alert action ![mispgetioc](images/misp42_alert_action_create_dashboard.png) 
 
 ## Credits
 The creation of this app started from work done by https://github.com/xme/splunk/tree/master/getmispioc and the associated blog https://blog.rootshell.be/2017/10/31/splunk-custom-search-command-searching-misp-iocs/ for MISP interactions.
