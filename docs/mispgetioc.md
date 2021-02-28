@@ -36,6 +36,9 @@ The command syntax is as follow:
     + date is any valid time filter
 
 ## examples
+see also 
+![mispgetioc](images/misp42_custom_command_mispgetioc_dashboard.png) for example for a generating command (first line of SPL)
+
 one example:
 
     |mispgetioc misp_instance=default_misp eventid=477 category="Payload delivery,Network activity,External analysis" type="sha256,domain,ip-dst,text" getuuid=Y getorg=Y
