@@ -1,0 +1,90 @@
+<form hideEdit="false" version="1.1">
+  <init>
+    <set token="misp_json_request"></set>
+  </init>
+  <label>MISP custom command misprest</label>
+  <fieldset submitButton="false">
+    <input type="time" token="TimePicker" searchWhenChanged="true">
+      <label>Time</label>
+      <default>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+    <input type="dropdown" token="misp_instance" searchWhenChanged="true">
+      <label>misp_instance*</label>
+      <fieldForLabel>misp_instance</fieldForLabel>
+      <fieldForValue>misp_instance</fieldForValue>
+      <search>
+        <query>| rest /services/configs/conf-misp42splunk_instances
+| rename eai:acl.app as app, title as misp_instance
+| fields misp_instance</query>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </search>
+    </input>
+    <input type="dropdown" token="method" searchWhenChanged="true">
+      <label>method</label>
+      <choice value="GET">GET</choice>
+      <choice value="POST">POST</choice>
+      <choice value="DELETE">DELETE</choice>
+      <default>GET</default>
+      <initialValue>GET</initialValue>
+    </input>
+    <input type="text" token="target" searchWhenChanged="true">
+      <label>(API endpoint) target</label>
+      <default>/</default>
+      <initialValue>/</initialValue>
+    </input>
+    <input type="text" token="json_request" searchWhenChanged="true">
+      <label>json_request</label>
+      <default></default>
+      <change>
+        <condition match="$value$=&quot;&quot;">
+          <set token="misp_json_request"></set>
+        </condition>
+        <condition>
+          <set token="misp_json_request">json_request="$json_request$"</set>
+        </condition>
+      </change>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <html>
+        <h3>Select a misp_instance, a target API endpoint and provide a valid JSON</h3>
+        <p>in JSON, escape each " like this \"</p>
+        <p>for example </p>
+        <ul>
+          <li>method: POST</li>
+          <li>target: /attributes/restSearch</li>
+          <li>json_request: {\"returnFormat\": \"json\", \"last\": \"20d\"}</li>
+        </ul>
+    </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Custom command misprest</title>
+      <event>
+        <search>
+          <query>| misprest misp_instance=$misp_instance$ method=$method$ target=$target$ $misp_json_request$</query>
+          <earliest>0</earliest>
+          <latest></latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">5</option>
+        <option name="list.drilldown">none</option>
+        <option name="list.wrap">1</option>
+        <option name="maxLines">5</option>
+        <option name="raw.drilldown">full</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">0</option>
+        <option name="table.drilldown">all</option>
+        <option name="table.sortDirection">asc</option>
+        <option name="table.wrap">1</option>
+        <option name="type">list</option>
+      </event>
+    </panel>
+  </row>
+</form>

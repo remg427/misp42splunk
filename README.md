@@ -3,6 +3,25 @@
 This TA alows interaction between your [Splunk](www.splunk.com) search head (cluster) and one or several [MISP](http://www.misp-project.org/) instance(s). It is a versatile TA that acts as a wrapper of MISP API to either collect MISP information into Splunk (custom commands) or push information from Splunk to MISP (alert actions).
 The TA is designed to be easy to install, set up and maintain using the Splunk GUI.
 
+## Quick Start
+**IMPORTANT** following first upgrade to version 4.1.0 or above, you need to configure the TA again (switch to new framework)  
+  
+  
+This app is designed to run on **Splunk Search Head(s)** on Linux plateforms (not tested on Windows but it could work)  
+1. **Download TA from splunkbasew** [splunkbase](https://splunkbase.splunk.com/app/4335/)
+2. Install the app on your Splunk Search Head(s): "Manage Apps" -> "Install app from file" and restart Splunk server
+3. Launch the app (Manage Apps > misp42 > launch app) and go to Configuration menu
+5. create at least one instance for example "default_misp".
+    - provide a name for example default_misp to follow the examples provided in this doc
+    - provide the url to your MISP instance (version > 2.4.117)
+    - provide the authkey,
+    - check (or not) the certificate of the MISP server,
+    - use (or not) the proxy for this instance,
+    - provide client certificate if required (and check the box to use it)
+![inputs](images/misp42_add_misp_instance.png)
+6. If you need **several instances**, create additional entries.
+7. Important: Role(s)/user(s) using this app must have the capability to "list_storage_passwords" (as API KEYs and proxy password(s) are safely stored encrypted).
+
 ## Usage  
 1. MISP to SPLUNK (custom commands):  
  **`| mispgetioc misp_instance=default_misp _params_ | ...`** gets MISP event attributes into Splunk search pipeline as lookup.  
@@ -15,22 +34,6 @@ The TA is designed to be easy to install, set up and maintain using the Splunk G
  * one action to create new events or **edit** existing ones if you provide an eventid (or UUID). This allows to contribute to misp event(s) across several alert triggers.
  * one action to increment attribute sighting in a MISP instance.  
 
-## Installation
-This app is designed to run on **Splunk Search Head(s)** on Linux plateforms (not tested on Windows but it could work)  
-1. **working with master** Download this [file](misp42splunk.tar.gz) which is the Splunk app
-2. **working with other branches** Download the ZIP file and extract the folder misp42splunk which actually contains the Splunk app. You have to compress that folder as misp42splunk.tar.gz
-3. Install the app on your Splunk Search Head(s): "Manage Apps" -> "Install app from file"
-4. At next logon, you should be invited to configure the app (if not go to Manage Apps > misp42 > launch app)
-5. create at least one instance for example "default_misp".
-    - provide a name for example default_misp to follow the examples provided in this doc
-    - provide the url to your MISP instance (version > 2.4.117)
-    - provide the authkey,
-    - check (or not) the certificate of the MISP server,
-    - use (or not) the proxy for this instance,
-    - provide client certificate if required (and check the box to use it)
-![inputs](images/misp42_add_misp_instance.png)
-6. If you need **several instances**, create additional entries.
-7. Important: Role(s)/user(s) using this app must have the capability to "list_storage_passwords" (as API KEYs and proxy password(s) are safely stored encrypted).
 
 ## Use Cases
 ### Build a dashboard
