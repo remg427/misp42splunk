@@ -153,7 +153,7 @@
       <choice value="false">False</choice>
     </input>
     <input type="radio" token="deleted" searchWhenChanged="true">
-      <label>include soft deleted</label>
+      <label>Get soft deleted</label>
       <change>
         <condition>
           <set token="param_deleted">include_deleted=$deleted$</set>
@@ -305,7 +305,7 @@
         <tr>
             <td>include_deleted</td>
             <td>include_deleted=1|y|Y|t|true|True|0|n|N|f|false|False </td>
-            <td>Boolean to include soft deleted attributes with the flag "deleted" set to true. By default this is set to False.</td>
+            <td>IMPORTANT Boolean to get only soft deleted attributes with the flag "deleted" set to true. By default this is set to False.</td>
         </tr>
         <tr>
             <td>limit</td>

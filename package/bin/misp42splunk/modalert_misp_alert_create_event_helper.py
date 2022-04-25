@@ -74,7 +74,7 @@ def prepare_alert(helper, app_name):
     sessionKey = helper.settings['session_key']
     splunkService = client.connect(token=sessionKey)
     storage = splunkService.storage_passwords
-    helper.log_debug("[AL-PA-001] successfully retrieved storage object")
+    helper.log_debug("[AL-PA-D01] successfully retrieved storage object")
     config_args = prepare_config(helper, app_name, instance, storage, sessionKey)
     if config_args is None:
         return None
@@ -136,7 +136,7 @@ def store_attribute(t, v, to_ids=None, category=None,
     return Attribute
 
 
-def init_object_template(ot):
+def init_object_template(helper, ot):
     try:
         # open object definition.json
         _SPLUNK_PATH = os.environ['SPLUNK_HOME']
@@ -148,8 +148,8 @@ def init_object_template(ot):
             od = json.load(json_object)
         return od
     except IOError:
-        print("FATAL %s object definition could not be opened/read" % ot)
-        exit(3)
+        helper.log_error("[AL-IOT-E01] file not found {}".format(object_definition))
+        return None
 
 
 def store_object_attribute(object_attributes, t, v, attribute_tag=None):
@@ -242,7 +242,6 @@ def prepare_misp_events(helper, config, event_list):
                 event['info'] = row.pop('misp_info')
             else:
                 event['info'] = config['info']
-        helper.log_debug("[AL-PPE-D01] event is {}".format(event))
 
         if config['distribution'] == 4:
             if 'misp_sg_id' in row:
@@ -271,7 +270,6 @@ def prepare_misp_events(helper, config, event_list):
                 event['published'] = True
             elif publish_on_creation == "0":
                 event['published'] = False
-        helper.log_debug("[AL-PPE-D01bis] event is {}".format(event))
 
         # collect attribute value and build type=value entry
         if 'misp_attribute_tag' in row:
@@ -302,17 +300,13 @@ def prepare_misp_events(helper, config, event_list):
         eo_attribute = []
         no_template = init_object_template('domain-ip')
         no_attribute = []
-        helper.log_debug("[AL-PPE-D02] event is {}".format(event))
         for key, value in list(row.items()):
-            helper.log_debug("[AL-PPE-D03] key is {}".format(key))
-            helper.log_debug("[AL-PPE-D03] value is {}".format(value))
             if key.startswith("misp_") and value not in [None, '']:
                 misp_key = str(key).replace('misp_', '').replace('_', '-')
                 attributes.append(store_attribute(misp_key, str(value),
                                   to_ids=to_ids, category=category,
                                   attribute_tag=attribute_tag,
                                   comment=comment))
-                helper.log_debug("[AL-PPE-D03] attribute is {}".format(attributes))
             elif key.startswith("fo_") and value not in [None, '']:
                 fo_key = str(key).replace('fo_', '').replace('_', '-')
                 object_attribute = store_object_attribute(

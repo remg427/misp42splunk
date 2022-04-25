@@ -3,7 +3,7 @@
         "name": "misp42splunk",
         "restRoot": "misp42splunk",
         "displayName": "misp42",
-        "version": "4.1.0",
+        "version": "4.2.0",
         "schemaVersion": "0.0.3"
     },
     "pages": {

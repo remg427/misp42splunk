@@ -29,7 +29,7 @@ if sys.version_info[0] > 2:
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "4.0.1"
+__version__ = "4.3.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -465,7 +465,7 @@ class MispGetIocCommand(GeneratingCommand):
         # response is 200 by this point or we would have thrown an exception
         response = r.json()
         encoder = json.JSONEncoder(ensure_ascii=False, separators=(',', ':'))
-        # if raw output, returns JSON 1st-level keys as columns
+        # if raw output, returns JSON object
         if my_args['output'] == "raw":
             if 'response' in response:
                 if 'Attribute' in response['response']:
@@ -481,14 +481,23 @@ class MispGetIocCommand(GeneratingCommand):
         else:
             if 'response' in response:
                 if 'Attribute' in response['response']:
+                    common_columns = ["category", "to_ids", "timestamp", "comment",
+                                      "sharing_group_id", "deleted", "disable_correlation",
+                                      "first_seen", "last_seen", "object_id"]
+                    attribute_specific_columns = ["id", "distribution"]
+                    if my_args['getuuid']:
+                        attribute_specific_columns.append("uuid")
                     for a in response['response']['Attribute']:
                         v = {}
-                        v['misp_category'] = str(a['category'])
-                        v['misp_attribute_id'] = str(a['id'])
-                        v['misp_event_id'] = str(a['event_id'])
-                        v['misp_timestamp'] = str(a['timestamp'])
-                        v['misp_to_ids'] = str(a['to_ids'])
-                        v['misp_comment'] = str(a['comment'])
+                        # prepend key names with misp_attribute_
+                        for asc in attribute_specific_columns:
+                            misp_asc = "misp_attribute_" + asc
+                            v[misp_asc] = str(a[asc])
+                        # prepend key names with misp_
+                        for cc in common_columns:
+                            misp_cc = "misp_" + cc
+                            v[misp_cc] = str(a[cc])
+                        # append attribute tags to tag list
                         tag_list = []
                         if 'Tag' in a:
                             for tag in a['Tag']:
@@ -499,19 +508,20 @@ class MispGetIocCommand(GeneratingCommand):
                                 except Exception:
                                     pass
                         v['misp_tag'] = tag_list
-                        # include ID of the organisation that
-                        # created the attribute if requested
+                        
+                        # include Event metatdata
                         if 'Event' in a:
-                            v['misp_event_uuid'] = str(a['Event']['uuid'])
-                            if my_args['getorg']:
-                                v['misp_orgc_id'] = str(a['Event']['orgc_id'])
+                            attr_event_columns = ["id", "uuid", "distribution"]
+                            if my_args['getorg'] is True:
+                                attr_event_columns.append("org_id")
+                                attr_event_columns.append("orgc_id")
                             if my_args['add_desc'] is True:
-                                v['misp_event_info'] = str(a['Event']['info'])
-                        # include attribute UUID if requested
-                        if my_args['getuuid']:
-                            v['misp_attribute_uuid'] = str(a['uuid'])
-                        # handle object and multivalue attributes
-                        v['misp_object_id'] = str(a['object_id'])
+                                attr_event_columns.append("info")
+                            for aec in attr_event_columns:
+                                misp_aec = "misp_event_" + aec
+                                v[misp_aec] = a['Event'][aec]
+                            
+                        # add description sttring
                         if my_args['add_desc'] is True:
                             if int(a['object_id']) == 0:
                                 v['misp_description'] = 'MISP e' \
@@ -528,6 +538,7 @@ class MispGetIocCommand(GeneratingCommand):
                                     + str(a['category']) \
                                     + '" (to_ids:' + str(a['to_ids']) \
                                     + ' - o' + str(a['object_id']) + ' )'
+ 
                         current_type = str(a['type'])
                         # combined: not part of an object
                         # AND multivalue attribute AND to be split

@@ -33,20 +33,22 @@ __email__ = "remg427@gmail.com"
 
 def getattribute(a_item, type_list, pipesplit=False, object_id=0,
                  object_name="", object_comment=""):
+    common_columns = ["category", "to_ids", "comment", "object_id", "type", "value"]
+    attribute_specific_columns = ["id", "uuid", "deleted", "distribution",
+                                  "first_seen", "last_seen",
+                                  "sharing_group_id", "timestamp"]
     misp_a = dict()
-    misp_a['misp_attribute_id'] = []
-    misp_a['misp_attribute_id'].append(str(a_item['id']))
-    misp_a['misp_attribute_uuid'] = []
-    misp_a['misp_attribute_uuid'].append(str(a_item['uuid']))
-    misp_a['misp_category'] = []
-    misp_a['misp_category'].append(a_item['category'])
-    misp_a['misp_to_ids'] = []
-    misp_a['misp_to_ids'].append(str(a_item['to_ids']))
-    misp_a['misp_comment'] = []
-    misp_a['misp_comment'].append(str(a_item['comment']))
-    misp_a['misp_attribute_timestamp'] = a_item['timestamp']
-    misp_a['misp_attribute_sharing_group_id'] = str(a_item['sharing_group_id'])
-    misp_a['misp_attribute_deleted'] = str(a_item['deleted'])
+    # prepend key names with misp_attribute_
+    for asc in attribute_specific_columns:
+        misp_asc = "misp_attribute_" + asc
+        misp_a[misp_asc] = []
+        misp_a[misp_asc].append(str(a_item[asc]))
+    # prepend key names with misp_
+    for cc in common_columns:
+        misp_cc = "misp_" + cc
+        misp_a[misp_cc] = []
+        misp_a[misp_cc].append(str(a_item[cc]))
+
     misp_a['misp_object_id'] = object_id
     misp_a['misp_object_name'] = object_name
     misp_a['misp_object_comment'] = object_comment
@@ -59,8 +61,6 @@ def getattribute(a_item, type_list, pipesplit=False, object_id=0,
                 pass
     misp_a['misp_attribute_tag'] = tag_list
     current_type = a_item['type']
-    misp_a['misp_type'] = current_type
-    misp_a['misp_value'] = str(a_item['value'])
     if current_type not in type_list:
         type_list.append(current_type)
     return misp_a
@@ -76,47 +76,38 @@ def init_misp_output(event_dict, attr_dict, attr_names):
 def format_output_table(input_json, output_table, list_of_types,
                         getioc=False, pipesplit=False):
     if 'response' in input_json:
-        columns = [
-            'misp_analysis',
-            'misp_attribute_count',
-            'misp_distribution',
-            'misp_event_date',
-            'misp_event_id',
-            'misp_event_info',
-            'misp_event_published',
-            'misp_event_uuid',
-            'misp_extends_uuid',
-            'misp_orgc_id',
-            'misp_orgc_name',
-            'misp_orgc_uuid',
-            'misp_publish_timestamp',
-            'misp_sharing_group_id',
-            'misp_tag',
-            'misp_threat_level',
-            'misp_timestamp',
-        ]
+        common_columns = ["analysis", "attribute_count", "disable_correlation",
+                          "distribution", "extends_uuid", "locked", "proposal_email_lock",
+                          "publish_timestamp", "sharing_group_id",
+                          "threat_level_id", "timestamp"]
+        event_specific_columns = ["id", "date", "info", "published","uuid"]
+        organisation_columns =  ["id", "name", "uuid", "local"]
+        object_columns = ["id", "name", "meta-category", "description", "template_uuid",
+                          "template_version", "uuid", "timestamp", "distribution",
+                          "sharing_group_id", "comment", "deleted", "first_seen", "last_seen"]
         for r_item in input_json['response']:
             if 'Event' in r_item:
                 for a in list(r_item.values()):
                     v = dict()
-                    v['misp_event_uuid'] = str(a['uuid'])
-                    v['misp_event_id'] = str(a['id'])
-                    v['misp_event_date'] = str(a['date'])
-                    v['misp_timestamp'] = str(a['timestamp'])
-                    v['misp_event_info'] = a['info']
-                    v['misp_orgc_id'] = str(a['orgc_id'])
-                    v['misp_attribute_count'] = str(a['attribute_count'])
-                    v['misp_analysis'] = str(a['analysis'])
-                    v['misp_threat_level'] = str(a['threat_level_id'])
-                    v['misp_distribution'] = str(a['distribution'])
-                    v['misp_sharing_group_id'] = str(a['sharing_group_id'])
-                    v['misp_extends_uuid'] = str(a['extends_uuid'])
-                    v['misp_event_published'] = str(a['published'])
-                    v['misp_publish_timestamp'] = \
-                        str(a['publish_timestamp'])
+                    # prepend key names with misp_event_
+                    for esc in event_specific_columns:
+                        misp_esc = "misp_event_" + esc
+                        v[misp_esc] = str(a[esc])
+                    # prepend key names with misp_
+                    for cc in common_columns:
+                        misp_cc = "misp_" + cc
+                        v[misp_cc] = str(a[cc])
+                    if 'Org' in a:
+                        # prepend key names with misp_org_
+                        for oc in organisation_columns:
+                            misp_oc = "misp_org_" + cc
+                            v[misp_cc] = str(a['Org'][cc])
                     if 'Orgc' in a:
-                        v['misp_orgc_name'] = str(a['Orgc']['name'])
-                        v['misp_orgc_uuid'] = str(a['Orgc']['uuid'])
+                        # prepend key names with misp_org_
+                        for oc in organisation_columns:
+                            misp_oc = "misp_orgc_" + cc
+                            v[misp_cc] = str(a['Orgc'][cc])
+                    # append attribute tags to tag list
                     tag_list = []
                     if 'Tag' in a:
                         for tag in a['Tag']:
@@ -125,11 +116,8 @@ def format_output_table(input_json, output_table, list_of_types,
                             except Exception:
                                 pass
                     v['misp_tag'] = tag_list
-                    v['misp_attribute_count'] = 0
-                    if 'Attribute' in a:
-                        v['misp_attribute_count'] = \
-                            v['misp_attribute_count'] + len(a['Attribute'])
-                        if getioc is True:
+                    if getioc is True:
+                        if 'Attribute' in a:
                             v['Attribute'] = list()
                             for attribute in a['Attribute']:
                                 # combined: not part of an object AND
@@ -160,13 +148,12 @@ def format_output_table(input_json, output_table, list_of_types,
                                         getattribute(attribute, list_of_types,
                                                      pipesplit,
                                                      attribute['object_id']))
-                    if 'Object' in a:
-                        for misp_o in a['Object']:
-                            if 'Attribute' in misp_o:
-                                v['misp_attribute_count'] = \
-                                    v['misp_attribute_count'] \
-                                    + len(misp_o['Attribute'])
-                                if getioc is True:
+                        if 'Object' in a:
+                            for misp_o in a['Object']:
+                                for obj in object_columns:
+                                    misp_obj = "misp_object_" + obj
+                                    
+                                if 'Attribute' in misp_o:
                                     object_id = misp_o['id']
                                     object_name = misp_o['name']
                                     object_comment = misp_o['comment']
