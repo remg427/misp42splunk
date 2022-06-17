@@ -483,7 +483,8 @@ class MispGetIocCommand(GeneratingCommand):
                 if 'Attribute' in response['response']:
                     common_columns = ["category", "to_ids", "timestamp", "comment",
                                       "sharing_group_id", "deleted", "disable_correlation",
-                                      "first_seen", "last_seen", "object_id"]
+                                      "first_seen", "last_seen", "object_id", "object_relation",
+                                      "type", "value"]
                     attribute_specific_columns = ["id", "distribution"]
                     if my_args['getuuid']:
                         attribute_specific_columns.append("uuid")
@@ -492,11 +493,13 @@ class MispGetIocCommand(GeneratingCommand):
                         # prepend key names with misp_attribute_
                         for asc in attribute_specific_columns:
                             misp_asc = "misp_attribute_" + asc
-                            v[misp_asc] = str(a[asc])
+                            if asc in a:
+                                v[misp_asc] = str(a[asc])
                         # prepend key names with misp_
                         for cc in common_columns:
                             misp_cc = "misp_" + cc
-                            v[misp_cc] = str(a[cc])
+                            if cc in a:
+                                v[misp_cc] = str(a[cc])
                         # append attribute tags to tag list
                         tag_list = []
                         if 'Tag' in a:
@@ -511,15 +514,17 @@ class MispGetIocCommand(GeneratingCommand):
                         
                         # include Event metatdata
                         if 'Event' in a:
-                            attr_event_columns = ["id", "uuid", "distribution"]
-                            if my_args['getorg'] is True:
-                                attr_event_columns.append("org_id")
-                                attr_event_columns.append("orgc_id")
-                            if my_args['add_desc'] is True:
-                                attr_event_columns.append("info")
+                            attr_event_columns = ["id", "uuid", "distribution", "info"]
                             for aec in attr_event_columns:
                                 misp_aec = "misp_event_" + aec
-                                v[misp_aec] = a['Event'][aec]
+                                if aec in a['Event']:
+                                    v[misp_aec] = str(a['Event'][aec])
+                            if my_args['getorg'] is True:
+                                attr_org_columns = ["org_id", "orgc_id"]
+                                for aoc in attr_org_columns:
+                                    misp_aoc = "misp_" + aoc
+                                    if aoc in a['Event']:
+                                        v[misp_aoc] = str(a['Event'][aoc])
                             
                         # add description sttring
                         if my_args['add_desc'] is True:
@@ -547,20 +552,18 @@ class MispGetIocCommand(GeneratingCommand):
                             mv_type_list = current_type.split('|')
                             mv_value_list = str(a['value']).split('|')
                             left_v = v.copy()
-                            left_v['misp_type'] = mv_type_list.pop()
-                            left_v['misp_value'] = mv_value_list.pop()
+                            left_v['misp_type'] = str(mv_type_list.pop())
+                            left_v['misp_value'] = str(mv_value_list.pop())
                             results.append(left_v)
                             if left_v['misp_type'] not in typelist:
                                 typelist.append(left_v['misp_type'])
                             right_v = v.copy()
-                            right_v['misp_type'] = mv_type_list.pop()
-                            right_v['misp_value'] = mv_value_list.pop()
+                            right_v['misp_type'] = str(mv_type_list.pop())
+                            right_v['misp_value'] = str(mv_value_list.pop())
                             results.append(right_v)
                             if right_v['misp_type'] not in typelist:
                                 typelist.append(right_v['misp_type'])
                         else:
-                            v['misp_type'] = current_type
-                            v['misp_value'] = str(a['value'])
                             results.append(v)
                             if current_type not in typelist:
                                 typelist.append(current_type)
@@ -568,8 +571,8 @@ class MispGetIocCommand(GeneratingCommand):
             self.log_info(json.dumps(typelist))
 
             # consolidate attribute values under output table
+            output_dict = {}
             if my_args['expand'] is True:
-                output_dict = {}
                 for r in results:
                     key = str(r['misp_event_id']) + \
                         '_' + str(r['misp_attribute_id'])
@@ -586,12 +589,13 @@ class MispGetIocCommand(GeneratingCommand):
                         misp_t = 'misp_' + r['misp_type'].replace('-', '_').replace('|', '_p_')
                         v[misp_t].append(r['misp_value'])  # set value for type
                         misp_type = r['misp_type'] + '|' + v['misp_type']
-                        v['misp_type'] = misp_type
+                        v['misp_type'] = list()
+                        v['misp_type'].append(misp_type)
                         misp_value = str(r['misp_value']) + '|' + str(v['misp_value'])
-                        v['misp_value'] = misp_value
+                        v['misp_value'] = list()
+                        v['misp_value'].append(misp_value)
                         output_dict[key] = dict(v)
             else:
-                output_dict = {}
                 for r in results:
                     if int(r['misp_object_id']) == 0:  # not an object
                         key = str(r['misp_event_id']) + \
@@ -605,32 +609,33 @@ class MispGetIocCommand(GeneratingCommand):
                         v = dict(r)
                         for t in typelist:
                             misp_t = 'misp_' + t.replace('-', '_').replace('|', '_p_')
-                            v[misp_t] = []
+                            v[misp_t] = list()
                             if t == r['misp_type']:
                                 v[misp_t].append(r['misp_value'])
-                        v['misp_to_ids'] = []
-                        v['misp_to_ids'].append(r['misp_to_ids'])
-                        v['misp_category'] = []
-                        v['misp_category'].append(r['misp_category'])
-                        v['misp_attribute_id'] = []
+                        for ac in common_columns:
+                            misp_ac = "misp_" + ac
+                            if misp_ac in r:
+                                v[misp_ac] = list()
+                                v[misp_ac].append(str(r[misp_ac]))
+                        v['misp_attribute_id'] = list()
                         v['misp_attribute_id'].append(r['misp_attribute_id'])
                         if my_args['getuuid'] is True:
-                            v['misp_attribute_uuid'] = []
+                            v['misp_attribute_uuid'] = list()
                             v['misp_attribute_uuid'].append(r['misp_attribute_uuid'])
                         if my_args['add_desc'] is True:
-                            v['misp_description'] = []
+                            v['misp_description'] = list()
                             v['misp_description'].append(r['misp_description'])
-                        v['misp_type'] = []
-                        v['misp_type'].append(r['misp_type'])
-                        v['misp_value'] = []
-                        v['misp_value'].append(str(r['misp_value']))
                         output_dict[key] = dict(v)
                     else:
                         v = dict(output_dict[key])
                         misp_t = 'misp_' + r['misp_type'].replace('-', '_').replace('|', '_p_')
                         v[misp_t].append(r['misp_value'])  # set value for type
-                        v['misp_to_ids'].append(r['misp_to_ids'])
-                        v['misp_category'].append(r['misp_category'])
+                        for ac in common_columns:
+                            misp_ac = "misp_" + ac
+                            if misp_ac in r:
+                                if misp_ac not in v:
+                                    v[misp_ac] = list()
+                                v[misp_ac].append(str(r[misp_ac]))
                         tag_list = v['misp_tag']
                         for tag in r['misp_tag']:
                             if tag not in tag_list:
@@ -647,7 +652,7 @@ class MispGetIocCommand(GeneratingCommand):
                             if my_args['getuuid'] is True:
                                 if r['misp_attribute_uuid'] not in v['misp_attribute_uuid']:
                                     v['misp_attribute_uuid'].append(r['misp_attribute_uuid'])
-                            misp_type = []
+                            misp_type = []  # composed attribute
                             misp_type.append(r['misp_type'] + '|' + v['misp_type'][0])
                             v['misp_type'] = misp_type
                             misp_value = []
@@ -657,8 +662,6 @@ class MispGetIocCommand(GeneratingCommand):
                             v['misp_attribute_id'].append(r['misp_attribute_id'])
                             if my_args['getuuid'] is True:
                                 v['misp_attribute_uuid'].append(r['misp_attribute_uuid'])
-                            v['misp_type'].append(r['misp_type'])
-                            v['misp_value'].append(r['misp_value'])
                         output_dict[key] = dict(v)
 
             # return output table

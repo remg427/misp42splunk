@@ -12,6 +12,7 @@
     <set token="param_geteventtag"></set>
     <set token="param_getorg"></set>
     <set token="param_getuuid"></set>
+    <set token="param_output"></set>
     <set token="param_pipesplit"></set>
     <set token="param_tags"></set>
     <set token="param_not_tags"></set>
@@ -22,7 +23,7 @@
     <set token="param_page"></set>
   </init>
   <label>MISP custom command mispgetioc</label>
-  <fieldset submitButton="false" autoRun="false">
+  <fieldset submitButton="true" autoRun="false">
     <input type="dropdown" token="misp_instance" searchWhenChanged="true">
       <label>misp_instance*</label>
       <fieldForLabel>misp_instance</fieldForLabel>
@@ -115,12 +116,19 @@
     <input type="radio" token="expand_object" searchWhenChanged="true">
       <label>expand_object</label>
       <change>
-        <condition>
+        <condition match="$value$=&quot;true&quot;">
+          <set token="param_expand_object">expand_object=$expand_object$</set>
+        </condition>
+        <condition match="$value$=&quot;false&quot;">
+          <set token="param_expand_object">expand_object=$expand_object$</set>
+        </condition>
+        <condition match="$value$=&quot;not_set&quot;">
           <set token="param_expand_object">expand_object=$expand_object$</set>
         </condition>
       </change>
       <choice value="true">True</choice>
       <choice value="false">False</choice>
+      <choice value="not_set">not set</choice>
     </input>
     <input type="radio" token="geteventtag" searchWhenChanged="true">
       <label>geteventtag</label>
@@ -165,12 +173,19 @@
     <input type="radio" token="pipesplit" searchWhenChanged="true">
       <label>pipesplit</label>
       <change>
-        <condition>
+        <condition match="$value$=&quot;true&quot;">
           <set token="param_pipesplit">pipesplit=$pipesplit$</set>
+        </condition>
+        <condition match="$value$=&quot;false&quot;">
+          <set token="param_pipesplit">pipesplit=$pipesplit$</set>
+        </condition>
+        <condition match="$value$=&quot;not_set&quot;">
+          <set token="param_pipesplit"></set>
         </condition>
       </change>
       <choice value="true">True</choice>
       <choice value="false">False</choice>
+      <choice value="not_set">not set</choice>
     </input>
     <input type="radio" token="to_ids" searchWhenChanged="true">
       <label>to_ids</label>
@@ -185,14 +200,21 @@
     <input type="radio" token="warning_list" searchWhenChanged="true">
       <label>warning_list</label>
       <change>
-        <condition>
+        <condition match="$value$=&quot;true&quot;">
           <set token="param_warning_list">warning_list=$warning_list$</set>
+        </condition>
+        <condition match="$value$=&quot;false&quot;">
+          <set token="param_warning_list">warning_list=$warning_list$</set>
+        </condition>
+        <condition match="$value$=&quot;not_set&quot;">
+          <set token="param_warning_list"></set>
         </condition>
       </change>
       <choice value="true">True</choice>
       <choice value="false">False</choice>
+      <choice value="not_set">not set</choice>
     </input>
-    <input type="dropdown" token="output" searchWhenChanged="true">
+    <input type="radio" token="output" searchWhenChanged="true">
       <label>output</label>
       <choice value="">not set</choice>
       <choice value="default">default</choice>
@@ -360,8 +382,9 @@
     <panel>
       <title>Custom command mispgetioc</title>
       <table>
+        <title>| mispgetioc misp_instance=$misp_instance$ $param_json_request$ $param_eventid$ $param_last$ $param_date$ $param_category$ $param_type$ $param_output$ $param_add_description$ $param_deleted$ $param_expand_object$ $param_geteventtag$ $param_getorg$ $param_getuuid$ $param_tags$ $param_not_tags$ $param_to_ids$ $param_warning_list$ $param_limit$ $param_page$ $param_pipesplit$</title>
         <search>
-          <query>| mispgetioc misp_instance=$misp_instance$ $param_json_request$ $param_eventid$ $param_last$ $param_date$ $param_category$ $param_type$ $param_output$ $param_add_description$ $param_deleted$ $param_expand_object$ $param_geteventtag$ $param_getorg$ $param_getuuid$ $param_tags$ $param_not_tags$ $param_to_ids$ $param_warning_list$ $param_keep_related$ $param_limit$ $param_page$</query>
+          <query>| mispgetioc misp_instance=$misp_instance$ $param_json_request$ $param_eventid$ $param_last$ $param_date$ $param_category$ $param_type$ $param_output$ $param_add_description$ $param_deleted$ $param_expand_object$ $param_geteventtag$ $param_getorg$ $param_getuuid$ $param_tags$ $param_not_tags$ $param_to_ids$ $param_warning_list$ $param_limit$ $param_page$ $param_pipesplit$ </query>
           <earliest>0</earliest>
           <latest></latest>
           <sampleRatio>1</sampleRatio>
