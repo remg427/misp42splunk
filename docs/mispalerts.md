@@ -3,6 +3,7 @@
 When you create an alert, you may add an alert action to directly create events (or edit events) in MISP based on search results.
 This version of the app requires MISP 2.4.97 or later.
 You may also send alerts from the search pipeline |sendalert
+![mispgetioc](../images/misp42_alert_action_create_event_dashboard.png) for example for an alert action 
 
 ### collect results in Splunk
 You may search and prepare the results as a table with the following command

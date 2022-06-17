@@ -14,9 +14,11 @@ The command syntax is as follow:
     |mispgetioc **[misp_instance=instance_name] ( [json_request=@JSON] [eventid=(uu)id] or string (comma-separated)| [last=interval]  | [date="YYYY-mm-dd"] )**
             add_description = boolean
             category = string (comma-separated)
+            expand_object = boolean
             geteventtag = boolean
             getorg = boolean
             getuuid = boolean
+            include_deleted = boolean
             limit = integer
             not_tags = string (comma-separated)
             output = (default|raw)
@@ -36,6 +38,9 @@ The command syntax is as follow:
     + date is any valid time filter
 
 ## examples
+see also for example for a generating command (first line of SPL)
+![mispgetioc](../images/misp42_custom_command_mispgetioc_dashboard.png) 
+
 one example:
 
     |mispgetioc misp_instance=default_misp eventid=477 category="Payload delivery,Network activity,External analysis" type="sha256,domain,ip-dst,text" getuuid=Y getorg=Y
@@ -129,6 +134,12 @@ another example:
         doc='''
         **Syntax:** **getuuid=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
         **Description:**Boolean to return attribute UUID.''',
+        require=False, validate=validators.Boolean())
+    include_deleted = Option(
+        doc='''
+        **Syntax:** **include_deleted=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
+        **Description:**Boolean include_deleted. By default only not-deleted
+        attribute are returned.''',
         require=False, validate=validators.Boolean())
     limit = Option(
         doc='''

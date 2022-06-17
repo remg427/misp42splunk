@@ -1,0 +1,138 @@
+<form class="form-horizontal form-complex">
+	<div class="control-group">
+		<label class="control-label" for="misp_alert_sighting_title">
+			Title <span class="required">*</span>
+		</label>
+    	<div class="controls">
+			<input 
+				type="text" 
+				name="action.misp_alert_sighting.param.title" 
+				id="misp_alert_sighting_title"
+			/>
+    	</div>
+	</div>
+	<div class="control-group">
+		<label class="control-label" for="misp_alert_sighting_description">
+			Description 
+		</label>
+	    <div class="controls">
+			<input
+				type="text"
+				name="action.misp_alert_sighting.param.description" 
+				id="misp_alert_sighting_description"
+			/>
+	    </div>
+	</div>
+	<div class="control-group">
+		<label class="control-label" for="misp_alert_sighting_misp_instance">
+			misp_instance <span class="required">*</span>
+		</label>
+	    <div class="controls">
+            <splunk-search-dropdown
+                name="action.misp_alert_sighting.param.misp_instance"
+                id="misp_alert_sighting_misp_instance"
+                value-field="title"
+                label-field="title"
+                search="| rest /services/configs/conf-misp42splunk_instances | dedup title"
+            />
+            <span class="help-block"> 
+                misp_instance.
+            </span>
+        </div>
+	</div>
+	<div class="control-group">
+		<label class="control-label" for="misp_alert_sighting_unique">
+			Unique ID 
+		</label>
+	    <div class="controls">
+			<input 
+				type="text" 
+				name="action.misp_alert_sighting.param.unique" 
+				id="misp_alert_sighting_unique"
+			/>
+            <span class="help-block"> 
+                A field name that contains timestamps ( _time, strptime() etc.). if not defined or not present, default to now()
+            </span>
+	    </div>
+	</div>
+	<div class="control-group">
+		<label class="control-label" for="misp_alert_sighting_source">
+			Source  
+		</label>
+	    <div class="controls">
+			<input 
+				type="text" 
+				name="action.misp_alert_sighting.param.source"
+				id="misp_alert_sighting_source"
+			/>
+            <span class="help-block"> 
+                Source for sighting. You may provide a field name.
+            </span>
+	    </div>
+	</div>
+	<div class="control-group">
+		<label class="control-label">
+			Mode
+		</label>
+		<div class="controls">
+			<label class="radio" for="misp_alert_sighting_mode_byvalue">
+				<input 
+					type="radio" 
+					name="action.misp_alert_sighting.param.mode" 
+					id="misp_alert_sighting_mode_byvalue" 
+					value="byvalue"
+				/>
+				Sighting for matching values
+			</label>
+			<label class="radio" for="misp_alert_sighting_mode_byuuid">
+				<input 
+					type="radio" 
+					name="action.misp_alert_sighting.param.mode" 
+					id="misp_alert_sighting_mode_byuuid" 
+					value="byuuid"
+				/>
+				Sighting for matching attributes UUID
+			</label>
+            <span class="help-block"> 
+                Set mode for sighting. Default to "matching values"
+            </span>
+		</div>
+	</div>
+	<div class="control-group">
+		<label class="control-label">
+			Type
+		</label>
+		<div class="controls">
+			<label class="radio" for="misp_alert_sighting_type_0">
+				<input 
+					type="radio" 
+					name="action.misp_alert_sighting.param.type" 
+					id="misp_alert_sighting_type_0" 
+					value="0"
+				/>
+				Sighting type 0 (default STIX interpretation of a sighting).
+			</label>
+			<label class="radio" for="misp_alert_sighting_type_1">
+				<input 
+					type="radio" 
+					name="action.misp_alert_sighting.param.type" 
+					id="misp_alert_sighting_type_1"
+					value="1"
+				/>
+				Sighting type 1 - this sighting has been interpreted as a false-positive by the organisation.
+			</label>
+			<label class="radio" for="misp_alert_sighting_type_2">
+				<input 
+					type="radio" 
+					name="action.misp_alert_sighting.param.type" 
+					id="misp_alert_sighting_type_2" 
+					value="2"
+				/>
+				Sighting type 2, expiration sighting which defines when the sighted attributes is to be expired.
+			</label>
+            <span class="help-block"> 
+            	Set type of sighting
+            </span>
+		</div>
+	</div>
+</form>

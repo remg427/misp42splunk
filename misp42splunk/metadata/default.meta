@@ -1,8 +1,0 @@
-
-[]
-access = read : [ * ], write : [ * ]
-export = system
-
-[views]
-access = read : [ * ], write : [ * ]
-export = none

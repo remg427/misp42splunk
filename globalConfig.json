@@ -1,0 +1,651 @@
+{
+    "meta": {
+        "name": "misp42splunk",
+        "restRoot": "misp42splunk",
+        "displayName": "misp42",
+        "version": "4.2.0",
+        "schemaVersion": "0.0.3"
+    },
+    "pages": {
+        "configuration": {
+            "title": "Configuration",
+            "description": "Set up your add-on",
+            "tabs": [
+                {
+                    "name": "instances",
+                    "title": "MISP instances",
+                    "table": {
+                        "header": [
+                            {
+                                "field": "name",
+                                "label": "MISP instance"
+                            },
+                            {
+                                "field": "misp_url",
+                                "label": "MISP url"
+                            }
+                        ],
+                        "actions": [
+                            "edit",
+                            "delete",
+                            "clone"
+                        ]
+                    },
+                    "entity": [
+                        {
+                            "field": "name",
+                            "label": "MISP instance",
+                            "type": "text",
+                            "required": true,
+                            "help": "Enter a unique name for this MISP instance.",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 50,
+                                    "errorMsg": "Length of MISP instance name should be between 1 and 50"
+                                },
+                                {
+                                    "type": "regex",
+                                    "pattern": "^[a-zA-Z]\\w*$",
+                                    "errorMsg": "MISP instance name must start with a letter and followed by alphabetic letters, digits or underscores."
+                                }
+                            ]
+                        },
+                        {
+                            "required": true,
+                            "label": "MISP url",
+                            "options": {
+                                "placeholder": "https://mymisp.instance.org:port"
+                            },
+                            "field": "misp_url",
+                            "validators": [
+                                {
+                                    "pattern": "^https://[0-9a-zA-Z\\-\\.]+(?:\\:\\d+)?",
+                                    "errorMsg": "Invalid URL; it must start with https.",
+                                    "type": "regex"
+                                }
+                            ],
+                            "help": "provide base MISP URL starting with https://",
+                            "type": "text"
+                        },
+                        {
+                            "field": "misp_key",
+                            "required": true,
+                            "label": "MISP API key",
+                            "options": {
+                                "placeholder": "***AUTH KEY***"
+                            },
+                            "encrypted": true,
+                            "validators": [
+                                {
+                                    "minLength": 0,
+                                    "errorMsg": "Max length of password is 8192",
+                                    "maxLength": 8192,
+                                    "type": "string"
+                                }
+                            ],
+                            "help": "provide one authkey for the instance",
+                            "type": "text"
+                        },
+                        {
+                            "required": false,
+                            "label": "Check MISP certificate",
+                            "field": "misp_verifycert",
+                            "defaultValue": true,
+                            "help": "",
+                            "type": "checkbox"
+                        },
+                        {
+                            "required": false,
+                            "label": "MISP CA path",
+                            "field": "misp_ca_full_path",
+                            "validators": [
+                                {
+                                    "minLength": 0,
+                                    "errorMsg": "Max length of text input is 8192",
+                                    "maxLength": 8192,
+                                    "type": "string"
+                                }
+                            ],
+                            "help": "Provide full path to CA file (pem, crt)",
+                            "type": "text"
+                        },
+                        {
+                            "required": false,
+                            "field": "misp_use_proxy",
+                            "help": "Use proxy settings for this instance",
+                            "label": "Use proxy settings",
+                            "type": "checkbox"
+                        },
+                        {
+                            "required": false,
+                            "field": "client_use_cert",
+                            "help": "Use a client certificate to authenticate on this instance",
+                            "label": "Use a client certificate",
+                            "type": "checkbox"
+                        },
+                        {
+                            "required": false,
+                            "label": "Client certificate file ",
+                            "field": "client_cert_full_path",
+                            "validators": [
+                                {
+                                    "minLength": 0,
+                                    "errorMsg": "Max length of text input is 8192",
+                                    "maxLength": 8192,
+                                    "type": "string"
+                                }
+                            ],
+                            "help": "Provide full path to client certificate file ",
+                            "type": "text"
+                        }
+                    ]
+                },
+                {
+                    "options": {
+                        "saveValidator": "function(formData) { if(!formData.proxy_enabled || formData.proxy_enabled === '0') {return true; } if(!formData.proxy_hostname) { return 'Proxy Host can not be empty'; } if(!formData.proxy_port) { return 'Proxy Port can not be empty'; } return true; }"
+                    },
+                    "name": "proxy",
+                    "entity": [
+                        {
+                            "field": "proxy_enabled",
+                            "label": "Enable",
+                            "type": "checkbox"
+                        },
+                        {
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "label": "http",
+                                        "value": "http"
+                                    },
+                                    {
+                                        "label": "socks4",
+                                        "value": "socks4"
+                                    },
+                                    {
+                                        "label": "socks5",
+                                        "value": "socks5"
+                                    }
+                                ]
+                            },
+                            "field": "proxy_type",
+                            "defaultValue": "http",
+                            "label": "Proxy Type",
+                            "type": "singleSelect"
+                        },
+                        {
+                            "validators": [
+                                {
+                                    "minLength": 0,
+                                    "errorMsg": "Max host length is 4096",
+                                    "maxLength": 4096,
+                                    "type": "string"
+                                }
+                            ],
+                            "field": "proxy_hostname",
+                            "label": "Host",
+                            "type": "text"
+                        },
+                        {
+                            "validators": [
+                                {
+                                    "range": [
+                                        1,
+                                        65535
+                                    ],
+                                    "type": "number"
+                                }
+                            ],
+                            "field": "proxy_port",
+                            "label": "Port",
+                            "type": "text"
+                        },
+                        {
+                            "validators": [
+                                {
+                                    "minLength": 0,
+                                    "errorMsg": "Max length of username is 50",
+                                    "maxLength": 50,
+                                    "type": "string"
+                                }
+                            ],
+                            "field": "proxy_username",
+                            "label": "Username",
+                            "type": "text"
+                        },
+                        {
+                            "encrypted": true,
+                            "validators": [
+                                {
+                                    "minLength": 0,
+                                    "errorMsg": "Max length of password is 8192",
+                                    "maxLength": 8192,
+                                    "type": "string"
+                                }
+                            ],
+                            "field": "proxy_password",
+                            "label": "Password",
+                            "type": "text"
+                        },
+                        {
+                            "field": "proxy_rdns",
+                            "label": "Remote DNS resolution",
+                            "type": "checkbox"
+                        }
+                    ],
+                    "title": "Proxy"
+                },
+                {
+                    "name": "logging",
+                    "entity": [
+                        {
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "label": "DEBUG",
+                                        "value": "DEBUG"
+                                    },
+                                    {
+                                        "label": "INFO",
+                                        "value": "INFO"
+                                    },
+                                    {
+                                        "label": "WARNING",
+                                        "value": "WARNING"
+                                    },
+                                    {
+                                        "label": "ERROR",
+                                        "value": "ERROR"
+                                    },
+                                    {
+                                        "label": "CRITICAL",
+                                        "value": "CRITICAL"
+                                    }
+                                ]
+                            },
+                            "field": "loglevel",
+                            "defaultValue": "INFO",
+                            "label": "Log level",
+                            "type": "singleSelect"
+                        }
+                    ],
+                    "title": "Logging"
+                }
+            ]
+        }
+    },
+    "alerts": [
+        {
+            "name": "misp_alert_create_event",
+            "label": "MISP Create Event",
+            "description": "Create events in MISP (alert action)",
+            "activeResponse": {
+                "task": [
+                    "Create",
+                    "Update"
+                ],
+                "supportsAdhoc": true,
+                "subject": [
+                    "endpoint"
+                ],
+                "category": [
+                    "Cyber Security",
+                    "Threat Intelligence"
+                ],
+                "technology": [
+                    {
+                        "version": [
+                            "2.4.119"
+                        ],
+                        "product": "MISP",
+                        "vendor": "MISP"
+                    }
+                ],
+                "drilldownUri": "search?q=search%20index%3D\"_internal\"&earliest=0&latest=",
+                "sourcetype": "misp:misp_alert_create_event"
+            },
+            "entity": [
+                {
+                    "type": "singleSelectSplunkSearch",
+                    "label": "Select MISP instance",
+                    "field": "misp_instance",
+                    "search": "| rest /services/configs/conf-misp42splunk_instances | dedup title",
+                    "valueField": "title",
+                    "labelField": "title",
+                    "help": "Select the MISP instance from the dropdown",
+                    "required": true
+                },
+                {
+                    "type": "text",
+                    "label": "Title",
+                    "field": "title",
+                    "defaultValue": "*",
+                    "required": true,
+                    "help": "The title of this alert."
+                },
+                {
+                    "type": "text",
+                    "label": "Description",
+                    "field": "description",
+                    "defaultValue": "*",
+                    "required": true,
+                    "help": "The description to send with the alert."
+                },
+                {
+                    "type": "text",
+                    "label": "Event (UU)ID",
+                    "field": "eventid",
+                    "defaultValue": "",
+                    "required": false,
+                    "help": "To update an existing MISP event, provide a valid event UUID or ID or a field name containing it."
+                },
+                {
+                    "type": "text",
+                    "label": "Unique ID",
+                    "field": "unique",
+                    "defaultValue": "",
+                    "required": false,
+                    "help": "A field name that contains a unique identifier per MISP event to be created. All row sharing same identifier value will be merged into the same MISP event."
+                },
+                {
+                    "type": "text",
+                    "label": "MISP Info",
+                    "field": "info",
+                    "defaultValue": "",
+                    "required": false,
+                    "help": "The default Info field for the MISP events if not provided in results."
+                },
+                {
+                    "type": "singleSelect",
+                    "label": "Distribution",
+                    "field": "distribution",
+                    "options": {
+                        "items": [
+                            {
+                                "value": "0",
+                                "label": "Your organisation only"
+                            },
+                            {
+                                "value": "1",
+                                "label": "This community only"
+                            },
+                            {
+                                "value": "2",
+                                "label": "Connected communities"
+                            },
+                            {
+                                "value": "3",
+                                "label": "All communities"
+                            },
+                            {
+                                "value": "4",
+                                "label": "Sharing Group"
+                            }
+                        ]
+                    },
+                    "help": "Change the Distribution. Defaults to \"Your organisation only\".",
+                    "required": true,
+                    "defaultValue": "0"
+                },
+                {
+                    "type": "singleSelect",
+                    "label": "Threat level",
+                    "field": "threatlevel",
+                    "options": {
+                        "items": [
+                            {
+                                "value": "1",
+                                "label": "High"
+                            },
+                            {
+                                "value": "2",
+                                "label": "Medium"
+                            },
+                            {
+                                "value": "3",
+                                "label": "Low"
+                            },
+                            {
+                                "value": "4",
+                                "label": "Undefined"
+                            }
+                        ]
+                    },
+                    "help": "Change the Threat Level. Defaults to \"Undefined\".",
+                    "required": true,
+                    "defaultValue": "4"
+                },
+                {
+                    "type": "singleSelect",
+                    "label": "Analysis",
+                    "field": "analysis",
+                    "options": {
+                        "items": [
+                            {
+                                "value": "0",
+                                "label": "Initial"
+                            },
+                            {
+                                "value": "1",
+                                "label": "Ongoing"
+                            },
+                            {
+                                "value": "2",
+                                "label": "Complete"
+                            }
+                        ]
+                    },
+                    "help": "Change Analysis status. Default to Initial",
+                    "required": true,
+                    "defaultValue": "0"
+                },
+                {
+                    "type": "singleSelect",
+                    "label": "TLP",
+                    "field": "tlp",
+                    "options": {
+                        "items": [
+                            {
+                                "value": "TLP_WHITE",
+                                "label": "WHITE"
+                            },
+                            {
+                                "value": "TLP_GREEN",
+                                "label": "GREEN"
+                            },
+                            {
+                                "value": "TLP_AMBER",
+                                "label": "AMBER"
+                            },
+                            {
+                                "value": "TLP_RED",
+                                "label": "RED"
+                            }
+                        ]
+                    },
+                    "help": "Change the TLP of the created alert. Defaults to TLP:AMBER",
+                    "required": true,
+                    "defaultValue": "TLP_AMBER"
+                },
+                {
+                    "type": "singleSelect",
+                    "label": "PAP",
+                    "field": "pap",
+                    "options": {
+                        "items": [
+                            {
+                                "value": "PAP_WHITE",
+                                "label": "WHITE"
+                            },
+                            {
+                                "value": "PAP_GREEN",
+                                "label": "GREEN"
+                            },
+                            {
+                                "value": "PAP_AMBER",
+                                "label": "AMBER"
+                            },
+                            {
+                                "value": "PAP_RED",
+                                "label": "RED"
+                            }
+                        ]
+                    },
+                    "help": "Permissible Actions Protocol. Default to PAP:RED",
+                    "required": true,
+                    "defaultValue": "PAP_RED"
+                },
+                {
+                    "type": "singleSelect",
+                    "label": "Publish event on creation? ",
+                    "field": "publish_on_creation",
+                    "options": {
+                        "items": [
+                            {
+                                "value": "0",
+                                "label": "NO"
+                            },
+                            {
+                                "value": "1",
+                                "label": "YES"
+                            }
+                        ]
+                    },
+                    "help": "By default events are not published at time of creation (No).",
+                    "required": true,
+                    "defaultValue": "0"
+                },
+                {
+                    "type": "text",
+                    "label": "MISP Tags",
+                    "field": "tags",
+                    "defaultValue": "",
+                    "required": false,
+                    "help": "Use single comma-separated string without quotes for multiple tags (eg. badIP,spam)."
+                }
+            ]
+        },
+        {
+            "name": "misp_alert_sighting",
+            "label": "Alert for sighting MISP attribute(s)",
+            "description": "Increment sighting counters for attributes in MISP (alert action)",
+            "activeResponse": {
+                "task": [
+                    "Create",
+                    "Update"
+                ],
+                "supportsAdhoc": true,
+                "subject": [
+                    "endpoint"
+                ],
+                "category": [
+                    "Cyber Security",
+                    "Threat Intelligence"
+                ],
+                "technology": [
+                    {
+                        "version": [
+                            "2.4.119"
+                        ],
+                        "product": "MISP",
+                        "vendor": "MISP"
+                    }
+                ],
+                "drilldownUri": "search?q=search%20index%3D\"_internal\"&earliest=0&latest=",
+                "sourcetype": "misp:misp_alert_sighting"
+            },
+            "entity": [
+                {
+                    "type": "singleSelectSplunkSearch",
+                    "label": "Select MISP instance",
+                    "field": "misp_instance",
+                    "search": "| rest /services/configs/conf-misp42splunk_instances | dedup title",
+                    "valueField": "title",
+                    "labelField": "title",
+                    "help": "Select the MISP instance from the dropdown",
+                    "required": true
+                },
+                {
+                    "type": "text",
+                    "label": "Title",
+                    "field": "title",
+                    "defaultValue": "*",
+                    "required": true,
+                    "help": "The title of this alert."
+                },
+                {
+                    "type": "text",
+                    "label": "Description",
+                    "field": "description",
+                    "defaultValue": "*",
+                    "required": false,
+                    "help": "The description to send with the alert."
+                },
+                {
+                    "type": "text",
+                    "label": "Unique ID",
+                    "field": "unique",
+                    "defaultValue": "",
+                    "required": false,
+                    "help": "A field name that contains timestamps ( _time, strptime() etc.). if not defined or not present, default to now()"
+                },
+                {
+                    "type": "text",
+                    "label": "Source",
+                    "field": "source",
+                    "defaultValue": "",
+                    "required": false,
+                    "help": "Source for sighting. You may provide a field name."
+                },
+                {
+                    "type": "radio",
+                    "label": "Mode:",
+                    "field": "mode",
+                    "options": {
+                        "items": [
+                            {
+                                "value": "byvalue",
+                                "label": "Sighting for matching values"
+                            },
+                            {
+                                "value": "byuuid",
+                                "label": "Sighting for matching attributes UUID"
+                            }
+                        ]
+                    },
+                    "help": "Set mode for sighting. Default to \"matching values\"",
+                    "required": false,
+                    "defaultValue": "byvalue"
+                },
+                {
+                    "type": "radio",
+                    "label": "Type:",
+                    "field": "type",
+                    "options": {
+                        "items": [
+                            {
+                                "value": "0",
+                                "label": "Sighting type 0: (default STIX interpretation of a sighting)."
+                            },
+                            {
+                                "value": "1",
+                                "label": "Sighting type 1: this sighting has been interpreted as a false-positive by the organisation."
+                            },
+                            {
+                                "value": "2",
+                                "label": "Sighting type 2: expiration sighting which defines when the sighted attribute is to be expired."
+                            }
+                        ]
+                    },
+                    "help": "Set type of sighting.",
+                    "required": false,
+                    "defaultValue": "0"
+                }
+            ]
+        }
+    ]
+}

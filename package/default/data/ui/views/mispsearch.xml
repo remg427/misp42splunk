@@ -1,0 +1,174 @@
+<form hideEdit="false" version="1.1">
+  <init>
+    <set token="param_includeEventTags"></set>
+    <set token="param_includeEventUuid"></set>
+    <set token="param_json_request"></set>
+    <set token="param_last"></set>
+    <set token="param_to_ids"></set>
+    <set token="param_limit"></set>
+    <set token="param_page"></set>
+    <set token="sample_query">| makeresults | eval domain="www.example.com"</set>
+  </init>
+  <label>MISP custom command mispsearch</label>
+  <fieldset submitButton="false" autoRun="false">
+    <input type="dropdown" token="misp_instance" searchWhenChanged="true">
+      <label>misp_instance*</label>
+      <fieldForLabel>misp_instance</fieldForLabel>
+      <fieldForValue>misp_instance</fieldForValue>
+      <search>
+        <query>| rest /services/configs/conf-misp42splunk_instances
+| rename eai:acl.app as app, title as misp_instance
+| fields misp_instance</query>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </search>
+    </input>
+    <input type="text" token="field" searchWhenChanged="true">
+      <label>field*</label>
+    </input>
+    <input type="radio" token="includeEventTags" searchWhenChanged="true">
+      <label>includeEventTags</label>
+      <change>
+        <condition>
+          <set token="param_includeEventTags">includeEventTags=$includeEventTags$</set>
+        </condition>
+      </change>
+      <choice value="true">True</choice>
+      <choice value="false">False</choice>
+    </input>
+    <input type="radio" token="includeEventUuid" searchWhenChanged="true">
+      <label>includeEventUuid</label>
+      <change>
+        <condition>
+          <set token="param_includeEventUuid">includeEventUuid=$includeEventUuid$</set>
+        </condition>
+      </change>
+      <choice value="true">True</choice>
+      <choice value="false">False</choice>
+    </input>
+    <input type="text" token="json_request" searchWhenChanged="true">
+      <label>json_request</label>
+      <change>
+        <condition match="$value$=&quot;&quot;">
+          <set token="param_json_request"></set>
+        </condition>
+        <condition>
+          <set token="param_json_request">json_request=$json_request$</set>
+        </condition>
+      </change>
+    </input>
+    <input type="text" token="last" searchWhenChanged="true">
+      <label>last</label>
+      <change>
+        <condition match="$value$=&quot;&quot;">
+          <set token="param_last"></set>
+        </condition>
+        <condition>
+          <set token="param_last">last=$last$</set>
+        </condition>
+      </change>
+    </input>
+    <input type="radio" token="to_ids" searchWhenChanged="true">
+      <label>to_ids</label>
+      <change>
+        <condition>
+          <set token="param_to_ids">to_ids=$to_ids$</set>
+        </condition>
+      </change>
+      <choice value="true">True</choice>
+      <choice value="false">False</choice>
+    </input>
+    <input type="text" token="limit" searchWhenChanged="true">
+      <label>limit</label>
+      <change>
+        <condition match="$value$=&quot;&quot;">
+          <set token="param_limit"></set>
+        </condition>
+        <condition>
+          <set token="param_limit">limit=$limit$</set>
+        </condition>
+      </change>
+    </input>
+    <input type="text" token="page" searchWhenChanged="true">
+      <label>page</label>
+      <change>
+        <condition match="$value$=&quot;&quot;">
+          <set token="param_page"></set>
+        </condition>
+        <condition>
+          <set token="param_page">page=$page$</set>
+        </condition>
+      </change>
+    </input>
+    <input type="text" token="sample_query" searchWhenChanged="true">
+      <label>Paste your sample query here</label>
+      <initialValue>| makeresults | eval domain="www.example.com"</initialValue>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <html>
+        <h3>Select a misp_instance and a field name to search for.</h3>
+        <h3>Additional arguments:</h3>
+      <table border="1" cedllspacing="10" width="90%" align="center">
+        <tr>
+          <th width="20%">Param</th>
+          <th width="30%">Syntax</th>
+          <th width="50%">Description</th>
+        </tr>
+        <tr>
+            <td>includeEventTags</td>
+            <td>includeEventTags=1|y|Y|t|true|True|0|n|N|f|false|False </td>
+            <td>Boolean to include Event Tags to results.</td>
+        </tr>
+        <tr>
+            <td>includeEventUuid</td>
+            <td>includeEventUuid=1|y|Y|t|true|True|0|n|N|f|false|False </td>
+            <td>Boolean to include event UUID(s) to results.</td>
+        </tr>
+        <tr>
+            <td>json_request</td>
+            <td>json_request=string </td>
+            <td>Valid JSON request.</td>
+        </tr>
+        <tr>
+            <td>last</td>
+            <td>last=int </td>
+            <td>Publication duration in day(s), hour(s) or minute(s) to limit search scope only to published events in last X timerange.</td>
+        </tr>
+        <tr>
+            <td>limit</td>
+            <td>limit=int </td>
+            <td>define the limit for each MISP search; default 1000. 0 = no pagination.</td>
+        </tr>
+        <tr>
+            <td>page</td>
+            <td>page=int </td>
+            <td>define the page for each MISP search; default 1.</td>
+        </tr>
+        <tr>
+            <td>to_ids</td>
+            <td>to_ids=1|y|Y|t|true|True|0|n|N|f|false|False </td>
+            <td>Boolean to search only attributes with the flag "to_ids" set to true.</td>
+        </tr>
+      </table>
+    </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Custom command mispsearch</title>
+      <table>
+        <search>
+          <query>$sample_query$ | mispsearch misp_instance=$misp_instance$ field=$field$ $param_json_request$ $param_last$ $param_includeEventTags$ $param_includeEventUuid$ $param_to_ids$ $param_limit$ $param_page$</query>
+          <earliest>0</earliest>
+          <latest></latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">5</option>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+</form>

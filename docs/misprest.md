@@ -8,7 +8,10 @@ shortdesc = MISP REST API wrapper: provide misp_instance, method, target and a v
 usage = public
 example1 = | misprest misp_instance=test method=POST target="/attributes/restSearch" json_request="{\"returnFormat\": \"json\", \"last\": \"20d\"}"
 comment1 = retrieve attributes of all events published in last 20 days and display as events
+example:
 
+![mispgetioc](../images/misp42_custom_command_misprest_dashboard.png) 
+    
 # All params
 ## MANDATORY MISP instance for this search
     misp_instance = Option(

@@ -1,0 +1,181 @@
+<form hideEdit="false" version="1.1">
+  <init>
+    <set token="description"></set>
+    <set token="unique"></set>
+    <set token="source"></set>
+    <set token="misp_description"></set>
+    <set token="misp_unique"></set>
+    <set token="misp_source"></set>
+    <unset token="launch_alert"></unset>
+    <set token="sample_query">| makeresults | eval misp_domain="www.example.com"</set>
+  </init>
+  <label>misp_alert_sighting</label>
+  <fieldset submitButton="true">
+    <input type="dropdown" token="misp_instance" searchWhenChanged="true">
+      <label>misp_instance*</label>
+      <fieldForLabel>misp_instance</fieldForLabel>
+      <fieldForValue>misp_instance</fieldForValue>
+      <search>
+        <query>| rest /services/configs/conf-misp42splunk_instances
+| rename eai:acl.app as app, title as misp_instance
+| fields misp_instance</query>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </search>
+    </input>
+    <input type="text" token="title" searchWhenChanged="true">
+      <label>title*</label>
+    </input>
+    <input type="text" token="description" searchWhenChanged="true">
+      <label>description</label>
+      <change>
+        <condition match="$value$=&quot;&quot;">
+          <set token="misp_source"></set>
+        </condition>
+        <condition>
+          <set token="misp_description">param.description="$description$"</set>
+        </condition>
+      </change>
+    </input>
+    <input type="text" token="unique" searchWhenChanged="true">
+      <label>Unique ID</label>
+      <change>
+        <condition match="$value$=&quot;&quot;">
+          <set token="misp_unique"></set>
+        </condition>
+        <condition>
+          <set token="misp_unique">param.unique="$unique$"</set>
+        </condition>
+      </change>
+    </input>
+    <input type="text" token="source" searchWhenChanged="true">
+      <label>source</label>
+      <change>
+        <condition match="$value$=&quot;&quot;">
+          <set token="misp_source"></set>
+        </condition>
+        <condition>
+          <set token="misp_source">param.source="$source$"</set>
+        </condition>
+      </change>
+    </input>
+    <input type="radio" token="mode">
+      <label>mode</label>
+      <choice value="byvalue">Sighting for matching values</choice>
+      <choice value="byuuid">Sighting for matching attributes UUID</choice>
+      <default>byvalue</default>
+      <initialValue>byvalue</initialValue>
+    </input>
+    <input type="radio" token="type">
+      <label>type</label>
+      <choice value="0">Sighting type 0 (default STIX interpretation of a sighting).</choice>
+      <choice value="1">Sighting type 1 - this sighting has been interpreted as a false-positive by the organisation.</choice>
+      <choice value="2">Sighting type 2, expiration sighting which defines when the sighted attributes is to be expired.</choice>
+      <default>0</default>
+      <initialValue>0</initialValue>
+    </input>
+    <input type="time" token="GlobalTimePicker" searchWhenChanged="true">
+      <label>Time range for sample search</label>
+      <default>
+        <earliest>-15m</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+    <input type="text" token="sample_query" searchWhenChanged="true">
+      <label>Paste your sample query here</label>
+      <initialValue>| makeresults | eval misp_domain="www.example.com"</initialValue>
+    </input>
+    <input type="radio" token="launch_alert" searchWhenChanged="true">
+      <label>Launch alert action</label>
+      <choice value="True">Run</choice>
+      <choice value="False">Preparation</choice>
+      <change>
+        <condition match="$value$=&quot;False&quot;">
+          <unset token="launch_alert"></unset>
+        </condition>
+      </change>
+      <default>False</default>
+      <initialValue>False</initialValue>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <html>
+      <h3>If you select by mode 'byuuid' Sighting for matching attributes UUID you need to have a field 'uuid' containing attribute UUID.</h3>
+    </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Increment sightings counters '$mode$' in MISP instance $misp_instance$. If result looks good, select "run" above</title>
+      <table>
+        <search>
+          <query>$sample_query$
+| eval param_description="$description$", param_unique="$unique$", param_source="$source$"
+| eval sendalert_cmd="sendalert misp_alert_sighting param.misp_instance=$misp_instance$ param.title=\"$title$\" param.mode=\"$mode$\" param.type=$type$"
+| eval sendalert_cmd=if(param_description!="", sendalert_cmd + " param.description=\""+ param_description + "\"",sendalert_cmd)
+| eval sendalert_cmd=if(param_unique!="", sendalert_cmd+" param.unique=\""+param_unique+"\"", sendalert_cmd)
+| eval sendalert_cmd=if(param_source!="", sendalert_cmd+" param.source=\""+param_source+"\"",sendalert_cmd)
+| fields - param_*</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel depends="$launch_alert$">
+      <title>Create an alert in MISP. Once the result is displayed below, an alert should have been created in MISP instance $misp_instance$. If not check logs below</title>
+      <table>
+        <search>
+          <query>$sample_query$
+| eval switch="$launch_alert$"
+| where switch=="True"
+| fields - switch
+| sendalert misp_alert_sighting misp_alert_sighting param.misp_instance=$misp_instance$ param.title="$title$" param.mode=$mode$ param.type=$type$ $misp_description$ $misp_unique$ $misp_source$</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Logs related to misp_alert_sighting</title>
+      <table>
+        <search>
+          <query>(index=_* OR index=cim_*) sourcetype="ta:misp42:log" source="*/misp_alert_sighting_modalert.log"</query>
+          <earliest>-1h@h</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+</form>
