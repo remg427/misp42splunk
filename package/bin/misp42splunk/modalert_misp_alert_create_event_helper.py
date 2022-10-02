@@ -9,24 +9,20 @@
 # Copyright: LGPLv3 (https://www.gnu.org/licenses/lgpl-3.0.txt)
 # Feel free to use the code, but please share the changes you've made
 from __future__ import print_function
-from misp_common import prepare_config
+from misp_common import prepare_config, misp_request
 import csv
 import datetime
 import gzip
 import json
 import os
-import requests
 import time
 import splunklib.client as client
 from io import open
 import sys
-if sys.version_info[0] > 2:
-    from requests.packages.urllib3.exceptions import InsecureRequestWarning
-    requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "4.0.1"
+__version__ = "4.2.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -294,11 +290,11 @@ def prepare_misp_events(helper, config, event_list):
 
         # now we take KV pairs starting by misp_
         # to add to event as single attribute(s)
-        fo_template = init_object_template('file')
+        fo_template = init_object_template(helper,'file')
         fo_attribute = []
-        eo_template = init_object_template('email')
+        eo_template = init_object_template(helper,'email')
         eo_attribute = []
-        no_template = init_object_template('domain-ip')
+        no_template = init_object_template(helper,'domain-ip')
         no_attribute = []
         for key, value in list(row.items()):
             if key.startswith("misp_") and value not in [None, '']:
@@ -385,42 +381,20 @@ def prepare_misp_events(helper, config, event_list):
 def process_misp_events(helper, config, results, event_list):
     # get parameters for requests
     misp_url_create = config['misp_url'] + '/events/add'
-    misp_key = config['misp_key']
-    misp_verifycert = config['misp_verifycert']
-
-    # set proper headers
-    headers = {'Content-type': 'application/json'}
-    headers['Authorization'] = misp_key
-    headers['Accept'] = 'application/json'
-
-    # client cert file
-    client_cert = config['client_cert_full_path']
 
     status = 200
     for eventkey in results:
         if event_list[eventkey] == "0":  # create new event
-            body = json.dumps(results[eventkey])
-            helper.log_info("[AL-PME-I01] create body has been prepared for eventkey {}"
-                            .format(eventkey))
-            # POST json data to create events
-            r = requests.post(misp_url_create, headers=headers, data=body,
-                              verify=misp_verifycert, cert=client_cert,
-                              proxies=config['proxies'])
-            # check if status is anything other than 200;
-            # throw an exception if it is
-            r.raise_for_status()
-            # response is 200 or we would have thrown an exception
-            # response = r.json()
-            if r.status_code in (200, 201, 204):
+            response = misp_request(helper, 'POST', misp_url_create, results[eventkey], config)
+            if '_raw' not in response:
                 helper.log_info(
-                    "[AL-PME-I02] INFO MISP event is successfully created. "
-                    "url={}, HTTP status={}".format(misp_url_create, r.status_code)
+                    "[AL-PME-I02] INFO MISP event is successfully created. url={}".format(misp_url_create)
                 )
             else:
                 helper.log_error(
                     "[AL-PME-E01]ERROR MISP event creation has failed. "
-                    "url={}, data={}, HTTP Error={}, content={}"
-                    .format(misp_url_create, body, r.status_code, r.text)
+                    "url={}, data={}, content={}"
+                    .format(misp_url_create, results[eventkey], response)
                 )
         else:  # edit existing eventid with Attribute and Object
             misp_url_edit = config['misp_url'] + '/events/edit/' + \
@@ -428,29 +402,18 @@ def process_misp_events(helper, config, results, event_list):
             edit_body = {}
             edit_body['Attribute'] = results[eventkey]['Attribute']
             edit_body['Object'] = results[eventkey]['Object']
-            body = json.dumps(edit_body)
-            helper.log_info("[AL-PME-I03] edit body has been prepared for eventid {}".format(event_list[eventkey]))
-            # POST json data to create events
-            r = requests.post(misp_url_edit, headers=headers, data=body,
-                              verify=misp_verifycert, cert=client_cert,
-                              proxies=config['proxies'])
-            # check if status is anything other than 200;
-            # throw an exception if it is
-            r.raise_for_status()
-            status = r.status_code
-            # response is 200 or we would have thrown an exception
-            # response = r.json()
-            if r.status_code in (200, 201, 204):
-                helper.log_info(
-                    "[AL-PME-I04] INFO MISP event is successfully edited. "
-                    "url={}, HTTP status={}".format(misp_url_edit, r.status_code)
+            response = misp_request(helper, 'POST', misp_url_edit, edit_body, config)
+            if '_raw' not in response:
+                 helper.log_info(
+                    "[AL-PME-I04] INFO MISP event is successfully edited. url={}".format(misp_url_edit)
                 )
             else:
                 helper.log_error(
                     "[AL-PME-E02] ERROR MISP event edition has failed. "
-                    "url={}, data={}, HTTP Error={}, content={}"
-                    .format(misp_url_edit, body, r.status_code, r.text)
+                    "url={}, data={}, content={}"
+                    .format(misp_url_edit, edit_body, response)
                 )
+            
     return status
 
 

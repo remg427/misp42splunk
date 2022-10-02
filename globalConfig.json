@@ -454,12 +454,20 @@
                                 "label": "WHITE"
                             },
                             {
+                                "value": "TLP_CLEAR",
+                                "label": "CLEAR"
+                            },
+                            {
                                 "value": "TLP_GREEN",
                                 "label": "GREEN"
                             },
                             {
                                 "value": "TLP_AMBER",
                                 "label": "AMBER"
+                            },
+                            {
+                                "value": "TLP_AMBER+STRICT",
+                                "label": "AMBER+STRICT"
                             },
                             {
                                 "value": "TLP_RED",

@@ -14,19 +14,15 @@ from collections import OrderedDict
 from itertools import chain
 import json
 import logging
-from misp_common import prepare_config, logging_level
-import requests
+from misp_common import prepare_config, logging_level, misp_request
 from splunklib.searchcommands import dispatch, GeneratingCommand, Configuration, Option, validators
 # from splunklib.searchcommands import splunklib_logger as logger
 from splunklib.six.moves import map
 import sys
-if sys.version_info[0] > 2:
-    from requests.packages.urllib3.exceptions import InsecureRequestWarning
-    requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "4.3.0"
+__version__ = "4.2.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -520,10 +516,6 @@ class MispGetEventCommand(GeneratingCommand):
         # Force some values on JSON request
         body_dict['returnFormat'] = 'json'
         body_dict['withAttachments'] = False
-        # set proper headers
-        headers = {'Content-type': 'application/json'}
-        headers['Authorization'] = my_args['misp_key']
-        headers['Accept'] = 'application/json'
 
         # Search pagination
         pagination = True
@@ -610,148 +602,129 @@ class MispGetEventCommand(GeneratingCommand):
             body_dict['page'] = page
             body_dict['limit'] = limit
 
-        body = json.dumps(body_dict)
-        # search
-        r = requests.post(my_args['misp_url'], headers=headers, data=body,
-                          verify=my_args['misp_verifycert'],
-                          cert=my_args['client_cert_full_path'],
-                          proxies=my_args['proxies'])
-        # check if status is anything other than 200;
-        # throw an exception if it is
-        # check if status is anything other than 200;
-        # throw an exception if it is
-        if r.status_code in (200, 201, 204):
-            self.log_info(
-                "[EV301] INFO mispgetevent successful. url={}, HTTP status={}".format(my_args['misp_url'], r.status_code)
-            )
-        else:
-            self.log_error(
-                "[EV302] ERROR mispgetevent failed for url={}, data={}, HTTP Error={}, content={}".format(my_args['misp_url'], body, r.status_code, r.text)
-            )
-            raise Exception(
-                "[EV302] ERROR mispgetevent failed. for url={} with HTTP Error={}. Check search.log for details".format(my_args['misp_url'], r.status_code)
-            )
-        # response is 200 by this point or we would have thrown an exception
-        response = r.json()
+        response = misp_request(self, 'POST', my_args['misp_url'], body_dict, my_args) 
 
-        encoder = json.JSONEncoder(ensure_ascii=False, separators=(',', ':'))
-        if output == "raw":
-            if 'response' in response:
-                attribute_names = list()
-                serial_number = 0
-                for r_item in response['response']:
-                    if 'Event' in r_item:
-                        for e in r_item.values():
-                            if keep_galaxy is False:
-                                e.pop('Galaxy', None)
-                            if keep_related is False:
-                                e.pop('RelatedEvent', None)
-                            yield MispGetEventCommand._record(
-                                serial_number, e['timestamp'], my_args['host'],
-                                e, attribute_names, encoder)
-                        serial_number += 1
-                        GeneratingCommand.flush
-        else:
-            # build output table and list of types
-            events = []
-            typelist = []
-            column_list = format_output_table(response, events, typelist,
-                                              getioc, pipesplit, only_to_ids)
-            self.log_info(
-                'typelist containss {} values'.format(len(typelist)))
-            self.log_debug(
-                'typelist is {}'.format(json.dumps(typelist)))
-            self.log_info('results contains {} records'.format(len(events)))
-
-            if getioc is False:
-                attribute_names = list()
-                init_attribute_names = True
-                serial_number = 0
-                for e in events:
-                    if init_attribute_names is True:
-                        for key in e.keys():
-                            if key not in attribute_names:
-                                attribute_names.append(key)
-                        attribute_names.sort()
-                        init_attribute_names = False
-                    yield MispGetEventCommand._record(
-                        serial_number, e['misp_timestamp'],
-                        my_args['host'], e, attribute_names, encoder, True)
-                    serial_number += 1
-                    GeneratingCommand.flush
+        if "_raw" in response:
+            yield response
+        else:  
+            encoder = json.JSONEncoder(ensure_ascii=False, separators=(',', ':'))
+            if output == "raw":
+                if 'response' in response:
+                    attribute_names = list()
+                    serial_number = 0
+                    for r_item in response['response']:
+                        if 'Event' in r_item:
+                            for e in r_item.values():
+                                if keep_galaxy is False:
+                                    e.pop('Galaxy', None)
+                                if keep_related is False:
+                                    e.pop('RelatedEvent', None)
+                                yield MispGetEventCommand._record(
+                                    serial_number, e['timestamp'], my_args['host'],
+                                    e, attribute_names, encoder)
+                            serial_number += 1
+                            GeneratingCommand.flush
             else:
-                output_dict = dict()
-                for e in events:
-                    if 'Attribute' in e:
-                        for a in e['Attribute']:
-                            if int(a['misp_object_id']) == 0:  # not an object
-                                key = str(e['misp_event_uuid']) + '_' \
-                                    + str(a['misp_attribute_uuid'])
-                                is_object_member = False
-                            else:  # this is a  MISP object
-                                if expand_object is True:
-                                    # compute key based on attribute UUID
-                                    key = str(e['misp_event_uuid']) + '_' \
-                                        + str(a['misp_attribute_uuid'])
-                                else:
-                                    key = str(e['misp_event_id']) + \
-                                        '_object_' + str(a['misp_object_id'])
-                                is_object_member = True
-                            if key not in output_dict:
-                                v = init_misp_output(e, a, column_list)
-                                for t in typelist:
-                                    misp_t = 'misp_' \
-                                        + t.replace('-', '_')\
-                                             .replace('|', '_p_')
-                                    v[misp_t] = []
-                                    if t == a['misp_type']:
-                                        v[misp_t].append(a['misp_value'])
-                                output_dict[key] = dict(v)
-                            else:
-                                v = dict(output_dict[key])
-                                misp_t = 'misp_' + str(a['misp_type'])\
-                                    .replace('-', '_').replace('|', '_p_')
-                                v[misp_t].append(a['misp_value'])
-                                for ac in column_list:
-                                    if ac in a and ac in v:
-                                        if ac.startswith("misp_object_"):
-                                            if a[ac] not in v[ac]:
-                                                v[ac].append(a[ac])
-                                        else:
-                                            v[ac].append(a[ac])
-                                if a['misp_attribute_tag'] is not None:
-                                    a_tag = v['misp_attribute_tag']
-                                    for t in a['misp_attribute_tag']:
-                                        if t not in a_tag:
-                                            a_tag.append(t)
-                                    v['misp_attribute_tag'] = a_tag
-                                if is_object_member is False:
-                                    misp_type = a['misp_type'] \
-                                        + '|' + v['misp_type'][0]
-                                    v['misp_type'] = list()
-                                    v['misp_type'].append(misp_type)
-                                    misp_value = a['misp_value'] + \
-                                        '|' + v['misp_value'][0]
-                                    v['misp_value'] = list()
-                                    v['misp_value'].append(misp_value)
-                                output_dict[key] = dict(v)
+                # build output table and list of types
+                events = []
+                typelist = []
+                column_list = format_output_table(response, events, typelist,
+                                                  getioc, pipesplit, only_to_ids)
+                self.log_info(
+                    'typelist containss {} values'.format(len(typelist)))
+                self.log_debug(
+                    'typelist is {}'.format(json.dumps(typelist)))
+                self.log_info('results contains {} records'.format(len(events)))
 
-                if output_dict is not None:
+                if getioc is False:
                     attribute_names = list()
                     init_attribute_names = True
                     serial_number = 0
-                    for v in output_dict.values():
+                    for e in events:
                         if init_attribute_names is True:
-                            for key in v.keys():
+                            for key in e.keys():
                                 if key not in attribute_names:
                                     attribute_names.append(key)
                             attribute_names.sort()
                             init_attribute_names = False
                         yield MispGetEventCommand._record(
-                            serial_number, v['misp_timestamp'],
-                            my_args['host'], v, attribute_names, encoder, True)
+                            serial_number, e['misp_timestamp'],
+                            my_args['host'], e, attribute_names, encoder, True)
                         serial_number += 1
                         GeneratingCommand.flush
+                else:
+                    output_dict = dict()
+                    for e in events:
+                        if 'Attribute' in e:
+                            for a in e['Attribute']:
+                                if int(a['misp_object_id']) == 0:  # not an object
+                                    key = str(e['misp_event_uuid']) + '_' \
+                                        + str(a['misp_attribute_uuid'])
+                                    is_object_member = False
+                                else:  # this is a  MISP object
+                                    if expand_object is True:
+                                        # compute key based on attribute UUID
+                                        key = str(e['misp_event_uuid']) + '_' \
+                                            + str(a['misp_attribute_uuid'])
+                                    else:
+                                        key = str(e['misp_event_id']) + \
+                                            '_object_' + str(a['misp_object_id'])
+                                    is_object_member = True
+                                if key not in output_dict:
+                                    v = init_misp_output(e, a, column_list)
+                                    for t in typelist:
+                                        misp_t = 'misp_' \
+                                            + t.replace('-', '_')\
+                                                 .replace('|', '_p_')
+                                        v[misp_t] = []
+                                        if t == a['misp_type']:
+                                            v[misp_t].append(a['misp_value'])
+                                    output_dict[key] = dict(v)
+                                else:
+                                    v = dict(output_dict[key])
+                                    misp_t = 'misp_' + str(a['misp_type'])\
+                                        .replace('-', '_').replace('|', '_p_')
+                                    v[misp_t].append(a['misp_value'])
+                                    for ac in column_list:
+                                        if ac in a and ac in v:
+                                            if ac.startswith("misp_object_"):
+                                                if a[ac] not in v[ac]:
+                                                    v[ac].append(a[ac])
+                                            else:
+                                                v[ac].append(a[ac])
+                                    if a['misp_attribute_tag'] is not None:
+                                        a_tag = v['misp_attribute_tag']
+                                        for t in a['misp_attribute_tag']:
+                                            if t not in a_tag:
+                                                a_tag.append(t)
+                                        v['misp_attribute_tag'] = a_tag
+                                    if is_object_member is False:
+                                        misp_type = a['misp_type'] \
+                                            + '|' + v['misp_type'][0]
+                                        v['misp_type'] = list()
+                                        v['misp_type'].append(misp_type)
+                                        misp_value = a['misp_value'] + \
+                                            '|' + v['misp_value'][0]
+                                        v['misp_value'] = list()
+                                        v['misp_value'].append(misp_value)
+                                    output_dict[key] = dict(v)
+
+                    if output_dict is not None:
+                        attribute_names = list()
+                        init_attribute_names = True
+                        serial_number = 0
+                        for v in output_dict.values():
+                            if init_attribute_names is True:
+                                for key in v.keys():
+                                    if key not in attribute_names:
+                                        attribute_names.append(key)
+                                attribute_names.sort()
+                                init_attribute_names = False
+                            yield MispGetEventCommand._record(
+                                serial_number, v['misp_timestamp'],
+                                my_args['host'], v, attribute_names, encoder, True)
+                            serial_number += 1
+                            GeneratingCommand.flush
 
 
 if __name__ == "__main__":

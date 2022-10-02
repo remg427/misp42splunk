@@ -13,20 +13,16 @@ from collections import OrderedDict
 from itertools import chain
 import json
 import logging
-from misp_common import prepare_config, logging_level
-import requests
+from misp_common import prepare_config, logging_level, misp_request
 from splunklib.searchcommands import dispatch, GeneratingCommand, Configuration, Option, validators
 # from splunklib.searchcommands import splunklib_logger as logger
 import time
 from splunklib.six.moves import map
 import sys
-if sys.version_info[0] > 2:
-    from requests.packages.urllib3.exceptions import InsecureRequestWarning
-    requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "4.0.1"
+__version__ = "4.2.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -175,51 +171,10 @@ class MispRestCommand(GeneratingCommand):
         else:
             body_dict = {}
 
-        # set proper headers
-        headers = {'Content-type': 'application/json'}
-        headers['Authorization'] = my_args['misp_key']
-        headers['Accept'] = 'application/json'
-        if self.method == "GET":
-            r = requests.get(my_args['misp_url'],
-                             headers=headers,
-                             params=body_dict,
-                             verify=my_args['misp_verifycert'],
-                             cert=my_args['client_cert_full_path'],
-                             proxies=my_args['proxies'])
-        elif self.method == "POST":
-            r = requests.post(my_args['misp_url'],
-                              headers=headers,
-                              data=json.dumps(body_dict),
-                              verify=my_args['misp_verifycert'],
-                              cert=my_args['client_cert_full_path'],
-                              proxies=my_args['proxies'])
-        elif self.method == "DELETE":
-            r = requests.delete(my_args['misp_url'],
-                                headers=headers,
-                                verify=my_args['misp_verifycert'],
-                                cert=my_args['client_cert_full_path'],
-                                proxies=my_args['proxies'])
-        else:
-            raise Exception(
-                "Sorry, no valid method provided (GET/POST//DELETE)."
-                " it was {}.".format(self.method)
-            )
+        reponse = misp_request(self, self.method, my_args['misp_url'], body_dict, my_args)
 
-        # check if status is anything other than 200;
-        # throw an exception if it is
-        if r.status_code in (200, 201, 204):
-            self.log_info(
-                "[RE301] INFO mispcollect successful. url={}, HTTP status={}".format(my_args['misp_url'], r.status_code)
-            )
-        else:
-            self.log_error(
-                "[RE302] ERROR mispcollect failed. url={}, data={}, HTTP Error={}, content={}".format(my_args['misp_url'], body_dict, r.status_code, r.text)
-            )
-            raise Exception(
-                "[RE302] ERROR mispcollect failed for url={} with HTTP Error={}. Check search.log for details".format(my_args['misp_url'], r.status_code)
-            )
         # response is 200 by this point or we would have thrown an exception
-        data = {'_time': time.time(), '_raw': json.dumps(r.json())}
+        data = {'_time': time.time(), '_raw': json.dumps(reponse)}
         yield data
 
 
