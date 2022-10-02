@@ -22,18 +22,14 @@
 """
 
 import json
-from misp_common import prepare_config
-import requests
+from misp_common import prepare_config, misp_request
 import time
 import splunklib.client as client
 import sys
-if sys.version_info[0] > 2:
-    from requests.packages.urllib3.exceptions import InsecureRequestWarning
-    requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "4.0.1"
+__version__ = "4.2.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -120,10 +116,6 @@ def group_values(helper, r, tslabel, ds, source, sighting_type):
 def create_alert(helper, config):
     # get specific misp url and key if any (from alert configuration)
     misp_url = config['misp_url'] + '/sightings/add'
-    misp_key = config['misp_key']
-    misp_verifycert = config['misp_verifycert']
-    proxies = config['proxies']
-    client_cert = config['client_cert_full_path']
     # Get mode set in alert settings; either byvalue or byuuid
     mode = config['mode']
     # Get type set in alert settings; either 0, 1 or 2
@@ -172,35 +164,17 @@ def create_alert(helper, config):
                     )
                     sightings.append(sighting)
 
-    # set proper headers
-    headers = {'Content-type': 'application/json'}
-    headers['Authorization'] = misp_key
-    headers['Accept'] = 'application/json'
-
     # iterate in dict events to create events
     for sighting in sightings:
-        payload = json.dumps(sighting)
-        # byvalue: sighting contains
-        # {"timestamp": timestamp, "values":["value1", "value2,etc. "]}
-        # byuuid:  sighting contains
-        # {"timestamp": timestamp, "uuid":"uuid_value"}
-        r = requests.post(
-            misp_url, headers=headers, data=payload,
-            verify=misp_verifycert, cert=client_cert, proxies=proxies)
-        # check if status is anything other than 200;
-        # throw an exception if it is
-        r.raise_for_status()
-        # response is 200 by this point or we would have thrown an exception
-        if r.status_code in (200, 201, 204):
+        response = misp_request(helper, 'POST', misp_url, sighting, config)
+        if '_raw' not in response:
             helper.log_info(
                 "[AL303] INFO MISP event is successfully edited. "
-                "url={}, HTTP status={}".format(misp_url, r.status_code)
             )
         else:
             helper.log_error(
-                "[AL304] ERROR MISP event edition has failed. "
-                "url={}, data={}, HTTP Error={}, content={}"
-                .format(misp_url, payload, r.status_code, r.text)
+                "[AL304] ERROR MISP event edition has failed. url={}, data={}"
+                .format(misp_url, response)
             )
 
 def process_event(helper, *args, **kwargs):

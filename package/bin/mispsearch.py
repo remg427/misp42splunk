@@ -12,20 +12,16 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import misp42splunk_declare
 
 from splunklib.searchcommands import dispatch, StreamingCommand, Configuration, Option, validators
-from misp_common import prepare_config, logging_level
+from misp_common import prepare_config, logging_level, misp_request
 import json
 import logging
-import requests
 # from splunklib.searchcommands import splunklib_logger as logger
 from splunklib.six.moves import map
 import sys
-if sys.version_info[0] > 2:
-    from requests.packages.urllib3.exceptions import InsecureRequestWarning
-    requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "4.0.1"
+__version__ = "4.2.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -157,10 +153,6 @@ class MispSearchCommand(StreamingCommand):
         if my_args is None:
             raise Exception("Sorry, no configuration for misp_instance={}".format(misp_instance))
         my_args['misp_url'] = my_args['misp_url'] + '/attributes/restSearch'
-        # set proper headers
-        headers = {'Content-type': 'application/json'}
-        headers['Authorization'] = my_args['misp_key']
-        headers['Accept'] = 'application/json'
 
         fieldname = str(self.field)
         pagination = True
@@ -201,6 +193,7 @@ class MispSearchCommand(StreamingCommand):
                 body_dict['includeEventTags'] = self.includeEventTags
             if self.last is not None:
                 body_dict['last'] = self.last
+
         for record in records:
             if fieldname in record:
                 value = record.get(fieldname, None)
@@ -220,28 +213,9 @@ class MispSearchCommand(StreamingCommand):
                     if pagination is True:
                         body_dict['page'] = page
                         body_dict['limit'] = limit
-                    body = json.dumps(body_dict)
-                    r = requests.post(my_args['misp_url'], headers=headers,
-                                      data=body,
-                                      verify=my_args['misp_verifycert'],
-                                      cert=my_args['client_cert_full_path'],
-                                      proxies=my_args['proxies'])
-                    # check if status is anything other than 200; throw an exception if it is
-                    # check if status is anything other than 200;
-                    # throw an exception if it is
-                    if r.status_code in (200, 201, 204):
-                        self.log_info(
-                            "[SE301] INFO mispsearch successful. url={}, HTTP status={}".format(my_args['misp_url'], r.status_code)
-                        )
-                    else:
-                        self.log_error(
-                            "[SE302] ERROR mispsearch failed. url={}, data={}, HTTP Error={}, content={}".format(my_args['misp_url'], body, r.status_code, r.text)
-                        )
-                        raise Exception(
-                            "[SE302] ERROR mispsearch failed for url={} with HTTP Error={}. Check search.log for details".format(my_args['misp_url'], r.status_code)
-                        )
-                    # response is 200 by this point or we would have thrown an exception
-                    response = r.json()
+                    
+                    response = misp_request(self, 'POST', my_args['misp_url'], body_dict, my_args) 
+
                     if 'response' in response:
                         if 'Attribute' in response['response']:
                             for a in response['response']['Attribute']:

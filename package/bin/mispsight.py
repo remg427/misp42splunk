@@ -12,20 +12,16 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import misp42splunk_declare
 
 from splunklib.searchcommands import dispatch, StreamingCommand, Configuration, Option, validators
-from misp_common import prepare_config, logging_level
+from misp_common import prepare_config, logging_level, misp_request
 import json
 import logging
-import requests
 # from splunklib.searchcommands import splunklib_logger as logger
 from splunklib.six.moves import map
 import sys
-if sys.version_info[0] > 2:
-    from requests.packages.urllib3.exceptions import InsecureRequestWarning
-    requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "4.0.1"
+__version__ = "4.2.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -138,10 +134,6 @@ class MispSightCommand(StreamingCommand):
         my_args = prepare_config(self, 'misp42splunk', misp_instance, storage)
         if my_args is None:
             raise Exception("Sorry, no configuration for misp_instance={}".format(misp_instance))
-        # set proper headers
-        headers = {'Content-type': 'application/json'}
-        headers['Authorization'] = my_args['misp_key']
-        headers['Accept'] = 'application/json'
 
         fieldname = str(self.field)
         search_url = my_args['misp_url'] + '/attributes/restSearch'
@@ -159,34 +151,7 @@ class MispSightCommand(StreamingCommand):
                         returnFormat='json',
                         value=str(value),
                         withAttachments="false")
-                    search_body = json.dumps(search_dict)
-                    # search
-                    rs = requests.post(
-                        search_url,
-                        headers=headers,
-                        data=search_body,
-                        verify=my_args['misp_verifycert'],
-                        cert=my_args['client_cert_full_path'],
-                        proxies=my_args['proxies']
-                    )
-                    # check if status is anything other than 200;
-                    # throw an exception if it is
-                    # check if status is anything other than 200;
-                    # throw an exception if it is
-                    if rs.status_code in (200, 201, 204):
-                        self.log_info(
-                            "[SI301] INFO mispsight part 1 successful. url={}, HTTP status={}".format(my_args['misp_url'], rs.status_code)
-                        )
-                    else:
-                        self.log_error(
-                            "[SI302] ERROR mispsight part 1 failed. url={}, data={}, HTTP Error={}, content={}".format(my_args['misp_url'], search_body, rs.status_code, rs.text)
-                        )
-                        raise Exception(
-                            "[SI302] ERROR mispsight part 1 failed for url={} with HTTP Error={}. Check search.log for details".format(my_args['misp_url'], rs.status_code)
-                        )
-                    # response is 200 by this point or we would
-                    # have thrown an exception
-                    response = rs.json()
+                    response = misp_request(self, 'POST', search_url, search_dict, my_args) 
                     if 'response' in response:
                         if 'Attribute' in response['response']:
                             # MISP API returned a JSON response
@@ -223,31 +188,7 @@ class MispSightCommand(StreamingCommand):
                                     a_sight['misp_value'] = misp_value
                                 sight_dict = {"returnFormat": "json"}
                                 sight_dict['id'] = str(a['id'])
-                                sight_body = json.dumps(sight_dict)
-                                rt = requests.post(
-                                    sight_url,
-                                    headers=headers,
-                                    data=sight_body,
-                                    verify=my_args['misp_verifycert'],
-                                    cert=my_args['client_cert_full_path'],
-                                    proxies=my_args['proxies']
-                                )
-                                # check if status is anything
-                                # other than 200; throw an exception
-                                if rt.status_code in (200, 201, 204):
-                                    self.log_info(
-                                        "[SI301] INFO mispsight part 2 successful. url={}, HTTP status={}".format(my_args['misp_url'], rt.status_code)
-                                    )
-                                else:
-                                    self.log_error(
-                                        "[SI302] ERROR mispsight part 2 failed. url={}, data={}, HTTP Error={}, content={}".format(my_args['misp_url'], sight_body, rt.status_code, rt.text)
-                                    )
-                                    raise Exception(
-                                        "[SI302] ERROR mispsight part 2 failed for url={} with HTTP Error={}. Check search.log for details".format(my_args['misp_url'], rt.status_code)
-                                    )
-                                # response is 200 by this point or we
-                                # would have thrown an exception
-                                sight = rt.json()
+                                sight = misp_request(self, 'POST', sight_url, sight_dict, my_args) 
                                 if 'response' in sight:
                                     for s in sight['response']:
                                         if 'Sighting' in s:

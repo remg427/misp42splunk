@@ -12,19 +12,15 @@ from collections import OrderedDict
 from itertools import chain
 import json
 import logging
-from misp_common import prepare_config, logging_level
-import requests
+from misp_common import prepare_config, logging_level, misp_request
 from splunklib.searchcommands import dispatch, GeneratingCommand, Configuration, Option, validators
 # from splunklib.searchcommands import splunklib_logger as logger
 from splunklib.six.moves import map
 import sys
-if sys.version_info[0] > 2:
-    from requests.packages.urllib3.exceptions import InsecureRequestWarning
-    requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "4.0.1"
+__version__ = "4.2.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -297,10 +293,6 @@ class MispCollectCommand(GeneratingCommand):
         body_dict['withAttachments'] = False
         body_dict['deleted'] = False
         body_dict['includeEventUuid'] = True
-        # set proper headers
-        headers = {'Content-type': 'application/json'}
-        headers['Authorization'] = my_args['misp_key']
-        headers['Accept'] = 'application/json'
 
         # Search pagination
         pagination = True
@@ -372,59 +364,43 @@ class MispCollectCommand(GeneratingCommand):
             body_dict['page'] = page
             body_dict['limit'] = limit
 
-        body = json.dumps(body_dict)
-        # search
-        r = requests.post(my_args['misp_url'], headers=headers, data=body,
-                          verify=my_args['misp_verifycert'],
-                          cert=my_args['client_cert_full_path'],
-                          proxies=my_args['proxies'])
-        # check if status is anything other than 200;
-        # throw an exception if it is
-        if r.status_code in (200, 201, 204):
-            self.log_info(
-                "[CO301] INFO mispcollect successful. url={}, HTTP status={}".format(my_args['misp_url'], r.status_code)
-            )
-        else:
-            self.log_error(
-                "[CO302] ERROR mispcollect failed. url={}, data={}, HTTP Error={}, content={}".format(my_args['misp_url'], body, r.status_code, r.text)
-            )
-            raise Exception(
-                "[CO302] ERROR mispcollect failed for url={} with HTTP Error={}. Check search.log for details".format(my_args['misp_url'], r.status_code)
-            )
-        # response is 200 by this point or we would have thrown an exception
-        response = r.json()
-        encoder = json.JSONEncoder(ensure_ascii=False, separators=(',', ':'))
-        if self.endpoint == "events":
-            if 'response' in response:
-                for r_item in response['response']:
-                    if 'Event' in r_item:
+        response = misp_request(self, 'POST', my_args['misp_url'], body_dict, my_args) 
+
+        if "_raw" in response:
+            yield response
+        else: 
+            encoder = json.JSONEncoder(ensure_ascii=False, separators=(',', ':'))
+            if self.endpoint == "events":
+                if 'response' in response:
+                    for r_item in response['response']:
+                        if 'Event' in r_item:
+                            attribute_names = []
+                            serial_number = 0
+                            for e in list(r_item.values()):
+                                if keep_related is False:
+                                    e.pop('RelatedEvent', None)
+                                if serial_number == 0:
+                                    for k in list(e.keys()):
+                                        attribute_names.append(k)
+                                yield MispCollectCommand._record(
+                                    serial_number, e['timestamp'], my_args['host'],
+                                    e, attribute_names, encoder)
+                            serial_number += 1
+                            GeneratingCommand.flush
+            else:
+                if 'response' in response:
+                    if 'Attribute' in response['response']:
                         attribute_names = []
                         serial_number = 0
-                        for e in list(r_item.values()):
-                            if keep_related is False:
-                                e.pop('RelatedEvent', None)
+                        for a in response['response']['Attribute']:
                             if serial_number == 0:
-                                for k in list(e.keys()):
+                                for k in list(a.keys()):
                                     attribute_names.append(k)
                             yield MispCollectCommand._record(
-                                serial_number, e['timestamp'], my_args['host'],
-                                e, attribute_names, encoder)
-                        serial_number += 1
-                        GeneratingCommand.flush
-        else:
-            if 'response' in response:
-                if 'Attribute' in response['response']:
-                    attribute_names = []
-                    serial_number = 0
-                    for a in response['response']['Attribute']:
-                        if serial_number == 0:
-                            for k in list(a.keys()):
-                                attribute_names.append(k)
-                        yield MispCollectCommand._record(
-                            serial_number, a['timestamp'], my_args['host'],
-                            a, attribute_names, encoder)
-                        serial_number += 1
-                        GeneratingCommand.flush
+                                serial_number, a['timestamp'], my_args['host'],
+                                a, attribute_names, encoder)
+                            serial_number += 1
+                            GeneratingCommand.flush
 
 
 if __name__ == "__main__":

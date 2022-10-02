@@ -12,24 +12,19 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 import misp42splunk_declare
-
+from splunklib.searchcommands import dispatch, GeneratingCommand, Configuration, Option, validators
+from splunklib.six.moves import map
 from collections import OrderedDict
 from itertools import chain
+import sys
 import json
 import logging
-from misp_common import prepare_config, logging_level
-import requests
-from splunklib.searchcommands import dispatch, GeneratingCommand, Configuration, Option, validators
-# from splunklib.searchcommands import splunklib_logger as logger
-from splunklib.six.moves import map
-import sys
-if sys.version_info[0] > 2:
-    from requests.packages.urllib3.exceptions import InsecureRequestWarning
-    requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+from misp_common import prepare_config, logging_level, misp_request
+import time
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "4.3.0"
+__version__ = "4.2.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -343,10 +338,6 @@ class MispGetIocCommand(GeneratingCommand):
         body_dict['returnFormat'] = 'json'
         body_dict['withAttachments'] = False
         body_dict['includeEventUuid'] = True
-        # set proper headers
-        headers = {'Content-type': 'application/json'}
-        headers['Authorization'] = my_args['misp_key']
-        headers['Accept'] = 'application/json'
 
         # Search pagination
         pagination = True
@@ -442,244 +433,235 @@ class MispGetIocCommand(GeneratingCommand):
         if pagination is True:
             body_dict['page'] = page
             body_dict['limit'] = limit
-        body = json.dumps(body_dict)
-        # search
-        r = requests.post(my_args['misp_url'], headers=headers, data=body,
-                          verify=my_args['misp_verifycert'],
-                          cert=my_args['client_cert_full_path'],
-                          proxies=my_args['proxies'])
-        # check if status is anything other than 200;
-        # throw an exception if it is
-        if r.status_code in (200, 201, 204):
-            self.log_info(
-                "[IO301] INFO mispgetioc successful. url={}, HTTP status={}".format(my_args['misp_url'], r.status_code)
-            )
-        else:
-            self.log_error(
-                "[IO302] ERROR mispgetioc failed. url={}, data={}, HTTP Error={}, content={}".format(my_args['misp_url'], body, r.status_code, r.text)
-            )
-            raise Exception(
-                "[IO302] ERROR mispgetioc failed for url={} with HTTP Error={}. Check search.log for details".format(my_args['misp_url'], r.status_code)
-            )
 
-        # response is 200 by this point or we would have thrown an exception
-        response = r.json()
-        encoder = json.JSONEncoder(ensure_ascii=False, separators=(',', ':'))
-        # if raw output, returns JSON object
-        if my_args['output'] == "raw":
+        response = misp_request(self, 'POST', my_args['misp_url'], body_dict, my_args) 
+
+        if "_raw" in response:
+            yield response
+        else:  
+            encoder = json.JSONEncoder(ensure_ascii=False, separators=(',', ':'))
+            # if raw output, returns JSON object
             if 'response' in response:
                 if 'Attribute' in response['response']:
-                    attribute_names = list()
-                    serial_number = 0
-                    for a in response['response']['Attribute']:
-                        yield MispGetIocCommand._record(
-                            serial_number, a['timestamp'], my_args['host'],
-                            a, attribute_names, encoder)
-                        serial_number += 1
-                        GeneratingCommand.flush
-        # default output: extract some values from JSON attributes
-        else:
-            if 'response' in response:
-                if 'Attribute' in response['response']:
-                    common_columns = ["category", "to_ids", "timestamp", "comment",
-                                      "sharing_group_id", "deleted", "disable_correlation",
-                                      "first_seen", "last_seen", "object_id", "object_relation",
-                                      "type", "value"]
-                    attribute_specific_columns = ["id", "distribution"]
-                    if my_args['getuuid']:
-                        attribute_specific_columns.append("uuid")
-                    for a in response['response']['Attribute']:
-                        v = {}
-                        # prepend key names with misp_attribute_
-                        for asc in attribute_specific_columns:
-                            misp_asc = "misp_attribute_" + asc
-                            if asc in a:
-                                v[misp_asc] = str(a[asc])
-                        # prepend key names with misp_
-                        for cc in common_columns:
-                            misp_cc = "misp_" + cc
-                            if cc in a:
-                                v[misp_cc] = str(a[cc])
-                        # append attribute tags to tag list
-                        tag_list = []
-                        if 'Tag' in a:
-                            for tag in a['Tag']:
-                                try:
-                                    tag_list.append(
-                                        str(tag['name'])
-                                    )
-                                except Exception:
-                                    pass
-                        v['misp_tag'] = tag_list
-                        
-                        # include Event metatdata
-                        if 'Event' in a:
-                            attr_event_columns = ["id", "uuid", "distribution", "info"]
-                            for aec in attr_event_columns:
-                                misp_aec = "misp_event_" + aec
-                                if aec in a['Event']:
-                                    v[misp_aec] = str(a['Event'][aec])
-                            if my_args['getorg'] is True:
-                                attr_org_columns = ["org_id", "orgc_id"]
-                                for aoc in attr_org_columns:
-                                    misp_aoc = "misp_" + aoc
-                                    if aoc in a['Event']:
-                                        v[misp_aoc] = str(a['Event'][aoc])
-                            
-                        # add description sttring
-                        if my_args['add_desc'] is True:
-                            if int(a['object_id']) == 0:
-                                v['misp_description'] = 'MISP e' \
-                                    + str(a['event_id']) + ' attribute ' \
-                                    + str(a['uuid']) + ' of type "' \
-                                    + str(a['type']) \
-                                    + '" in category "' + str(a['category']) \
-                                    + '" (to_ids:' + str(a['to_ids']) + ')'
-                            else:
-                                v['misp_description'] = 'MISP e' \
-                                    + str(a['event_id']) + ' attribute ' \
-                                    + str(a['uuid']) + ' of type "' \
-                                    + str(a['type']) + '" in category "' \
-                                    + str(a['category']) \
-                                    + '" (to_ids:' + str(a['to_ids']) \
-                                    + ' - o' + str(a['object_id']) + ' )'
- 
-                        current_type = str(a['type'])
-                        # combined: not part of an object
-                        # AND multivalue attribute AND to be split
-                        if int(a['object_id']) == 0 and '|' in current_type \
-                           and my_args['pipe'] is True:
-                            mv_type_list = current_type.split('|')
-                            mv_value_list = str(a['value']).split('|')
-                            left_v = v.copy()
-                            left_v['misp_type'] = str(mv_type_list.pop())
-                            left_v['misp_value'] = str(mv_value_list.pop())
-                            results.append(left_v)
-                            if left_v['misp_type'] not in typelist:
-                                typelist.append(left_v['misp_type'])
-                            right_v = v.copy()
-                            right_v['misp_type'] = str(mv_type_list.pop())
-                            right_v['misp_value'] = str(mv_value_list.pop())
-                            results.append(right_v)
-                            if right_v['misp_type'] not in typelist:
-                                typelist.append(right_v['misp_type'])
-                        else:
-                            results.append(v)
-                            if current_type not in typelist:
-                                typelist.append(current_type)
-
-            self.log_info(json.dumps(typelist))
-
-            # consolidate attribute values under output table
-            output_dict = {}
-            if my_args['expand'] is True:
-                for r in results:
-                    key = str(r['misp_event_id']) + \
-                        '_' + str(r['misp_attribute_id'])
-                    if key not in output_dict:
-                        v = dict(r)
-                        for t in typelist:
-                            misp_t = 'misp_' + t.replace('-', '_').replace('|', '_p_')
-                            v[misp_t] = []
-                            if t == r['misp_type']:
-                                v[misp_t].append(r['misp_value'])
-                        output_dict[key] = dict(v)
+                    if my_args['output'] == "raw":
+                        attribute_names = list()
+                        serial_number = 0
+                        for a in response['response']['Attribute']:
+                            yield MispGetIocCommand._record(
+                                serial_number, a['timestamp'], my_args['host'],
+                                a, attribute_names, encoder)
+                            serial_number += 1
+                            GeneratingCommand.flush
+            # default output: extract some values from JSON attributes
                     else:
-                        v = dict(output_dict[key])
-                        misp_t = 'misp_' + r['misp_type'].replace('-', '_').replace('|', '_p_')
-                        v[misp_t].append(r['misp_value'])  # set value for type
-                        misp_type = r['misp_type'] + '|' + v['misp_type']
-                        v['misp_type'] = list()
-                        v['misp_type'].append(misp_type)
-                        misp_value = str(r['misp_value']) + '|' + str(v['misp_value'])
-                        v['misp_value'] = list()
-                        v['misp_value'].append(misp_value)
-                        output_dict[key] = dict(v)
-            else:
-                for r in results:
-                    if int(r['misp_object_id']) == 0:  # not an object
+                        common_columns = ["category", "to_ids", "timestamp", "comment",
+                                          "sharing_group_id", "deleted", "disable_correlation",
+                                          "first_seen", "last_seen", "object_id", "object_relation",
+                                          "type", "value"]
+                        attribute_specific_columns = ["id", "distribution"]
+                        if my_args['getuuid']:
+                            attribute_specific_columns.append("uuid")
+                        for a in response['response']['Attribute']:
+                            v = {}
+                            # prepend key names with misp_attribute_
+                            for asc in attribute_specific_columns:
+                                misp_asc = "misp_attribute_" + asc
+                                if asc in a:
+                                    v[misp_asc] = str(a[asc])
+                            # prepend key names with misp_
+                            for cc in common_columns:
+                                misp_cc = "misp_" + cc
+                                if cc in a:
+                                    v[misp_cc] = str(a[cc])
+                            # append attribute tags to tag list
+                            tag_list = []
+                            if 'Tag' in a:
+                                for tag in a['Tag']:
+                                    try:
+                                        tag_list.append(
+                                            str(tag['name'])
+                                        )
+                                    except Exception:
+                                        pass
+                            v['misp_tag'] = tag_list
+                            
+                            # include Event metatdata
+                            if 'Event' in a:
+                                attr_event_columns = ["id", "uuid", "distribution", "info"]
+                                for aec in attr_event_columns:
+                                    misp_aec = "misp_event_" + aec
+                                    if aec in a['Event']:
+                                        v[misp_aec] = str(a['Event'][aec])
+                                if my_args['getorg'] is True:
+                                    attr_org_columns = ["org_id", "orgc_id"]
+                                    for aoc in attr_org_columns:
+                                        misp_aoc = "misp_" + aoc
+                                        if aoc in a['Event']:
+                                            v[misp_aoc] = str(a['Event'][aoc])
+                                
+                            # add description sttring
+                            if my_args['add_desc'] is True:
+                                if int(a['object_id']) == 0:
+                                    v['misp_description'] = 'MISP e' \
+                                        + str(a['event_id']) + ' attribute ' \
+                                        + str(a['uuid']) + ' of type "' \
+                                        + str(a['type']) \
+                                        + '" in category "' + str(a['category']) \
+                                        + '" (to_ids:' + str(a['to_ids']) + ')'
+                                else:
+                                    v['misp_description'] = 'MISP e' \
+                                        + str(a['event_id']) + ' attribute ' \
+                                        + str(a['uuid']) + ' of type "' \
+                                        + str(a['type']) + '" in category "' \
+                                        + str(a['category']) \
+                                        + '" (to_ids:' + str(a['to_ids']) \
+                                        + ' - o' + str(a['object_id']) + ' )'
+     
+                            current_type = str(a['type'])
+                            # combined: not part of an object
+                            # AND multivalue attribute AND to be split
+                            if int(a['object_id']) == 0 and '|' in current_type \
+                               and my_args['pipe'] is True:
+                                mv_type_list = current_type.split('|')
+                                mv_value_list = str(a['value']).split('|')
+                                left_v = v.copy()
+                                left_v['misp_type'] = str(mv_type_list.pop())
+                                left_v['misp_value'] = str(mv_value_list.pop())
+                                results.append(left_v)
+                                if left_v['misp_type'] not in typelist:
+                                    typelist.append(left_v['misp_type'])
+                                right_v = v.copy()
+                                right_v['misp_type'] = str(mv_type_list.pop())
+                                right_v['misp_value'] = str(mv_value_list.pop())
+                                results.append(right_v)
+                                if right_v['misp_type'] not in typelist:
+                                    typelist.append(right_v['misp_type'])
+                            else:
+                                results.append(v)
+                                if current_type not in typelist:
+                                    typelist.append(current_type)
+
+                self.log_info(json.dumps(typelist))
+
+                # consolidate attribute values under output table
+                output_dict = {}
+                if my_args['expand'] is True:
+                    for r in results:
                         key = str(r['misp_event_id']) + \
                             '_' + str(r['misp_attribute_id'])
-                        is_object_member = False
-                    else:  # this is a  MISP object
-                        key = str(r['misp_event_id']) \
-                            + '_object_' + str(r['misp_object_id'])
-                        is_object_member = True
-                    if key not in output_dict:
-                        v = dict(r)
-                        for t in typelist:
-                            misp_t = 'misp_' + t.replace('-', '_').replace('|', '_p_')
-                            v[misp_t] = list()
-                            if t == r['misp_type']:
-                                v[misp_t].append(r['misp_value'])
-                        for ac in common_columns:
-                            misp_ac = "misp_" + ac
-                            if misp_ac in r:
-                                v[misp_ac] = list()
-                                v[misp_ac].append(str(r[misp_ac]))
-                        v['misp_attribute_id'] = list()
-                        v['misp_attribute_id'].append(r['misp_attribute_id'])
-                        if my_args['getuuid'] is True:
-                            v['misp_attribute_uuid'] = list()
-                            v['misp_attribute_uuid'].append(r['misp_attribute_uuid'])
-                        if my_args['add_desc'] is True:
-                            v['misp_description'] = list()
-                            v['misp_description'].append(r['misp_description'])
-                        output_dict[key] = dict(v)
-                    else:
-                        v = dict(output_dict[key])
-                        misp_t = 'misp_' + r['misp_type'].replace('-', '_').replace('|', '_p_')
-                        v[misp_t].append(r['misp_value'])  # set value for type
-                        for ac in common_columns:
-                            misp_ac = "misp_" + ac
-                            if misp_ac in r:
-                                if misp_ac not in v:
-                                    v[misp_ac] = list()
-                                v[misp_ac].append(str(r[misp_ac]))
-                        tag_list = v['misp_tag']
-                        for tag in r['misp_tag']:
-                            if tag not in tag_list:
-                                tag_list.append(tag)
-                        v['misp_tag'] = tag_list
-                        if my_args['add_desc'] is True:
-                            description = v['misp_description']
-                            if r['misp_description'] not in description:
-                                description.append(r['misp_description'])
-                            v['misp_description'] = description
-                        if is_object_member is False:
-                            if r['misp_attribute_id'] not in v['misp_attribute_id']:
-                                v['misp_attribute_id'].append(r['misp_attribute_id'])
-                            if my_args['getuuid'] is True:
-                                if r['misp_attribute_uuid'] not in v['misp_attribute_uuid']:
-                                    v['misp_attribute_uuid'].append(r['misp_attribute_uuid'])
-                            misp_type = []  # composed attribute
-                            misp_type.append(r['misp_type'] + '|' + v['misp_type'][0])
-                            v['misp_type'] = misp_type
-                            misp_value = []
-                            misp_value.append(str(r['misp_value']) + '|' + str(v['misp_value'][0]))
-                            v['misp_value'] = misp_value
+                        if key not in output_dict:
+                            v = dict(r)
+                            for t in typelist:
+                                misp_t = 'misp_' + t.replace('-', '_').replace('|', '_p_')
+                                v[misp_t] = []
+                                if t == r['misp_type']:
+                                    v[misp_t].append(r['misp_value'])
+                            output_dict[key] = dict(v)
                         else:
+                            v = dict(output_dict[key])
+                            misp_t = 'misp_' + r['misp_type'].replace('-', '_').replace('|', '_p_')
+                            v[misp_t].append(r['misp_value'])  # set value for type
+                            misp_type = r['misp_type'] + '|' + v['misp_type']
+                            v['misp_type'] = list()
+                            v['misp_type'].append(misp_type)
+                            misp_value = str(r['misp_value']) + '|' + str(v['misp_value'])
+                            v['misp_value'] = list()
+                            v['misp_value'].append(misp_value)
+                            output_dict[key] = dict(v)
+                else:
+                    for r in results:
+                        if int(r['misp_object_id']) == 0:  # not an object
+                            key = str(r['misp_event_id']) + \
+                                '_' + str(r['misp_attribute_id'])
+                            is_object_member = False
+                        else:  # this is a  MISP object
+                            key = str(r['misp_event_id']) \
+                                + '_object_' + str(r['misp_object_id'])
+                            is_object_member = True
+                        if key not in output_dict:
+                            v = dict(r)
+                            for t in typelist:
+                                misp_t = 'misp_' + t.replace('-', '_').replace('|', '_p_')
+                                v[misp_t] = list()
+                                if t == r['misp_type']:
+                                    v[misp_t].append(r['misp_value'])
+                            for ac in common_columns:
+                                misp_ac = "misp_" + ac
+                                if misp_ac in r:
+                                    v[misp_ac] = list()
+                                    v[misp_ac].append(str(r[misp_ac]))
+                            v['misp_attribute_id'] = list()
                             v['misp_attribute_id'].append(r['misp_attribute_id'])
                             if my_args['getuuid'] is True:
+                                v['misp_attribute_uuid'] = list()
                                 v['misp_attribute_uuid'].append(r['misp_attribute_uuid'])
-                        output_dict[key] = dict(v)
+                            if my_args['add_desc'] is True:
+                                v['misp_description'] = list()
+                                v['misp_description'].append(r['misp_description'])
+                            output_dict[key] = dict(v)
+                        else:
+                            v = dict(output_dict[key])
+                            misp_t = 'misp_' + r['misp_type'].replace('-', '_').replace('|', '_p_')
+                            v[misp_t].append(r['misp_value'])  # set value for type
+                            for ac in common_columns:
+                                misp_ac = "misp_" + ac
+                                if misp_ac in r:
+                                    if misp_ac not in v:
+                                        v[misp_ac] = list()
+                                    v[misp_ac].append(str(r[misp_ac]))
+                            tag_list = v['misp_tag']
+                            for tag in r['misp_tag']:
+                                if tag not in tag_list:
+                                    tag_list.append(tag)
+                            v['misp_tag'] = tag_list
+                            if my_args['add_desc'] is True:
+                                description = v['misp_description']
+                                if r['misp_description'] not in description:
+                                    description.append(r['misp_description'])
+                                v['misp_description'] = description
+                            if is_object_member is False:
+                                if r['misp_attribute_id'] not in v['misp_attribute_id']:
+                                    v['misp_attribute_id'].append(r['misp_attribute_id'])
+                                if my_args['getuuid'] is True:
+                                    if r['misp_attribute_uuid'] not in v['misp_attribute_uuid']:
+                                        v['misp_attribute_uuid'].append(r['misp_attribute_uuid'])
+                                misp_type = []  # composed attribute
+                                misp_type.append(r['misp_type'] + '|' + v['misp_type'][0])
+                                v['misp_type'] = misp_type
+                                misp_value = []
+                                misp_value.append(str(r['misp_value']) + '|' + str(v['misp_value'][0]))
+                                v['misp_value'] = misp_value
+                            else:
+                                v['misp_attribute_id'].append(r['misp_attribute_id'])
+                                if my_args['getuuid'] is True:
+                                    v['misp_attribute_uuid'].append(r['misp_attribute_uuid'])
+                            output_dict[key] = dict(v)
 
-            # return output table
-            attribute_names = list()
-            init_attribute_names = True
-            serial_number = 0
-            for v in output_dict.values():
-                if init_attribute_names is True:
-                    for key in v.keys():
-                        if key not in attribute_names:
-                            attribute_names.append(key)
-                    attribute_names.sort()
-                    init_attribute_names = False
-                yield MispGetIocCommand._record(
-                    serial_number, v['misp_timestamp'], my_args['host'],
-                    v, attribute_names, encoder, True)
-                serial_number += 1
-                GeneratingCommand.flush
+                # return output table
+                attribute_names = list()
+                init_attribute_names = True
+                serial_number = 0
+                for v in output_dict.values():
+                    if init_attribute_names is True:
+                        for key in v.keys():
+                            if key not in attribute_names:
+                                attribute_names.append(key)
+                        attribute_names.sort()
+                        init_attribute_names = False
+
+                    if isinstance(v['misp_timestamp'], list):
+                        timestamp = 999999999999
+                        for ts in v['misp_timestamp']:
+                            if int(ts) < timestamp:
+                                timestamp = int(ts)
+                    else:
+                        timestamp = int(v['misp_timestamp'])
+
+                    yield MispGetIocCommand._record(
+                        serial_number, timestamp, my_args['host'],
+                        v, attribute_names, encoder, True)
+                    serial_number += 1
+                    GeneratingCommand.flush
 
 
 if __name__ == "__main__":
