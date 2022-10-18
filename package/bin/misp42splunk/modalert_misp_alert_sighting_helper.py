@@ -177,6 +177,7 @@ def create_alert(helper, config):
                 .format(misp_url, response)
             )
 
+
 def process_event(helper, *args, **kwargs):
     """
     # IMPORTANT
