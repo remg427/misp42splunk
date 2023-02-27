@@ -21,15 +21,13 @@
 }
 """
 
-import json
-from misp_common import prepare_config, misp_request
+from misp_common import prepare_config, urllib_init_pool, urllib_request
 import time
 import splunklib.client as client
-import sys
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "4.2.0"
+__version__ = "4.2.1"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -165,8 +163,9 @@ def create_alert(helper, config):
                     sightings.append(sighting)
 
     # iterate in dict events to create events
+    connection, connection_status = urllib_init_pool(helper, config)
     for sighting in sightings:
-        response = misp_request(helper, 'POST', misp_url, sighting, config)
+        response = urllib_request(helper, connection, 'POST', misp_url, sighting, config) 
         if '_raw' not in response:
             helper.log_info(
                 "[AL303] INFO MISP event is successfully edited. "

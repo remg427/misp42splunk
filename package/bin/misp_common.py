@@ -44,7 +44,13 @@ def logging_level(app_name):
 
 
 def prepare_config(helper, app_name, misp_instance, storage_passwords, session_key=None):
-    config_args = dict()
+    config_args = dict(
+        misp_key=None,
+        misp_url=None,
+        proxy_url=None,
+        misp_verifycert=False,
+        client_cert_full_path=None
+    )
     # get settings for MISP instance
     if session_key is None:
         response = helper.service.get('misp42splunk_instances')
@@ -98,8 +104,6 @@ def prepare_config(helper, app_name, misp_instance, storage_passwords, session_k
 
     if int(app_config.get('misp_verifycert', '0')) == 1:
         config_args['misp_verifycert'] = True
-    else:
-        config_args['misp_verifycert'] = False
 
     misp_ca_full_path = app_config.get('misp_ca_full_path', '')
     if misp_ca_full_path != '':
@@ -109,8 +113,6 @@ def prepare_config(helper, app_name, misp_instance, storage_passwords, session_k
     # get client cert parameters
     if int(app_config.get('client_use_cert', '0')) == 1:
         config_args['client_cert_full_path'] = app_config.get('client_cert_full_path', 'no_path')
-    else:
-        config_args['client_cert_full_path'] = None
 
     # test if client certificate file is readable
     if config_args['client_cert_full_path'] is not None:
@@ -119,7 +121,7 @@ def prepare_config(helper, app_name, misp_instance, storage_passwords, session_k
             with open(config_args['client_cert_full_path'], 'rb'):
                 helper.log_info(
                     "client_cert_full_path file at {} was successfully opened".format(config_args['client_cert_full_path']))
-        except IOError:  # file misp_instances.csv not readable
+        except IOError:  # file client_cert_full_path  not readable
             helper.log_error(
                 "[MC-PC-E05] client_cert_full_path file at {} not readable".format(config_args['client_cert_full_path'])
             )
@@ -129,7 +131,6 @@ def prepare_config(helper, app_name, misp_instance, storage_passwords, session_k
             return None
 
     # get clear version of misp_key and proxy password
-    config_args['misp_key'] = None
     proxy_clear_password = None
     # avoid picking wrong key if stanza is a substring of another stanza
     misp_instance_index = misp_instance + "``splunk_cred_sep``"
@@ -173,30 +174,29 @@ def prepare_config(helper, app_name, misp_instance, storage_passwords, session_k
                     config_args['proxy_username'] = proxy['proxy_username']
                     config_args['proxy_password'] = proxy_clear_password
 
-
     return config_args
 
 
 def misp_url_request(url_connection, method, url, body, headers):
     if method == "GET":
         r = url_connection.request('GET', 
-                             url,
-                             headers=headers,
-                             fields=body
-                             )
+                                   url,
+                                   headers=headers,
+                                   fields=body
+                                   )
     elif method == 'POST':
         encoded_body = json.dumps(body).encode('utf-8')
         r = url_connection.request('POST', 
-                             url,
-                             headers=headers,
-                             body=encoded_body
-                             )
+                                   url,
+                                   headers=headers,
+                                   body=encoded_body
+                                   )
     elif method == "DELETE":
         r = url_connection.request('DELETE', 
-                             url,
-                             headers=headers,
-                             fields=body
-                             )
+                                   url,
+                                   headers=headers,
+                                   fields=body
+                                   )
     else:
         raise Exception(
             "Sorry, no valid method provided (GET/POST//DELETE)."
@@ -206,12 +206,7 @@ def misp_url_request(url_connection, method, url, body, headers):
     return r
 
 
-def misp_request(helper, method, misp_url, body, config):
-    # set proper headers
-    headers = {'Content-type': 'application/json'}
-    headers['Authorization'] = config['misp_key']
-    headers['Accept'] = 'application/json'
-    headers['host'] = config['host_header']
+def urllib_init_pool(helper, config):
 
     if config['misp_verifycert'] is True:
         kwargs = {"cert_reqs": "CERT_REQUIRED"}
@@ -221,63 +216,73 @@ def misp_request(helper, method, misp_url, body, config):
     if config['client_cert_full_path'] is not None:
         kwargs['cert_file'] = config['client_cert_full_path'] 
                  
-    if 'proxy_url' in config:
+    status = None
+    if config['proxy_url'] not in [None, '']:
         try:
             if 'proxy_username' in config:
                 default_headers = urllib3.make_headers(proxy_basic_auth=config['proxy_username'] + ":" + config['proxy_password'])
-                proxied_http = urllib3.ProxyManager(config['proxy_url'], proxy_headers=default_headers, **kwargs)
+                connection = urllib3.ProxyManager(config['proxy_url'], proxy_headers=default_headers, retries=False, **kwargs)
             else:
-                proxied_http = urllib3.ProxyManager(config['proxy_url'], **kwargs)
+                connection = urllib3.ProxyManager(config['proxy_url'], retries=False, **kwargs)
 
-            r = misp_url_request(proxied_http, method, misp_url, body, headers)
+            status = {'_time': time.time(),
+                      '_raw': "[MC401] DEBUG ProxyManager success verify={} proxy={}".format(
+                      config['misp_verifycert'], config['proxy_url'])
+                      } 
 
-            if r.status in (200, 201, 204):
-                helper.log_info(
-                    "[MC301] INFO POST request is successful. url={}, HTTP status={}, proxy={}".format(
-                    misp_url, r.status, config['proxy_url'])
-                )
-                data = json.loads(r.data.decode('utf-8'))  # return response from MISP (with proxy)
-            else:
-                helper.log_error(
-                    "[MC302] ERROR POST request failed. url={}, body={}, HTTP status={}, content={}, proxy={}".format(
-                    misp_url, body, r.status, r.text, config['proxy_url'])
-                )
-                data = {'_time': time.time(),
-                        '_raw': json.loads("[MC302] ERROR POST request failed. url={}, verify={}, body={}, HTTP status={}, content={}, , proxy={}".format(
-                        misp_url, config['misp_verifycert'], body, r.status, r.text, config['proxy_url']))
-                        }
         except Exception as e:  # failed to execute request
-            data = {'_time': time.time(),
-                    '_raw': "[MC303] DEBUG urlib3 POST request failed error={} url={}, verify={}, headers={} body={} proxy={}".format(
-                    e, misp_url, config['misp_verifycert'], headers, body, config['proxy_url'])
-                    }   
-
+            status = {'_time': time.time(),
+                      '_raw': "[MC401] DEBUG ProxyManager failed error={} verify={} proxy={}".format(
+                      e, config['misp_verifycert'], config['proxy_url'])
+                      }   
     else:
         try:
-            http = urllib3.PoolManager(**kwargs)
-        
-            r = misp_url_request(http, method, misp_url, body, headers)
+            connection = urllib3.PoolManager(retries=False, **kwargs)
 
-            if r.status in (200, 201, 204):
-                helper.log_info(
-                    "[MC304] INFO POST request is successful. url={}, HTTP status={}".format(
+            status = {'_time': time.time(),
+                      '_raw': "[MC402] DEBUG PoolManager success verify={}".format(
+                      config['misp_verifycert'])
+                      }
+
+        except Exception as e:  # failed to execute request
+            status = {'_time': time.time(),
+                      '_raw': "[MC402] DEBUG PoolManager error={} verify={}".format(
+                      e, config['misp_verifycert'])
+                      }
+
+    return connection, status
+
+
+def urllib_request(helper, url_connection, method, misp_url, body, config):
+    # set proper headers
+    headers = {'Content-type': 'application/json'}
+    headers['Authorization'] = config['misp_key']
+    headers['Accept'] = 'application/json'
+    headers['host'] = config['host_header']
+    
+    try:
+
+        r = misp_url_request(url_connection, method, misp_url, body, headers)
+
+        if r.status in (200, 201, 204):
+            helper.log_info(
+                "[MC501] INFO POST request is successful. url={}, HTTP status={}".format(
                     misp_url, r.status)
-                )
-                data = json.loads(r.data.decode('utf-8'))  # return response from MISP (no proxy)
-            else:
-                helper.log_error(
-                    "[MC305] ERROR POST request failed. url={}, body={}, HTTP status={}, content={}".format(
-                    misp_url, body, r.status, r.text)
-                )
-                data = {'_time': time.time(),
-                    '_raw': json.loads("[MC302] ERROR POST request failed. url={}, verify={}, body={}, HTTP status={}, content={}".format(
-                    misp_url, config['misp_verifycert'], body, r.status, r.text)) 
-                    }
-
-        except Exception:  # failed to execute request
+            )
+            data = json.loads(r.data.decode('utf-8'))  # return response from MISP (with proxy)
+        else:
+            helper.log_error(
+                "[MC502] ERROR POST request failed. url={}, HTTP status={}".format(
+                    misp_url, r.status)
+            )
             data = {'_time': time.time(),
-                    '_raw': "[MC306] DEBUG urlib3 POST request failed url={}, verify={}, header={} body={}".format(
-                    misp_url, config['misp_verifycert'], headers, body)
+                    '_raw': json.loads("[MC302] ERROR POST request failed. url={}, HTTP status={}".format(
+                        misp_url, config['misp_verifycert'], r.status))
                     }
+    except Exception as e:  # failed to execute request
+        data = {'_time': time.time(),
+                '_raw': "[MC503] DEBUG urlib3 {} request failed error={} url={}".format(
+                method, e, misp_url)
+                } 
 
     return data

@@ -12,16 +12,14 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import misp42splunk_declare
 
 from splunklib.searchcommands import dispatch, StreamingCommand, Configuration, Option, validators
-from misp_common import prepare_config, logging_level, misp_request
+from misp_common import prepare_config, logging_level, urllib_init_pool, urllib_request
 import json
 import logging
-# from splunklib.searchcommands import splunklib_logger as logger
-from splunklib.six.moves import map
 import sys
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "4.2.0"
+__version__ = "4.2.1"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -194,6 +192,9 @@ class MispSearchCommand(StreamingCommand):
             if self.last is not None:
                 body_dict['last'] = self.last
 
+        response = None
+        connection, connection_status = urllib_init_pool(self, my_args)
+
         for record in records:
             if fieldname in record:
                 value = record.get(fieldname, None)
@@ -214,7 +215,8 @@ class MispSearchCommand(StreamingCommand):
                         body_dict['page'] = page
                         body_dict['limit'] = limit
                     
-                    response = misp_request(self, 'POST', my_args['misp_url'], body_dict, my_args) 
+                    if connection:
+                        response = urllib_request(self, connection, 'POST', my_args['misp_url'], body_dict, my_args) 
 
                     if 'response' in response:
                         if 'Attribute' in response['response']:

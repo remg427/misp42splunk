@@ -1,4 +1,7 @@
 field_name,field_type,datatype,regex,description
 dest,attribute,ip-dst,,
+dest_ip,attribute,ip-dst,,
+domain,attribute,domain,,
 src,attribute,ip-src,,
 src_ip,attribute,ip-src,,
+
