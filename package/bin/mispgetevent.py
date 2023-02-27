@@ -223,7 +223,7 @@ def format_output_table(input_json, output_table, list_of_types,
     return list()
 
 
-@Configuration(retainsevents=False, type='reporting', distributed=False)
+@Configuration(distributed=False)
 class MispGetEventCommand(GeneratingCommand):
 
     """ get the attributes from a MISP instance.

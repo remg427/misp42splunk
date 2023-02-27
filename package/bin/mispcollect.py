@@ -25,7 +25,7 @@ __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
 
-@Configuration(retainsevents=True, type='events', distributed=False)
+@Configuration(distributed=False)
 class MispCollectCommand(GeneratingCommand):
     """ get the attributes from a MISP instance.
     ##Syntax

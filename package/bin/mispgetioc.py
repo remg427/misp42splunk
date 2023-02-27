@@ -28,7 +28,7 @@ __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
 
-@Configuration(retainsevents=False, type='reporting', distributed=False)
+@Configuration(distributed=False)
 class MispGetIocCommand(GeneratingCommand):
     """ get the attributes from a MISP instance.
     ##Syntax
@@ -130,7 +130,7 @@ class MispGetIocCommand(GeneratingCommand):
         **Syntax:** **date=***The user set event date field
          - any of valid time related filters"*
         **Description:**starting date.
-         **eventid**, **last** and **date** are mutually exclusive''',
+        **eventid**, **last** and **date** are mutually exclusive''',
         require=False)
     # Other params
     add_description = Option(
