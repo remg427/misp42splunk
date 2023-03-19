@@ -284,9 +284,9 @@ class MispCollectCommand(GeneratingCommand):
             self.log_info('Option "last" set with {}'
                           .format(str(body_dict['last'])))
         else:
-            body_dict['date'] = self.date.split()
+            body_dict['from'] = self.date
             self.log_info('Option "date" set with {}'
-                          .format(json.dumps(body_dict['date'])))
+                          .format(json.dumps(body_dict['from'])))
 
         # Force some values on JSON request
         body_dict['returnFormat'] = 'json'
