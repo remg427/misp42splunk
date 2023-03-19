@@ -129,7 +129,7 @@ class MispGetIocCommand(GeneratingCommand):
         doc='''
         **Syntax:** **date=***The user set event date field
          - any of valid time related filters"*
-        **Description:**starting date.
+        **Description:**starting date equivalent to key from.
         **eventid**, **last** and **date** are mutually exclusive''',
         require=False)
     # Other params
@@ -329,9 +329,9 @@ class MispGetIocCommand(GeneratingCommand):
             self.log_info('Option "last" set with {}'
                           .format(body_dict['last']))
         else:
-            body_dict['date'] = self.date.split()
+            body_dict['from'] = self.date
             self.log_info('Option "date" set with {}'
-                          .format(json.dumps(body_dict['date'])))
+                          .format(json.dumps(body_dict['from'])))
 
         # Force some values on JSON request
         body_dict['returnFormat'] = 'json'

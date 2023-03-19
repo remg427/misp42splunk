@@ -636,8 +636,6 @@ class MispGetEventCommand(GeneratingCommand):
                                                   getioc, pipesplit, only_to_ids)
                 self.log_info(
                     'typelist containss {} values'.format(len(typelist)))
-                self.log_debug(
-                    'typelist is {}'.format(json.dumps(typelist)))
                 self.log_info('results contains {} records'.format(len(events)))
 
                 if getioc is False:

@@ -163,7 +163,6 @@ class MispRestCommand(GeneratingCommand):
             my_args['misp_url'] = my_args['misp_url'] + self.target
         if self.json_request not in [None, '']:
             body_dict = json.loads(self.json_request)
-            self.log_debug('[MR-201] body_dict is {}'.format(body_dict))
         else:
             body_dict = {}
 

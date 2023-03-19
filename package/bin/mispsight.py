@@ -207,7 +207,6 @@ class MispSightCommand(StreamingCommand):
 
                             init_record = True
                             for srec in sightings.values():
-                                self.log_debug("[SI401] srec={}".format(json.dumps(srec)))
                                 if init_record is True:
                                     for key, value in sorted(srec.items()):
                                         record[key] = [value]

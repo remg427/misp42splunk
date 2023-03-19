@@ -7,7 +7,6 @@ import splunklib
 from io import open
 import time
 import urllib3
-from urllib.parse import urlencode
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 __license__ = "LGPLv3"
@@ -19,7 +18,6 @@ __email__ = "remg427@gmail.com"
 
 
 def logging_level(app_name):
-
     """
     This function sets logger to the defined level in
     misp42splunk app and writes logs to a dedicated file
@@ -179,20 +177,20 @@ def prepare_config(helper, app_name, misp_instance, storage_passwords, session_k
 
 def misp_url_request(url_connection, method, url, body, headers):
     if method == "GET":
-        r = url_connection.request('GET', 
+        r = url_connection.request('GET',
                                    url,
                                    headers=headers,
                                    fields=body
                                    )
     elif method == 'POST':
         encoded_body = json.dumps(body).encode('utf-8')
-        r = url_connection.request('POST', 
+        r = url_connection.request('POST',
                                    url,
                                    headers=headers,
                                    body=encoded_body
                                    )
     elif method == "DELETE":
-        r = url_connection.request('DELETE', 
+        r = url_connection.request('DELETE',
                                    url,
                                    headers=headers,
                                    fields=body
@@ -202,7 +200,6 @@ def misp_url_request(url_connection, method, url, body, headers):
             "Sorry, no valid method provided (GET/POST//DELETE)."
             " it was {}.".format(method)
         )
-    
     return r
 
 
@@ -214,8 +211,7 @@ def urllib_init_pool(helper, config):
         kwargs = {"cert_reqs": "CERT_NONE"}
 
     if config['client_cert_full_path'] is not None:
-        kwargs['cert_file'] = config['client_cert_full_path'] 
-                 
+        kwargs['cert_file'] = config['client_cert_full_path']
     status = None
     if config['proxy_url'] not in [None, '']:
         try:
@@ -228,13 +224,13 @@ def urllib_init_pool(helper, config):
             status = {'_time': time.time(),
                       '_raw': "[MC401] DEBUG ProxyManager success verify={} proxy={}".format(
                       config['misp_verifycert'], config['proxy_url'])
-                      } 
+                      }
 
         except Exception as e:  # failed to execute request
             status = {'_time': time.time(),
                       '_raw': "[MC401] DEBUG ProxyManager failed error={} verify={} proxy={}".format(
                       e, config['misp_verifycert'], config['proxy_url'])
-                      }   
+                      }
     else:
         try:
             connection = urllib3.PoolManager(retries=False, **kwargs)
@@ -259,7 +255,6 @@ def urllib_request(helper, url_connection, method, misp_url, body, config):
     headers['Authorization'] = config['misp_key']
     headers['Accept'] = 'application/json'
     headers['host'] = config['host_header']
-    
     try:
 
         r = misp_url_request(url_connection, method, misp_url, body, headers)
@@ -283,6 +278,6 @@ def urllib_request(helper, url_connection, method, misp_url, body, config):
         data = {'_time': time.time(),
                 '_raw': "[MC503] DEBUG urlib3 {} request failed error={} url={}".format(
                 method, e, misp_url)
-                } 
+                }
 
     return data
