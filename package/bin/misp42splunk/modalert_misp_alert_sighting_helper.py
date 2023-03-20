@@ -87,11 +87,11 @@ def group_values(helper, r, tslabel, ds, source, sighting_type):
             data = []
         # now we take remaining KV pairs on the line to add data to list
         for key, value in list(row.items()):
-            if value not in [None, '']:
+            if value not in [None, '', 0, "0"]:
                 if '\n' in value:  # was a multivalue field
                     values = value.splitlines()
                     for val in values:
-                        if val not in [None, ''] and val not in data:
+                        if val not in [None, '', 0, "0"] and val not in data:
                             data.append(str(val))
                 else:
                     if value not in data:
