@@ -111,7 +111,7 @@ class MispRestCommand(GeneratingCommand):
         doc='''
         **Syntax:** **method=****
         **Description:** method to use for API target DELETE GET PATCH POST.''',
-        require=True, validate=validators.Match("method", r"^(DELETE|GET|POST)$"))
+        require=True, validate=validators.Match("method", r"^(DELETE|GET|POST|PUT)$"))
     json_request = Option(
         doc='''
         **Syntax:** **json_request=***JSON request*

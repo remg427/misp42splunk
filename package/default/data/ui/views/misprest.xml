@@ -27,6 +27,7 @@
       <label>method</label>
       <choice value="GET">GET</choice>
       <choice value="POST">POST</choice>
+      <choice value="PUT">DELETE</choice>
       <choice value="DELETE">DELETE</choice>
       <default>GET</default>
       <initialValue>GET</initialValue>

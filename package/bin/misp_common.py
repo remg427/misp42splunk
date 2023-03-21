@@ -197,9 +197,15 @@ def misp_url_request(url_connection, method, url, body, headers):
                              headers=headers,
                              fields=body
                              )
+    elif method == "PUT":
+        r = url_connection.request('PUT', 
+                             url,
+                             headers=headers,
+                             fields=body
+                             )
     else:
         raise Exception(
-            "Sorry, no valid method provided (GET/POST//DELETE)."
+            "Sorry, no valid method provided (GET/POST/PUT/DELETE)."
             " it was {}.".format(method)
         )
     
