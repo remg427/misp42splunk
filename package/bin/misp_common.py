@@ -190,14 +190,20 @@ def misp_url_request(url_connection, method, url, body, headers):
                                    body=encoded_body
                                    )
     elif method == "DELETE":
-        r = url_connection.request('DELETE',
-                                   url,
-                                   headers=headers,
-                                   fields=body
-                                   )
+        r = url_connection.request('DELETE', 
+                             url,
+                             headers=headers,
+                             fields=body
+                             )
+    elif method == "PUT":
+        r = url_connection.request('PUT', 
+                             url,
+                             headers=headers,
+                             fields=body
+                             )
     else:
         raise Exception(
-            "Sorry, no valid method provided (GET/POST//DELETE)."
+            "Sorry, no valid method provided (GET/POST/PUT/DELETE)."
             " it was {}.".format(method)
         )
     return r

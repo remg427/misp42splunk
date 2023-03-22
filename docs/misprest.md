@@ -23,8 +23,8 @@ example:
     method = Option(
         doc='''
         **Syntax:** **method=****
-        **Description:** method to use for API target DELETE GET PATCH POST.''',
-        require=True, validate=validators.Match("method", r"^(DELETE|GET|POST)$"))
+        **Description:** method to use for API target DELETE GET PATCH POST PUT.''',
+        require=True, validate=validators.Match("method", r"^(DELETE|GET|POST|PUT)$"))
     target = Option(
         doc='''
         **Syntax:** **target=api_target****
