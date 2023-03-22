@@ -26,6 +26,34 @@
   </fieldset>
   <row>
     <panel>
+      <html>
+        <h3>Type of sightings</h3>
+        <ol>
+          <li>t0 is for type 0 : IOC sighted</li>
+          <li>t1 is for type 1 : IOC false positive</li>
+          <li>t2 is for type 2 : IOC expired</li>
+        </ol>
+        <p></p>
+        <h3>list of of metadata per sighting type</h3>
+        <p>Here is an example with type 0</p>
+        <ul>
+          <li>misp_sight_t0_count : number of times sighted in MISP</li>
+          <li>misp_sight_t0_et : timestamp (EPOCH) when first sighted - earliest timestamp</li>
+          <li>misp_sight_t0_first_a_id : first misp attribute_id where the IOC was sighted</li>
+          <li>misp_sight_t0_first_e_id : first misp event_id where the IOC was sighted</li>
+          <li>misp_sight_t0_first_org_id : first misp organisation_id where the IOC was sighted</li>
+          <li>misp_sight_t0_first_source : first source name</li>
+          <li>misp_sight_t0_lt : timestamp (EPOCH) when last sighted in MISP - latest timestamp</li>
+          <li>misp_sight_t0_last_a_id : last misp attribute_id the IOC was sighted</li>
+          <li>misp_sight_t0_last_e_id : last misp event_id where the IOC was sighted</li>
+          <li>misp_sight_t0_last_org_id : last misp organisation_idthe IOC was sighted</li>
+          <li>misp_sight_t0_last_source : last source name</li>
+        </ul>
+      </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
       <title>Custom command mispsight</title>
       <table>
         <search>
