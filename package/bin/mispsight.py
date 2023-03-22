@@ -12,16 +12,14 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import misp42splunk_declare
 
 from splunklib.searchcommands import dispatch, StreamingCommand, Configuration, Option, validators
-from misp_common import prepare_config, logging_level, misp_request
+from misp_common import prepare_config, logging_level, urllib_init_pool, urllib_request
 import json
 import logging
-# from splunklib.searchcommands import splunklib_logger as logger
-from splunklib.six.moves import map
 import sys
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "4.2.0"
+__version__ = "4.2.1"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -140,6 +138,9 @@ class MispSightCommand(StreamingCommand):
         sight_url = my_args['misp_url'] + \
             '/sightings/restSearch/attribute'
 
+        response = None
+        connection, connection_status = urllib_init_pool(self, my_args)
+
         # iterate through records from SPL
         for record in records:
             # if a record contains the field passed to mispsight command
@@ -151,7 +152,8 @@ class MispSightCommand(StreamingCommand):
                         returnFormat='json',
                         value=str(value),
                         withAttachments="false")
-                    response = misp_request(self, 'POST', search_url, search_dict, my_args) 
+                    if connection:
+                        response = urllib_request(self, connection, 'POST', search_url, search_dict, my_args) 
                     if 'response' in response:
                         if 'Attribute' in response['response']:
                             # MISP API returned a JSON response
@@ -188,7 +190,7 @@ class MispSightCommand(StreamingCommand):
                                     a_sight['misp_value'] = misp_value
                                 sight_dict = {"returnFormat": "json"}
                                 sight_dict['id'] = str(a['id'])
-                                sight = misp_request(self, 'POST', sight_url, sight_dict, my_args) 
+                                sight = urllib_request(self, connection, 'POST', sight_url, sight_dict, my_args) 
                                 if 'response' in sight:
                                     for s in sight['response']:
                                         if 'Sighting' in s:
@@ -205,7 +207,6 @@ class MispSightCommand(StreamingCommand):
 
                             init_record = True
                             for srec in sightings.values():
-                                self.log_debug("[SI401] srec={}".format(json.dumps(srec)))
                                 if init_record is True:
                                     for key, value in sorted(srec.items()):
                                         record[key] = [value]

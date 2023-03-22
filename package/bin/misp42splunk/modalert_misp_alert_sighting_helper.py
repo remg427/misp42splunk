@@ -21,15 +21,13 @@
 }
 """
 
-import json
-from misp_common import prepare_config, misp_request
+from misp_common import prepare_config, urllib_init_pool, urllib_request
 import time
 import splunklib.client as client
-import sys
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "4.2.0"
+__version__ = "4.2.1"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -89,11 +87,11 @@ def group_values(helper, r, tslabel, ds, source, sighting_type):
             data = []
         # now we take remaining KV pairs on the line to add data to list
         for key, value in list(row.items()):
-            if value not in [None, '']:
+            if value not in [None, '', 0, "0"]:
                 if '\n' in value:  # was a multivalue field
                     values = value.splitlines()
                     for val in values:
-                        if val not in [None, ''] and val not in data:
+                        if val not in [None, '', 0, "0"] and val not in data:
                             data.append(str(val))
                 else:
                     if value not in data:
@@ -165,8 +163,9 @@ def create_alert(helper, config):
                     sightings.append(sighting)
 
     # iterate in dict events to create events
+    connection, connection_status = urllib_init_pool(helper, config)
     for sighting in sightings:
-        response = misp_request(helper, 'POST', misp_url, sighting, config)
+        response = urllib_request(helper, connection, 'POST', misp_url, sighting, config) 
         if '_raw' not in response:
             helper.log_info(
                 "[AL303] INFO MISP event is successfully edited. "

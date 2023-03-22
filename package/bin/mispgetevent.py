@@ -14,7 +14,7 @@ from collections import OrderedDict
 from itertools import chain
 import json
 import logging
-from misp_common import prepare_config, logging_level, misp_request
+from misp_common import prepare_config, logging_level, urllib_init_pool, urllib_request
 from splunklib.searchcommands import dispatch, GeneratingCommand, Configuration, Option, validators
 # from splunklib.searchcommands import splunklib_logger as logger
 from splunklib.six.moves import map
@@ -22,7 +22,7 @@ import sys
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "4.2.0"
+__version__ = "4.2.1"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -223,7 +223,7 @@ def format_output_table(input_json, output_table, list_of_types,
     return list()
 
 
-@Configuration(retainsevents=False, type='reporting', distributed=False)
+@Configuration(distributed=False)
 class MispGetEventCommand(GeneratingCommand):
 
     """ get the attributes from a MISP instance.
@@ -314,8 +314,8 @@ class MispGetEventCommand(GeneratingCommand):
         doc='''
         **Syntax:** **date=***The user set event date field
          - any of valid time related filters"*
-        **Description:**starting date. **eventid**, **last**
-         and **date** are mutually exclusive''',
+        **Description:**starting date equivalent to key from.
+        **eventid**, **last** and **date** are mutually exclusive''',
         require=False)
     # Other params
     category = Option(
@@ -509,9 +509,9 @@ class MispGetEventCommand(GeneratingCommand):
             self.log_info('Option "last" set with {}'
                           .format(body_dict['last']))
         else:
-            body_dict['date'] = self.date.split()
+            body_dict['from'] = self.date
             self.log_info('Option "date" set with {}'
-                          .format(json.dumps(body_dict['date'])))
+                          .format(json.dumps(body_dict['from'])))
 
         # Force some values on JSON request
         body_dict['returnFormat'] = 'json'
@@ -602,7 +602,11 @@ class MispGetEventCommand(GeneratingCommand):
             body_dict['page'] = page
             body_dict['limit'] = limit
 
-        response = misp_request(self, 'POST', my_args['misp_url'], body_dict, my_args) 
+        connection, connection_status = urllib_init_pool(self, my_args)
+        if connection:
+            response = urllib_request(self, connection, 'POST', my_args['misp_url'], body_dict, my_args) 
+        else:
+            response = connection_status
 
         if "_raw" in response:
             yield response
@@ -632,8 +636,6 @@ class MispGetEventCommand(GeneratingCommand):
                                                   getioc, pipesplit, only_to_ids)
                 self.log_info(
                     'typelist containss {} values'.format(len(typelist)))
-                self.log_debug(
-                    'typelist is {}'.format(json.dumps(typelist)))
                 self.log_info('results contains {} records'.format(len(events)))
 
                 if getioc is False:

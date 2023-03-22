@@ -12,7 +12,7 @@ from collections import OrderedDict
 from itertools import chain
 import json
 import logging
-from misp_common import prepare_config, logging_level, misp_request
+from misp_common import prepare_config, logging_level, urllib_init_pool, urllib_request
 from splunklib.searchcommands import dispatch, GeneratingCommand, Configuration, Option, validators
 # from splunklib.searchcommands import splunklib_logger as logger
 from splunklib.six.moves import map
@@ -20,12 +20,12 @@ import sys
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "4.2.0"
+__version__ = "4.2.1"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
 
-@Configuration(retainsevents=True, type='events', distributed=False)
+@Configuration(distributed=False)
 class MispCollectCommand(GeneratingCommand):
     """ get the attributes from a MISP instance.
     ##Syntax
@@ -284,9 +284,9 @@ class MispCollectCommand(GeneratingCommand):
             self.log_info('Option "last" set with {}'
                           .format(str(body_dict['last'])))
         else:
-            body_dict['date'] = self.date.split()
+            body_dict['from'] = self.date
             self.log_info('Option "date" set with {}'
-                          .format(json.dumps(body_dict['date'])))
+                          .format(json.dumps(body_dict['from'])))
 
         # Force some values on JSON request
         body_dict['returnFormat'] = 'json'
@@ -364,8 +364,12 @@ class MispCollectCommand(GeneratingCommand):
             body_dict['page'] = page
             body_dict['limit'] = limit
 
-        response = misp_request(self, 'POST', my_args['misp_url'], body_dict, my_args) 
-
+        connection, connection_status = urllib_init_pool(self, my_args)
+        if connection:
+            response = urllib_request(self, connection, 'POST', my_args['misp_url'], body_dict, my_args)
+        else:
+            response = connection_status
+  
         if "_raw" in response:
             yield response
         else: 
