@@ -41,7 +41,8 @@ def logging_level(app_name):
     return run_level
 
 
-def prepare_config(helper, app_name, misp_instance, storage_passwords, session_key=None):
+def prepare_config(helper, app_name, misp_instance,
+                   storage_passwords, session_key=None):
     config_args = dict(
         misp_key=None,
         misp_url=None,
@@ -59,8 +60,10 @@ def prepare_config(helper, app_name, misp_instance, storage_passwords, session_k
     if response.status == 200:
         data_body = splunklib.data.load(response.body.read())
     else:
-        helper.log_error("[MC-PC-E01] Unexpected status received {}".format(response.status))
-        raise Exception("[MC-PC-E01] Unexpected status received %s", str(response.status))
+        helper.log_error(
+            "[MC-PC-E01] Unexpected status received {}".format(response.status))
+        raise Exception(
+            "[MC-PC-E01] Unexpected status received %s", str(response.status))
         return None
 
     foundStanza = False
@@ -190,17 +193,17 @@ def misp_url_request(url_connection, method, url, body, headers):
                                    body=encoded_body
                                    )
     elif method == "DELETE":
-        r = url_connection.request('DELETE', 
-                             url,
-                             headers=headers,
-                             fields=body
-                             )
+        r = url_connection.request('DELETE',
+                                   url,
+                                   headers=headers,
+                                   fields=body
+                                   )
     elif method == "PUT":
-        r = url_connection.request('PUT', 
-                             url,
-                             headers=headers,
-                             fields=body
-                             )
+        r = url_connection.request('PUT',
+                                   url,
+                                   headers=headers,
+                                   fields=body
+                                   )
     else:
         raise Exception(
             "Sorry, no valid method provided (GET/POST/PUT/DELETE)."

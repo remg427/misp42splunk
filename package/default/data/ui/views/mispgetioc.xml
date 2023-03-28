@@ -43,7 +43,7 @@
           <set token="param_json_request"></set>
         </condition>
         <condition>
-          <set token="param_json_request">json_request=$json_request$</set>
+          <set token="param_json_request">json_request="$json_request$"</set>
         </condition>
       </change>
     </input>
@@ -54,7 +54,7 @@
           <set token="param_eventid"></set>
         </condition>
         <condition>
-          <set token="param_eventid">eventid=$eventid$</set>
+          <set token="param_eventid">eventid="$eventid$"</set>
         </condition>
       </change>
     </input>
@@ -65,7 +65,7 @@
           <set token="param_last"></set>
         </condition>
         <condition>
-          <set token="param_last">last=$last$</set>
+          <set token="param_last">last="$last$"</set>
         </condition>
       </change>
     </input>
@@ -76,7 +76,7 @@
           <set token="param_date"></set>
         </condition>
         <condition>
-          <set token="param_date">date=$date$</set>
+          <set token="param_date">date="$date$"</set>
         </condition>
       </change>
     </input>
@@ -87,7 +87,7 @@
           <set token="param_category"></set>
         </condition>
         <condition>
-          <set token="param_category">category=$category$</set>
+          <set token="param_category">category="$category$"</set>
         </condition>
       </change>
     </input>
@@ -98,7 +98,7 @@
           <set token="param_type"></set>
         </condition>
         <condition>
-          <set token="param_type">type=$type$</set>
+          <set token="param_type">type="$type$"</set>
         </condition>
       </change>
     </input>
@@ -107,7 +107,7 @@
       <label>add_description</label>
       <change>
         <condition>
-          <set token="param_add_description">add_description=$add_description$</set>
+          <set token="param_add_description">add_description="$add_description$"</set>
         </condition>
       </change>
       <choice value="true">True</choice>
@@ -117,13 +117,13 @@
       <label>expand_object</label>
       <change>
         <condition match="$value$=&quot;true&quot;">
-          <set token="param_expand_object">expand_object=$expand_object$</set>
+          <set token="param_expand_object">expand_object="$expand_object$"</set>
         </condition>
         <condition match="$value$=&quot;false&quot;">
-          <set token="param_expand_object">expand_object=$expand_object$</set>
+          <set token="param_expand_object">expand_object="$expand_object$"</set>
         </condition>
         <condition match="$value$=&quot;not_set&quot;">
-          <set token="param_expand_object">expand_object=$expand_object$</set>
+          <set token="param_expand_object">expand_object="$expand_object$"</set>
         </condition>
       </change>
       <choice value="true">True</choice>
@@ -134,7 +134,7 @@
       <label>geteventtag</label>
       <change>
         <condition>
-          <set token="param_geteventtag">geteventtag=$geteventtag$</set>
+          <set token="param_geteventtag">geteventtag="$geteventtag$"</set>
         </condition>
       </change>
       <choice value="true">True</choice>
@@ -144,7 +144,7 @@
       <label>getorg</label>
       <change>
         <condition>
-          <set token="param_getorg">getorg=$getorg$</set>
+          <set token="param_getorg">getorg="$getorg$"</set>
         </condition>
       </change>
       <choice value="true">True</choice>
@@ -154,7 +154,7 @@
       <label>getuuid</label>
       <change>
         <condition>
-          <set token="param_getuuid">getuuid=$getuuid$</set>
+          <set token="param_getuuid">getuuid="$getuuid$"</set>
         </condition>
       </change>
       <choice value="true">True</choice>
@@ -164,7 +164,7 @@
       <label>Get soft deleted</label>
       <change>
         <condition>
-          <set token="param_deleted">include_deleted=$deleted$</set>
+          <set token="param_deleted">include_deleted="$deleted$"</set>
         </condition>
       </change>
       <choice value="true">True</choice>
@@ -174,10 +174,10 @@
       <label>pipesplit</label>
       <change>
         <condition match="$value$=&quot;true&quot;">
-          <set token="param_pipesplit">pipesplit=$pipesplit$</set>
+          <set token="param_pipesplit">pipesplit="$pipesplit$"</set>
         </condition>
         <condition match="$value$=&quot;false&quot;">
-          <set token="param_pipesplit">pipesplit=$pipesplit$</set>
+          <set token="param_pipesplit">pipesplit="$pipesplit$"</set>
         </condition>
         <condition match="$value$=&quot;not_set&quot;">
           <set token="param_pipesplit"></set>
@@ -191,7 +191,7 @@
       <label>to_ids</label>
       <change>
         <condition>
-          <set token="param_to_ids">to_ids=$to_ids$</set>
+          <set token="param_to_ids">to_ids="$to_ids$"</set>
         </condition>
       </change>
       <choice value="true">True</choice>
@@ -201,10 +201,10 @@
       <label>warning_list</label>
       <change>
         <condition match="$value$=&quot;true&quot;">
-          <set token="param_warning_list">warning_list=$warning_list$</set>
+          <set token="param_warning_list">warning_list="$warning_list$"</set>
         </condition>
         <condition match="$value$=&quot;false&quot;">
-          <set token="param_warning_list">warning_list=$warning_list$</set>
+          <set token="param_warning_list">warning_list="$warning_list$"</set>
         </condition>
         <condition match="$value$=&quot;not_set&quot;">
           <set token="param_warning_list"></set>
@@ -239,7 +239,7 @@
           <set token="param_tags"></set>
         </condition>
         <condition>
-          <set token="param_tags">tags=$tags$</set>
+          <set token="param_tags">tags="$tags$"</set>
         </condition>
       </change>
     </input>
@@ -250,7 +250,7 @@
           <set token="param_not_tags"></set>
         </condition>
         <condition>
-          <set token="param_not_tags">not_tags=$not_tags$</set>
+          <set token="param_not_tags">not_tags="$not_tags$"</set>
         </condition>
       </change>
     </input>
@@ -282,10 +282,21 @@
       <html>
         <h3>Select a misp_instance and one (and only one) parameter amongst:</h3>
         <ul>
-          <li>json_request: a valid JSON payload with \"</li>
-          <li>eventid: list of event ID(s) or event UUID(s) (comma-separated)</li>
-          <li>last: period to search for <strong>published only</strong> event(s) ex: 2d, 15h, 30m</li>
-          <li>date: a simple date %Y-%m%d or a list ["date_from","date_to"]</li>
+          <li>
+            <strong>json_request:</strong> a valid JSON payload</li>
+          <li>
+            <strong>eventid:</strong> list of event ID(s) or event UUID(s) (the separator is a comma ",")</li>
+          <li>
+            <strong>last:</strong> Events <strong>published</strong> within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m), ISO 8601 datetime format or timestamp</li>
+          <li>
+            <strong>date:</strong>You can use either ISO 8601 date format (YYYY-mm-dd) or any of the valid time related filters (examples: 7d, timestamps,  etc.)
+            <ul>
+              <li>If only one value is provided, it will search from that date e.g. "2023-01-01" or "100d".</li>
+              <li>To provide a range, use following notation "2023-01-01,2023-01-31" or "93d,62d".</li>
+            </ul>
+            Do not use [14d, 7d] as without proper escaping it conflicts with Splunk sub-search.
+            That's why notation is kept simple with one or 2 values separated by a comma date
+            </li>
         </ul>
         <h3>Additional arguments:</h3>
       <table border="1" cedllspacing="10" width="90%" align="center">

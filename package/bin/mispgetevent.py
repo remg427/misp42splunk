@@ -62,13 +62,13 @@ def getattribute(a_item, type_list, pipesplit=False, object_data={}):
 
 def get_attribute_columns():
     object_columns = ["comment", "deleted", "description", "distribution",
-                      "first_seen", "id", "last_seen", "name", "meta-category", 
-                      "sharing_group_id", "template_uuid", "template_version", 
+                      "first_seen", "id", "last_seen", "name", "meta-category",
+                      "sharing_group_id", "template_uuid", "template_version",
                       "timestamp", "uuid"]
     common_columns = ["category", "to_ids", "comment", "type", "value"]
     attribute_specific_columns = ["id", "uuid", "deleted", "distribution",
                                   "first_seen", "last_seen", "object_relation",
-                                  "sharing_group_id", "timestamp"]                     
+                                  "sharing_group_id", "timestamp"]
     attribute_columns = list()
 
     # prepend key names with misp_object_
@@ -81,7 +81,7 @@ def get_attribute_columns():
         misp_asc = "misp_attribute_" + asc
         attribute_columns.append(misp_asc)
     attribute_columns.append("misp_attribute_tag")
-    
+
     # prepend key names with misp_
     for cc in common_columns:
         misp_cc = "misp_" + cc
@@ -103,18 +103,19 @@ def init_misp_output(event_dict, attr_dict, attr_column_names):
 def format_output_table(input_json, output_table, list_of_types,
                         getioc=False, pipesplit=False, only_to_ids=False):
     # process events and return a list of dict
-    # if getioc=true each event entry contains a key Attribute with a list of all attributes
+    # if getioc=true each event entry contains a key Attribute
+    # with a list of all attributes
     if 'response' in input_json:
         common_columns = ["analysis", "attribute_count", "disable_correlation",
-                          "distribution", "extends_uuid", "locked", "proposal_email_lock",
-                          "publish_timestamp", "sharing_group_id",
-                          "threat_level_id", "timestamp"]
+                          "distribution", "extends_uuid", "locked",
+                          "proposal_email_lock", "publish_timestamp",
+                          "sharing_group_id", "threat_level_id", "timestamp"]
         event_specific_columns = ["id", "date", "info", "published", "uuid"]
         organisation_columns = ["id", "name", "uuid", "local"]
         object_columns = ["comment", "deleted", "description", "distribution",
-                          "first_seen", "id", "last_seen", "name", "meta-category", 
-                          "sharing_group_id", "template_uuid", "template_version", 
-                          "timestamp", "uuid"]
+                          "first_seen", "id", "last_seen", "name",
+                          "meta-category", "sharing_group_id", "template_uuid",
+                          "template_version", "timestamp", "uuid"]
         for r_item in input_json['response']:
             if 'Event' in r_item:
                 for a in list(r_item.values()):
@@ -152,7 +153,7 @@ def format_output_table(input_json, output_table, list_of_types,
                             for misp_o in a['Object']:
                                 object_dict = dict()
                                 for obj in object_columns:
-                                    # prepend key names with misp_object_ 
+                                    # prepend key names with misp_object_
                                     misp_obj = "misp_object_" + obj
                                     if obj in misp_o:
                                         object_dict[misp_obj] = misp_o[obj]
@@ -173,7 +174,7 @@ def format_output_table(input_json, output_table, list_of_types,
                                                              pipesplit,
                                                              object_dict))
 
-                        if 'Attribute' in a: 
+                        if 'Attribute' in a:
                             object_dict = dict()
                             for obj in object_columns:
                                 misp_obj = "misp_object_" + obj
@@ -207,12 +208,14 @@ def format_output_table(input_json, output_table, list_of_types,
                                         right_a['type'] = mv_type_list.pop()
                                         right_a['value'] = mv_value_list.pop()
                                         v['Attribute'].append(
-                                            getattribute(right_a, list_of_types,
+                                            getattribute(right_a,
+                                                         list_of_types,
                                                          pipesplit,
                                                          object_dict))
                                     else:
                                         v['Attribute'].append(
-                                            getattribute(attribute, list_of_types,
+                                            getattribute(attribute,
+                                                         list_of_types,
                                                          pipesplit,
                                                          object_dict))
                     output_table.append(v)
@@ -314,9 +317,10 @@ class MispGetEventCommand(GeneratingCommand):
         doc='''
         **Syntax:** **date=***The user set event date field
          - any of valid time related filters"*
-        **Description:**starting date equivalent to key from.
+        **Description:**the user set date field on event level.
+        The date format follows ISO 8061.
         **eventid**, **last** and **date** are mutually exclusive''',
-        require=False)
+        require=False, validate=validators.Match("date", r"^[0-9\-,d]+$"))
     # Other params
     category = Option(
         doc='''
@@ -327,7 +331,7 @@ class MispGetEventCommand(GeneratingCommand):
     expand_object = Option(
         doc='''
         **Syntax:** **gexpand_object=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
-        **Description:**Boolean to have object attributes expanded (one per line).
+        **Description:**Boolean to have object attributes expanded one per line.
         By default, attributes of one object are displayed on same line.''',
         require=False, validate=validators.Boolean())
     getioc = Option(
@@ -463,7 +467,8 @@ class MispGetEventCommand(GeneratingCommand):
         storage = self.service.storage_passwords
         my_args = prepare_config(self, 'misp42splunk', misp_instance, storage)
         if my_args is None:
-            raise Exception("Sorry, no configuration for misp_instance={}".format(misp_instance))
+            raise Exception(
+                "Sorry, no configuration for misp_instance={}".format(misp_instance))
         my_args['host'] = str(my_args['misp_url']).replace('https://', '')
         my_args['misp_url'] = my_args['misp_url'] + '/events/restSearch'
 
@@ -508,10 +513,14 @@ class MispGetEventCommand(GeneratingCommand):
             body_dict['last'] = self.last
             self.log_info('Option "last" set with {}'
                           .format(body_dict['last']))
-        else:
-            body_dict['from'] = self.date
-            self.log_info('Option "date" set with {}'
-                          .format(json.dumps(body_dict['from'])))
+        else:  # implicit param date
+            if "," in self.date:  # string should contain a range
+                date_list = self.date.split(",")
+                body_dict['date'] = [str(date_list[0]), str(date_list[1])]
+            else:
+                body_dict['date'] = self.date
+            self.log_info('Option "date range" key date {}'
+                          .format(json.dumps(body_dict['date'])))
 
         # Force some values on JSON request
         body_dict['returnFormat'] = 'json'
@@ -527,6 +536,7 @@ class MispGetEventCommand(GeneratingCommand):
             limit = 1000
         if limit == 0:
             pagination = False
+
         if self.page is not None:
             page = int(self.page)
         elif 'page' in body_dict:
@@ -604,14 +614,21 @@ class MispGetEventCommand(GeneratingCommand):
 
         connection, connection_status = urllib_init_pool(self, my_args)
         if connection:
-            response = urllib_request(self, connection, 'POST', my_args['misp_url'], body_dict, my_args) 
+            response = urllib_request(
+                self,
+                connection,
+                'POST',
+                my_args['misp_url'],
+                body_dict,
+                my_args)
         else:
             response = connection_status
 
         if "_raw" in response:
             yield response
-        else:  
-            encoder = json.JSONEncoder(ensure_ascii=False, separators=(',', ':'))
+        else:
+            encoder = json.JSONEncoder(
+                ensure_ascii=False, separators=(',', ':'))
             if output == "raw":
                 if 'response' in response:
                     attribute_names = list()
@@ -624,19 +641,28 @@ class MispGetEventCommand(GeneratingCommand):
                                 if keep_related is False:
                                     e.pop('RelatedEvent', None)
                                 yield MispGetEventCommand._record(
-                                    serial_number, e['timestamp'], my_args['host'],
-                                    e, attribute_names, encoder)
+                                    serial_number,
+                                    e['timestamp'],
+                                    my_args['host'],
+                                    e, attribute_names,
+                                    encoder)
                             serial_number += 1
                             GeneratingCommand.flush
             else:
                 # build output table and list of types
                 events = []
                 typelist = []
-                column_list = format_output_table(response, events, typelist,
-                                                  getioc, pipesplit, only_to_ids)
+                column_list = format_output_table(
+                    response,
+                    events,
+                    typelist,
+                    getioc,
+                    pipesplit,
+                    only_to_ids)
                 self.log_info(
                     'typelist containss {} values'.format(len(typelist)))
-                self.log_info('results contains {} records'.format(len(events)))
+                self.log_info(
+                    'results contains {} records'.format(len(events)))
 
                 if getioc is False:
                     attribute_names = list()
@@ -724,7 +750,8 @@ class MispGetEventCommand(GeneratingCommand):
                                 init_attribute_names = False
                             yield MispGetEventCommand._record(
                                 serial_number, v['misp_timestamp'],
-                                my_args['host'], v, attribute_names, encoder, True)
+                                my_args['host'], v,
+                                attribute_names, encoder, True)
                             serial_number += 1
                             GeneratingCommand.flush
 
