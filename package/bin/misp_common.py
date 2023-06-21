@@ -103,10 +103,9 @@ def prepare_config(helper, app_name, misp_instance, storage_passwords, session_k
     if int(app_config.get('misp_verifycert', '0')) == 1:
         config_args['misp_verifycert'] = True
 
-    misp_ca_full_path = app_config.get('misp_ca_full_path', '')
-    if misp_ca_full_path != '':
+    misp_ca_full_path = app_config.get('misp_ca_full_path', None)
+    if misp_ca_full_path is not None:
         config_args['misp_ca_cert'] = misp_ca_full_path
-        config_args['misp_verifycert'] = True
 
     # get client cert parameters
     if int(app_config.get('client_use_cert', '0')) == 1:
