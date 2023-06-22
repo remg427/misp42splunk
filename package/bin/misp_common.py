@@ -216,7 +216,7 @@ def urllib_init_pool(helper, config):
     else:
         kwargs = {"cert_reqs": "CERT_NONE"}
 
-    if config['misp_ca_cert'] is not None:
+    if config.get('misp_ca_cert', None) is not None:
         kwargs['ca_certs'] = config['misp_ca_cert']
     if config['client_cert_full_path'] is not None:
         kwargs['cert_file'] = config['client_cert_full_path']
