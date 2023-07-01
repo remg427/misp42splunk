@@ -195,7 +195,7 @@ class MispSearchCommand(StreamingCommand):
         response = None
         connection, connection_status = urllib_init_pool(self, my_args)
 
-        {for record in records:}
+        for record in records:
             if fieldname in record:
                 value = record.get(fieldname, None)
                 if value is not None:
