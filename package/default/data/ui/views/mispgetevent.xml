@@ -1,8 +1,9 @@
 <form hideEdit="false" version="1.1">
   <init>
+    <set token="param_timestamp"></set>
     <set token="param_json_request"></set>
     <set token="param_eventid"></set>
-    <set token="param_last"></set>
+    <set token="param_publish_timestamp"></set>
     <set token="param_date"></set>
     <set token="param_category"></set>
     <set token="param_getioc"></set>
@@ -34,6 +35,17 @@
         <latest>now</latest>
       </search>
     </input>
+    <input type="text" token="timestamp" searchWhenChanged="true">
+      <label>timestamp</label>
+      <change>
+        <condition match="$value$=&quot;&quot;">
+          <set token="param_timestamp"></set>
+        </condition>
+        <condition>
+          <set token="param_timestamp">timestamp="$timestamp$"</set>
+        </condition>
+      </change>
+    </input>
     <input type="text" token="json_request" searchWhenChanged="true">
       <label>json_request</label>
       <change>
@@ -56,14 +68,14 @@
         </condition>
       </change>
     </input>
-    <input type="text" token="last" searchWhenChanged="true">
-      <label>last</label>
+    <input type="text" token="publish_timestamp" searchWhenChanged="true">
+      <label>publish_timestamp</label>
       <change>
         <condition match="$value$=&quot;&quot;">
-          <set token="param_last"></set>
+          <set token="param_publish_timestamp"></set>
         </condition>
         <condition>
-          <set token="param_last">last="$last$"</set>
+          <set token="param_publish_timestamp">publish_timestamp="$publish_timestamp$"</set>
         </condition>
       </change>
     </input>
@@ -104,10 +116,10 @@
       <label>getioc</label>
       <change>
         <condition match="$value$=&quot;true&quot;">
-          <set token="param_getioc">getioc="$getioc$"</set>
+          <set token="param_getioc">getioc=$getioc$</set>
         </condition>
         <condition match="$value$=&quot;false&quot;">
-          <set token="param_getioc">getioc="$getioc$"</set>
+          <set token="param_getioc">getioc=$getioc$</set>
         </condition>
         <condition match="$value$=&quot;not_set&quot;">
           <set token="param_getioc"></set>
@@ -121,13 +133,13 @@
       <label>expand_object</label>
       <change>
         <condition match="$value$=&quot;true&quot;">
-          <set token="param_expand_object">expand_object="$expand_object$"</set>
+          <set token="param_expand_object">expand_object=$expand_object$</set>
         </condition>
         <condition match="$value$=&quot;false&quot;">
-          <set token="param_expand_object">expand_object="$expand_object$"</set>
+          <set token="param_expand_object">expand_object=$expand_object$</set>
         </condition>
         <condition match="$value$=&quot;not_set&quot;">
-          <set token="param_expand_object">expand_object="$expand_object$"</set>
+          <set token="param_expand_object">expand_object=$expand_object$</set>
         </condition>
       </change>
       <choice value="true">True</choice>
@@ -138,10 +150,10 @@
       <label>only_to_ids</label>
       <change>
         <condition match="$value$=&quot;true&quot;">
-          <set token="param_onlyids">only_to_ids="$onlyids$"</set>
+          <set token="param_onlyids">only_to_ids=$onlyids$</set>
         </condition>
         <condition match="$value$=&quot;false&quot;">
-          <set token="param_onlyids">only_to_ids="$onlyids$"</set>
+          <set token="param_onlyids">only_to_ids=$onlyids$</set>
         </condition>
         <condition match="$value$=&quot;not_set&quot;">
           <set token="param_onlyids"></set>
@@ -155,10 +167,10 @@
       <label>keep_galaxy</label>
       <change>
         <condition match="$value$=&quot;true&quot;">
-          <set token="param_keep_galaxy">keep_galaxy="$keep_galaxy$"</set>
+          <set token="param_keep_galaxy">keep_galaxy=$keep_galaxy$</set>
         </condition>
         <condition match="$value$=&quot;false&quot;">
-          <set token="param_keep_galaxy">keep_galaxy="$keep_galaxy$"</set>
+          <set token="param_keep_galaxy">keep_galaxy=$keep_galaxy$</set>
         </condition>
         <condition match="$value$=&quot;not_set&quot;">
           <set token="param_keep_galaxy"></set>
@@ -172,10 +184,10 @@
       <label>keep_related</label>
       <change>
         <condition match="$value$=&quot;true&quot;">
-          <set token="param_keep_related">keep_related="$keep_related$"</set>
+          <set token="param_keep_related">keep_related=$keep_related$</set>
         </condition>
         <condition match="$value$=&quot;false&quot;">
-          <set token="param_keep_related">keep_related="$keep_related$"</set>
+          <set token="param_keep_related">keep_related=$keep_related$</set>
         </condition>
         <condition match="$value$=&quot;not_set&quot;">
           <set token="param_keep_related"></set>
@@ -189,10 +201,10 @@
       <label>pipesplit</label>
       <change>
         <condition match="$value$=&quot;true&quot;">
-          <set token="param_pipesplit">pipesplit="$pipesplit$"</set>
+          <set token="param_pipesplit">pipesplit=$pipesplit$</set>
         </condition>
         <condition match="$value$=&quot;false&quot;">
-          <set token="param_pipesplit">pipesplit="$pipesplit$"</set>
+          <set token="param_pipesplit">pipesplit=$pipesplit$</set>
         </condition>
         <condition match="$value$=&quot;not_set&quot;">
           <set token="param_pipesplit"></set>
@@ -206,10 +218,10 @@
       <label>published</label>
       <change>
         <condition match="$value$=&quot;true&quot;">
-          <set token="param_published">published="$published$"</set>
+          <set token="param_published">published=$published$</set>
         </condition>
         <condition match="$value$=&quot;false&quot;">
-          <set token="param_published">published="$published$"</set>
+          <set token="param_published">published=$published$</set>
         </condition>
         <condition match="$value$=&quot;not_set&quot;">
           <set token="param_published"></set>
@@ -223,10 +235,10 @@
       <label>warning_list</label>
       <change>
         <condition match="$value$=&quot;true&quot;">
-          <set token="param_warning_list">warning_list="$warning_list$"</set>
+          <set token="param_warning_list">warning_list=$warning_list$</set>
         </condition>
         <condition match="$value$=&quot;false&quot;">
-          <set token="param_warning_list">warning_list="$warning_list$"</set>
+          <set token="param_warning_list">warning_list=$warning_list$</set>
         </condition>
         <condition match="$value$=&quot;not_set&quot;">
           <set token="param_warning_list"></set>
@@ -304,11 +316,15 @@
         <h3>Select a misp_instance and one (and only one) parameter amongst:</h3>
         <ul>
           <li>
+            <strong>timestamp:</strong> Restrict the results by the timestamp (last edit). Any event with a timestamp newer than the given timestamp will be returned. In case you are dealing with /attributes as scope, the attribute's timestamp will be used for the lookup. The input can be a timestamp or a short-hand time description (7d or 24h for example). You can also pass a list with two values to set a time range (for example "14d,7d").
+          </li>
+          <li>
             <strong>json_request:</strong> a valid JSON payload</li>
           <li>
             <strong>eventid:</strong> list of event ID(s) or event UUID(s) (the separator is a comma ",")</li>
           <li>
-            <strong>last:</strong> Events <strong>published</strong> within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m), ISO 8601 datetime format or timestamp</li>
+            <strong>publish_timestamp:</strong> Restrict the results by the timestamp of the last publishing of the event. The input can be a timsetamp or a short-hand time description (7d or 24h for example). You can also pass a list with two values to set a time range (for example "14d,7d").
+          </li>
           <li>
             <strong>date:</strong>You can use either ISO 8601 date format (YYYY-mm-dd) or any of the valid time related filters (examples: 7d, timestamps,  etc.)
             <ul>
@@ -409,9 +425,9 @@
     <panel>
       <title>Custom command mispgetevent</title>
       <table>
-        <title>| mispgetevent misp_instance=$misp_instance$ $param_limit$ $param_page$ $param_json_request$ $param_eventid$ $param_last$ $param_date$ $param_category$ $param_type$ $param_output$ $param_getioc$ $param_expand_object$ $param_keep_galaxy$ $param_keep_related$ $param_tags$ $param_not_tags$ $param_onlyids$ $param_pipesplit$ $param_warning_list$ $param_published$</title>
+        <title>| mispgetevent misp_instance=$misp_instance$ $param_timestamp$ $param_limit$ $param_page$ $param_json_request$ $param_eventid$ $param_publish_timestamp$ $param_date$ $param_category$ $param_type$ $param_output$ $param_getioc$ $param_expand_object$ $param_keep_galaxy$ $param_keep_related$ $param_tags$ $param_not_tags$ $param_onlyids$ $param_pipesplit$ $param_warning_list$ $param_published$</title>
         <search>
-          <query>| mispgetevent misp_instance=$misp_instance$ $param_limit$ $param_page$ $param_json_request$ $param_eventid$ $param_last$ $param_date$ $param_category$ $param_type$ $param_output$ $param_getioc$ $param_expand_object$ $param_keep_galaxy$ $param_keep_related$ $param_tags$ $param_not_tags$ $param_onlyids$ $param_pipesplit$ $param_warning_list$ $param_published$ </query>
+          <query>| mispgetevent misp_instance=$misp_instance$ $param_timestamp$ $param_limit$ $param_page$ $param_json_request$ $param_eventid$ $param_publish_timestamp$ $param_date$ $param_category$ $param_type$ $param_output$ $param_getioc$ $param_expand_object$ $param_keep_galaxy$ $param_keep_related$ $param_tags$ $param_not_tags$ $param_onlyids$ $param_pipesplit$ $param_warning_list$ $param_published$ | table *</query>
           <earliest>0</earliest>
           <latest></latest>
           <sampleRatio>1</sampleRatio>

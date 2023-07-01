@@ -12,13 +12,30 @@ import misp42splunk_declare
 import json
 import logging
 from misp_common import prepare_config, logging_level, urllib_init_pool, urllib_request
+import os
 from splunklib.searchcommands import dispatch, GeneratingCommand, Configuration, Option, validators
 import time
 import sys
 
+splunkhome = os.environ['SPLUNK_HOME']
+
+# set logging
+filehandler = logging.FileHandler(splunkhome
+                                  + "/var/log/splunk/misp42splunk.log", 'a')
+formatter = logging.Formatter('%(asctime)s %(levelname)s %(filename)s \
+                              %(funcName)s %(lineno)d %(message)s')
+filehandler.setFormatter(formatter)
+log = logging.getLogger()  # root logger - Good to get it only once.
+for hdlr in log.handlers[:]:  # remove the existing file handlers
+    if isinstance(hdlr,logging.FileHandler):
+        log.removeHandler(hdlr)
+log.addHandler(filehandler)      # set the new handler
+# set the log level to INFO, DEBUG as the default is ERROR
+log.setLevel(logging.INFO)
+
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "4.2.1"
+__version__ = "4.3.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -143,9 +160,19 @@ class MispRestCommand(GeneratingCommand):
         logging.warning(msg)
 
     def set_log_level(self):
-        logging.root
-        loglevel = logging_level('misp42splunk')
-        logging.root.setLevel(loglevel)
+        # global configuration
+        conf_file = "misp42splunk_settings"
+        confs = self.service.confs[str(conf_file)]
+
+        # set loglevel
+        loglevel = 'INFO'
+        for stanza in confs:
+            if stanza.name == 'logging':
+                for stanzakey, stanzavalue in stanza.content.items():
+                    if stanzakey == "loglevel":
+                        loglevel = stanzavalue
+        logginglevel = logging.getLevelName(loglevel)
+        log.setLevel(logginglevel)
         logging.error('[MR-101] logging level is set to %s', loglevel)
         logging.error('[MR-102] PYTHON VERSION: ' + sys.version)
 
@@ -165,13 +192,17 @@ class MispRestCommand(GeneratingCommand):
             body_dict = json.loads(self.json_request)
         else:
             body_dict = {}
+        if self.method is not None:
+            my_args['method'] = self.method
+        else:
+            my_args['method'] = "POST"
 
         connection, connection_status = urllib_init_pool(self, my_args)
         if connection:
-            response = urllib_request(self, connection, 'POST', my_args['misp_url'], body_dict, my_args) 
+            response = urllib_request(self, connection, my_args['method'], my_args['misp_url'], body_dict, my_args) 
         else:
             response = connection_status
-            
+
         # response is 200 by this point or we would have thrown an exception
         data = {'_time': time.time(), '_raw': json.dumps(response)}
         yield data

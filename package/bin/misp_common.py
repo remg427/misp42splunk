@@ -268,25 +268,26 @@ def urllib_request(helper, url_connection, method, misp_url, body, config):
 
         r = misp_url_request(url_connection, method, misp_url, body, headers)
 
+
         if r.status in (200, 201, 204):
             helper.log_info(
-                "[MC501] INFO POST request is successful. url={}, HTTP status={}".format(
-                    misp_url, r.status)
+                "[MC501] INFO {} request is successful. url={}, HTTP status={}".format(
+                    method, misp_url, r.status)
             )
             data = json.loads(r.data.decode('utf-8'))  # return response from MISP (with proxy)
         else:
             helper.log_error(
-                "[MC502] ERROR POST request failed. url={}, HTTP status={}".format(
-                    misp_url, r.status)
+                "[MC502] ERROR {} request failed. url={}, HTTP status={}".format(
+                    method, misp_url, r.status)
             )
             data = {'_time': time.time(),
-                    '_raw': json.loads("[MC302] ERROR POST request failed. url={}, HTTP status={}".format(
-                        misp_url, config['misp_verifycert'], r.status))
+                    '_raw': json.loads("[MC502] ERROR {} request failed. url={}, HTTP status={}".format(
+                        method, misp_url, r.status))
                     }
     except Exception as e:  # failed to execute request
         data = {'_time': time.time(),
-                '_raw': "[MC503] DEBUG urlib3 {} request failed error={} url={}".format(
-                method, e, misp_url)
+                '_raw': "[MC503] DEBUG urlib3 {} request failed error={} url={} body={} HTTP status={} r={}".format(
+                method, e, misp_url, body, r.status, r.data)
                 }
 
     return data
