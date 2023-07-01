@@ -195,7 +195,7 @@ class MispSearchCommand(StreamingCommand):
         response = None
         connection, connection_status = urllib_init_pool(self, my_args)
 
-        for record in records:
+        {for record in records:}
             if fieldname in record:
                 value = record.get(fieldname, None)
                 if value is not None:
@@ -214,9 +214,14 @@ class MispSearchCommand(StreamingCommand):
                     if pagination is True:
                         body_dict['page'] = page
                         body_dict['limit'] = limit
-                    
+
                     if connection:
-                        response = urllib_request(self, connection, 'POST', my_args['misp_url'], body_dict, my_args) 
+                        response = urllib_request(self,
+                                                  connection,
+                                                  'POST',
+                                                  my_args['misp_url'],
+                                                  body_dict,
+                                                  my_args)
 
                     if 'response' in response:
                         if 'Attribute' in response['response']:
