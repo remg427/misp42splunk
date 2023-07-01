@@ -126,9 +126,10 @@ class MispCollectCommand(GeneratingCommand):
         doc='''
         **Syntax:** **date=***The user set event date field
          - any of valid time related filters"*
-        **Description:**starting date.
-         **eventid**, **last** and **date** are mutually exclusive''',
-        require=False)
+        **Description:**the user set date field on event level.
+        The date format follows ISO 8061.
+        **eventid**, **last** and **date** are mutually exclusive''',
+        require=False, validate=validators.Match("date", r"^[0-9\-,d]+$"))
     # Other params
     category = Option(
         doc='''
@@ -283,10 +284,14 @@ class MispCollectCommand(GeneratingCommand):
             body_dict['last'] = self.last
             self.log_info('Option "last" set with {}'
                           .format(str(body_dict['last'])))
-        else:
-            body_dict['from'] = self.date
-            self.log_info('Option "date" set with {}'
-                          .format(json.dumps(body_dict['from'])))
+        else:  # implicit param date
+            if "," in self.date:  # string should contain a range
+                date_list = self.date.split(",")
+                body_dict['date'] = [str(date_list[0]), str(date_list[1])]
+            else:
+                body_dict['date'] = self.date
+            self.log_info('Option "date range" key date {}'
+                          .format(json.dumps(body_dict['date'])))
 
         # Force some values on JSON request
         body_dict['returnFormat'] = 'json'

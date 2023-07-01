@@ -16,18 +16,34 @@ import json
 import logging
 from misp_common import prepare_config, logging_level, urllib_init_pool, urllib_request
 from splunklib.searchcommands import dispatch, GeneratingCommand, Configuration, Option, validators
-# from splunklib.searchcommands import splunklib_logger as logger
+import os
 from splunklib.six.moves import map
 import sys
 
+splunkhome = os.environ['SPLUNK_HOME']
+
+# set logging
+filehandler = logging.FileHandler(splunkhome
+                                  + "/var/log/splunk/misp42splunk.log", 'a')
+formatter = logging.Formatter('%(asctime)s %(levelname)s %(filename)s \
+                              %(funcName)s %(lineno)d %(message)s')
+filehandler.setFormatter(formatter)
+log = logging.getLogger()  # root logger - Good to get it only once.
+for hdlr in log.handlers[:]:  # remove the existing file handlers
+    if isinstance(hdlr,logging.FileHandler):
+        log.removeHandler(hdlr)
+log.addHandler(filehandler)      # set the new handler
+# set the log level to INFO, DEBUG as the default is ERROR
+log.setLevel(logging.INFO)
+
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "4.2.1"
+__version__ = "4.3.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
 
-def getattribute(a_item, type_list, pipesplit=False, object_data={}):
+def getattribute(a_item, pipesplit=False, object_data={}):
     common_columns = ["category", "to_ids", "comment", "type", "value"]
     attribute_specific_columns = ["id", "uuid", "deleted", "distribution",
                                   "first_seen", "last_seen", "object_relation",
@@ -44,31 +60,27 @@ def getattribute(a_item, type_list, pipesplit=False, object_data={}):
 
     tag_list = list()
     if 'Tag' in a_item:
-        for tag in a_item['Tag']:
-            try:
+        tags = a_item['Tag']
+        for tag in tags:
+            if tag not in tag_list:
                 tag_list.append(str(tag['name']))
-            except Exception:
-                pass
     misp_a['misp_attribute_tag'] = tag_list
 
     if len(object_data) > 0:
         misp_a.update(object_data)
 
-    current_type = a_item['type']
-    if current_type not in type_list:
-        type_list.append(current_type)
     return misp_a
 
 
 def get_attribute_columns():
     object_columns = ["comment", "deleted", "description", "distribution",
-                      "first_seen", "id", "last_seen", "name", "meta-category", 
-                      "sharing_group_id", "template_uuid", "template_version", 
+                      "first_seen", "id", "last_seen", "name", "meta-category",
+                      "sharing_group_id", "template_uuid", "template_version",
                       "timestamp", "uuid"]
     common_columns = ["category", "to_ids", "comment", "type", "value"]
     attribute_specific_columns = ["id", "uuid", "deleted", "distribution",
                                   "first_seen", "last_seen", "object_relation",
-                                  "sharing_group_id", "timestamp"]                     
+                                  "sharing_group_id", "timestamp"]
     attribute_columns = list()
 
     # prepend key names with misp_object_
@@ -81,7 +93,7 @@ def get_attribute_columns():
         misp_asc = "misp_attribute_" + asc
         attribute_columns.append(misp_asc)
     attribute_columns.append("misp_attribute_tag")
-    
+
     # prepend key names with misp_
     for cc in common_columns:
         misp_cc = "misp_" + cc
@@ -94,27 +106,27 @@ def init_misp_output(event_dict, attr_dict, attr_column_names):
     misp_out = dict(event_dict)
     misp_out.pop('Attribute', None)
     for name in attr_column_names:
-        misp_out[name] = list()
         if name in attr_dict:
-            misp_out[name].append(attr_dict[name])
+            misp_out[name] = str(attr_dict[name])
     return misp_out
 
 
 def format_output_table(input_json, output_table, list_of_types,
                         getioc=False, pipesplit=False, only_to_ids=False):
     # process events and return a list of dict
-    # if getioc=true each event entry contains a key Attribute with a list of all attributes
+    # if getioc=true each event entry contains a key Attribute
+    # with a list of all attributes
     if 'response' in input_json:
         common_columns = ["analysis", "attribute_count", "disable_correlation",
-                          "distribution", "extends_uuid", "locked", "proposal_email_lock",
-                          "publish_timestamp", "sharing_group_id",
-                          "threat_level_id", "timestamp"]
+                          "distribution", "extends_uuid", "locked",
+                          "proposal_email_lock", "publish_timestamp",
+                          "sharing_group_id", "threat_level_id", "timestamp"]
         event_specific_columns = ["id", "date", "info", "published", "uuid"]
         organisation_columns = ["id", "name", "uuid", "local"]
         object_columns = ["comment", "deleted", "description", "distribution",
-                          "first_seen", "id", "last_seen", "name", "meta-category", 
-                          "sharing_group_id", "template_uuid", "template_version", 
-                          "timestamp", "uuid"]
+                          "first_seen", "id", "last_seen", "name",
+                          "meta-category", "sharing_group_id", "template_uuid",
+                          "template_version", "timestamp", "uuid"]
         for r_item in input_json['response']:
             if 'Event' in r_item:
                 for a in list(r_item.values()):
@@ -152,7 +164,7 @@ def format_output_table(input_json, output_table, list_of_types,
                             for misp_o in a['Object']:
                                 object_dict = dict()
                                 for obj in object_columns:
-                                    # prepend key names with misp_object_ 
+                                    # prepend key names with misp_object_
                                     misp_obj = "misp_object_" + obj
                                     if obj in misp_o:
                                         object_dict[misp_obj] = misp_o[obj]
@@ -167,13 +179,14 @@ def format_output_table(input_json, output_table, list_of_types,
                                             else:
                                                 keep_attribute = False
                                         if keep_attribute is True:
+                                            if attribute['type'] not in list_of_types:
+                                                list_of_types.append(attribute['type'])
                                             v['Attribute'].append(
                                                 getattribute(attribute,
-                                                             list_of_types,
                                                              pipesplit,
                                                              object_dict))
 
-                        if 'Attribute' in a: 
+                        if 'Attribute' in a:
                             object_dict = dict()
                             for obj in object_columns:
                                 misp_obj = "misp_object_" + obj
@@ -196,28 +209,35 @@ def format_output_table(input_json, output_table, list_of_types,
                                             attribute['type'].split('|')
                                         mv_value_list = \
                                             str(attribute['value']).split('|')
-                                        left_a = attribute.copy()
+                                        left_a = attribute.deepcopy()
                                         left_a['type'] = mv_type_list.pop()
                                         left_a['value'] = mv_value_list.pop()
+                                        if left_a['type'] not in list_of_types:
+                                            list_of_types.append(left_a['type'])
                                         v['Attribute'].append(
-                                            getattribute(left_a, list_of_types,
+                                            getattribute(left_a, 
                                                          pipesplit,
                                                          object_dict))
-                                        right_a = attribute.copy()
+                                        right_a = attribute.deepcopy()
                                         right_a['type'] = mv_type_list.pop()
                                         right_a['value'] = mv_value_list.pop()
+                                        if right_a['type'] not in list_of_types:
+                                            list_of_types.append(right_a['type'])
                                         v['Attribute'].append(
-                                            getattribute(right_a, list_of_types,
+                                            getattribute(right_a,
                                                          pipesplit,
                                                          object_dict))
                                     else:
+                                        if attribute['type'] not in list_of_types:
+                                            list_of_types.append(attribute['type'])
                                         v['Attribute'].append(
-                                            getattribute(attribute, list_of_types,
+                                            getattribute(attribute,
                                                          pipesplit,
                                                          object_dict))
+
                     output_table.append(v)
 
-        if output_table is not None:
+        if output_table:
             return get_attribute_columns()
 
     return list()
@@ -294,29 +314,51 @@ class MispGetEventCommand(GeneratingCommand):
          in local/misp42splunk_instances.conf.''',
         require=True)
     # MANDATORY: json_request XOR eventid XOR last XOR date
-    json_request = Option(
+    date = Option(
         doc='''
-        **Syntax:** **json_request=***valid JSON request*
-        **Description:**Valid JSON request''',
-        require=False)
+        **Syntax:** **date=***The user set event date field
+         - any of valid time related filters"*
+        **Description:**the user set date field on event level.
+        The date format follows ISO 8061.
+        **eventid**, **last** and **date** are mutually exclusive''',
+        require=False, validate=validators.Match("date", r"^[0-9\-,d]+$"))
     eventid = Option(
         doc='''
         **Syntax:** **eventid=***id1(,id2,...)*
         **Description:**list of event ID(s) or event UUID(s).''',
         require=False, validate=validators.Match("eventid", r"^[0-9a-f,\-]+$"))
+    json_request = Option(
+        doc='''
+        **Syntax:** **json_request=***valid JSON request*
+        **Description:**Valid JSON request''',
+        require=False)
     last = Option(
         doc='''
         **Syntax:** **last=***<int>d|h|m*
-        **Description:** publication duration in day(s), hour(s) or minute(s).
-        **nota bene:** last is an alias of published_timestamp''',
+        **Description:** deprecated alias of published_timestamp''',
         require=False, validate=validators.Match("last", r"^[0-9]+[hdm]$"))
-    date = Option(
+    publish_timestamp = Option(
         doc='''
-        **Syntax:** **date=***The user set event date field
-         - any of valid time related filters"*
-        **Description:**starting date equivalent to key from.
-        **eventid**, **last** and **date** are mutually exclusive''',
-        require=False)
+        **Syntax:** **publish_timestamp=***<int>d|h|m*
+        **Description:** Restrict the results by the timestamp of the last
+        publishing of the event. The input can be a timsetamp or a short-hand
+        time description (7d or 24h for example). You can also pass a list with
+        two values to set a time range (for example "14d,7d").''',
+        require=False, validate=validators.Match(
+            "publish_timestamp", r"^[0-9]+[dhm]?(,[0-9]+[dhm])?$"))
+    timestamp = Option(
+        doc='''
+        **Syntax:** **publish_timestamp=***<int>d|h|m*
+        **Description:** Restrict the results by the timestamp (last edit).
+        Any event with a timestamp newer than the given timestamp will be
+        returned. In case you are dealing with /attributes as scope, the
+        attribute's timestamp will be used for the lookup. The input can be
+        a timestamp or a short-hand time description (7d or 24h for example).
+        You can also pass a list with two values to set a time range 
+        (for example "14d,7d").''',
+        require=False, validate=validators.Match(
+            "timestamp", r"^[0-9]+[dhm]?(,[0-9]+[dhm])?$"))
+
     # Other params
     category = Option(
         doc='''
@@ -327,7 +369,7 @@ class MispGetEventCommand(GeneratingCommand):
     expand_object = Option(
         doc='''
         **Syntax:** **gexpand_object=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
-        **Description:**Boolean to have object attributes expanded (one per line).
+        **Description:**Boolean to have object attributes expanded one per line.
         By default, attributes of one object are displayed on same line.''',
         require=False, validate=validators.Boolean())
     getioc = Option(
@@ -415,43 +457,57 @@ class MispGetEventCommand(GeneratingCommand):
         logging.warning(msg)
 
     def set_log_level(self):
-        logging.root
-        loglevel = logging_level('misp42splunk')
-        logging.root.setLevel(loglevel)
+        # global configuration
+        conf_file = "misp42splunk_settings"
+        confs = self.service.confs[str(conf_file)]
+
+        # set loglevel
+        loglevel = 'INFO'
+        for stanza in confs:
+            if stanza.name == 'logging':
+                for stanzakey, stanzavalue in stanza.content.items():
+                    if stanzakey == "loglevel":
+                        loglevel = stanzavalue
+        logginglevel = logging.getLevelName(loglevel)
+        log.setLevel(logginglevel)
         logging.error('[EV-101] logging level is set to %s', loglevel)
         logging.error('[EV-102] PYTHON VERSION: ' + sys.version)
 
-    @staticmethod
+    # @staticmethod
     def _record(
             serial_number, time_stamp, host, attributes,
-            attribute_names, encoder, condensed=False):
+            att_names, encoder, condensed=False):
 
         if condensed is False:
             raw = encoder.encode(attributes)
         # Formulate record
         fields = dict()
-        for f in attribute_names:
+        for f in att_names:
             if f in attributes:
                 fields[f] = attributes[f]
 
         if serial_number > 0:
-            fields['_serial'] = serial_number
-            fields['_time'] = time_stamp
+            record = dict()
+            record['_serial'] = serial_number
+            record['_time'] = time_stamp
             if condensed is False:
-                fields['_raw'] = raw
-            fields['host'] = host
-            return fields
+                record['_raw'] = raw
+            else:
+                record['_raw'] = fields
+            record['host'] = host
+            record.update(fields)
+            return record
 
         if condensed is False:
             record = OrderedDict(chain(
                 (('_serial', serial_number), ('_time', time_stamp),
                  ('_raw', raw), ('host', host)),
-                map(lambda name: (name, fields.get(name, '')), attribute_names)))
+                map(lambda name: (name, fields.get(name, '')), att_names)))
         else:
             record = OrderedDict(chain(
                 (('_serial', serial_number), ('_time', time_stamp),
-                 ('host', host)),
-                map(lambda name: (name, fields.get(name, '')), attribute_names)))
+                 ('host', host), ('_raw', fields)),
+                map(lambda name: (name, fields.get(name, '')), att_names)))
 
         return record
 
@@ -463,7 +519,8 @@ class MispGetEventCommand(GeneratingCommand):
         storage = self.service.storage_passwords
         my_args = prepare_config(self, 'misp42splunk', misp_instance, storage)
         if my_args is None:
-            raise Exception("Sorry, no configuration for misp_instance={}".format(misp_instance))
+            raise Exception(
+                "Sorry, no configuration for misp_instance={}".format(misp_instance))
         my_args['host'] = str(my_args['misp_url']).replace('https://', '')
         my_args['misp_url'] = my_args['misp_url'] + '/events/restSearch'
 
@@ -477,21 +534,53 @@ class MispGetEventCommand(GeneratingCommand):
             mandatory_arg = mandatory_arg + 1
         if self.date:
             mandatory_arg = mandatory_arg + 1
+        if self.publish_timestamp:
+            mandatory_arg = mandatory_arg + 1
+        if self.timestamp:
+            mandatory_arg = mandatory_arg + 1
 
         if mandatory_arg == 0:
-            self.log_error('Missing "json_request", eventid", \
-                "last" or "date" argument')
-            raise Exception('Missing "json_request", "eventid", \
-                "last" or "date" argument')
+            self.log_error('Missing "timestamp", "json_request", eventid", \
+                "publish_timestamp" or "date" argument')
+            raise Exception('Missing "timestamp", "json_request", eventid", \
+                "publish_timestamp" or "date" argument')
         elif mandatory_arg > 1:
-            self.log_error('Options "json_request", eventid", "last" \
+            self.log_error('Options "timestamp", "json_request", eventid", \
+                "last"(deprecated),  "publish_timestamp" \
                 and "date" are mutually exclusive')
-            raise Exception('Options "json_request", "eventid", "last" \
+            raise Exception('Options "timestamp", "json_request", eventid", \
+                "last"(deprecated),  "publish_timestamp" \
                 and "date" are mutually exclusive')
 
         body_dict = dict()
         # Only ONE combination was provided
-        if self.json_request is not None:
+        if self.timestamp is not None:
+            if "," in self.timestamp:  # contain a range
+                timestamp_list = self.timestamp.split(",")
+                body_dict['timestamp'] = [str(timestamp_list[0]),
+                                          str(timestamp_list[1])]
+                self.log_info(
+                    'Option "timestamp" with range {}'
+                    .format(json.dumps(body_dict['timestamp'])))
+            else:  # contain a timestamp EPOCH or relative time
+                body_dict['timestamp'] = self.timestamp
+                self.log_info(
+                    'Option "timestamp" {}'
+                    .format(json.dumps(body_dict['timestamp'])))
+        elif self.publish_timestamp is not None:
+            if "," in self.publish_timestamp:  # contain a range
+                publish_list = self.publish_timestamp.split(",")
+                body_dict['publish_timestamp'] = [str(publish_list[0]),
+                                                  str(publish_list[1])]
+                self.log_info(
+                    'Option "publish_timestamp " with range {}'
+                    .format(json.dumps(body_dict['publish_timestamp'])))
+            else:
+                body_dict['publish_timestamp'] = self.publish_timestamp
+                self.log_info(
+                    'Option "publish_timestamp " {}'
+                    .format(json.dumps(body_dict['publish_timestamp'])))
+        elif self.json_request is not None:
             body_dict = json.loads(self.json_request)
             self.log_info('Option "json_request" set')
         elif self.eventid:
@@ -508,10 +597,14 @@ class MispGetEventCommand(GeneratingCommand):
             body_dict['last'] = self.last
             self.log_info('Option "last" set with {}'
                           .format(body_dict['last']))
-        else:
-            body_dict['from'] = self.date
-            self.log_info('Option "date" set with {}'
-                          .format(json.dumps(body_dict['from'])))
+        else:  # implicit param date
+            if "," in self.date:  # string should contain a range
+                date_list = self.date.split(",")
+                body_dict['date'] = [str(date_list[0]), str(date_list[1])]
+            else:
+                body_dict['date'] = self.date
+            self.log_info('Option "date range" key date {}'
+                          .format(json.dumps(body_dict['date'])))
 
         # Force some values on JSON request
         body_dict['returnFormat'] = 'json'
@@ -527,6 +620,7 @@ class MispGetEventCommand(GeneratingCommand):
             limit = 1000
         if limit == 0:
             pagination = False
+
         if self.page is not None:
             page = int(self.page)
         elif 'page' in body_dict:
@@ -604,14 +698,21 @@ class MispGetEventCommand(GeneratingCommand):
 
         connection, connection_status = urllib_init_pool(self, my_args)
         if connection:
-            response = urllib_request(self, connection, 'POST', my_args['misp_url'], body_dict, my_args) 
+            response = urllib_request(
+                self,
+                connection,
+                'POST',
+                my_args['misp_url'],
+                body_dict,
+                my_args)
         else:
             response = connection_status
 
         if "_raw" in response:
             yield response
-        else:  
-            encoder = json.JSONEncoder(ensure_ascii=False, separators=(',', ':'))
+        else:
+            encoder = json.JSONEncoder(
+                ensure_ascii=False, separators=(',', ':'))
             if output == "raw":
                 if 'response' in response:
                     attribute_names = list()
@@ -624,19 +725,28 @@ class MispGetEventCommand(GeneratingCommand):
                                 if keep_related is False:
                                     e.pop('RelatedEvent', None)
                                 yield MispGetEventCommand._record(
-                                    serial_number, e['timestamp'], my_args['host'],
-                                    e, attribute_names, encoder)
+                                    serial_number,
+                                    e['timestamp'],
+                                    my_args['host'],
+                                    e, attribute_names,
+                                    encoder)
                             serial_number += 1
                             GeneratingCommand.flush
             else:
                 # build output table and list of types
                 events = []
                 typelist = []
-                column_list = format_output_table(response, events, typelist,
-                                                  getioc, pipesplit, only_to_ids)
+                column_list = format_output_table(
+                    response,
+                    events,
+                    typelist,
+                    getioc,
+                    pipesplit,
+                    only_to_ids)
                 self.log_info(
                     'typelist containss {} values'.format(len(typelist)))
-                self.log_info('results contains {} records'.format(len(events)))
+                self.log_info(
+                    'results contains {} records'.format(len(events)))
 
                 if getioc is False:
                     attribute_names = list()
@@ -663,7 +773,7 @@ class MispGetEventCommand(GeneratingCommand):
                                     key = str(e['misp_event_uuid']) + '_' \
                                         + str(a['misp_attribute_uuid'])
                                     is_object_member = False
-                                else:  # this is a  MISP object
+                                else:  # this is a MISP object
                                     if expand_object is True:
                                         # compute key based on attribute UUID
                                         key = str(e['misp_event_uuid']) + '_' \
@@ -672,43 +782,66 @@ class MispGetEventCommand(GeneratingCommand):
                                         key = str(e['misp_event_id']) + \
                                             '_object_' + str(a['misp_object_id'])
                                     is_object_member = True
+
                                 if key not in output_dict:
                                     v = init_misp_output(e, a, column_list)
                                     for t in typelist:
                                         misp_t = 'misp_' \
                                             + t.replace('-', '_')\
                                                  .replace('|', '_p_')
-                                        v[misp_t] = []
                                         if t == a['misp_type']:
-                                            v[misp_t].append(a['misp_value'])
+                                            v[misp_t] = str(a['misp_value'])
                                     output_dict[key] = dict(v)
                                 else:
                                     v = dict(output_dict[key])
                                     misp_t = 'misp_' + str(a['misp_type'])\
                                         .replace('-', '_').replace('|', '_p_')
-                                    v[misp_t].append(a['misp_value'])
-                                    for ac in column_list:
-                                        if ac in a and ac in v:
-                                            if ac.startswith("misp_object_"):
-                                                if a[ac] not in v[ac]:
-                                                    v[ac].append(a[ac])
-                                            else:
-                                                v[ac].append(a[ac])
-                                    if a['misp_attribute_tag'] is not None:
-                                        a_tag = v['misp_attribute_tag']
-                                        for t in a['misp_attribute_tag']:
-                                            if t not in a_tag:
-                                                a_tag.append(t)
-                                        v['misp_attribute_tag'] = a_tag
-                                    if is_object_member is False:
-                                        misp_type = a['misp_type'] \
-                                            + '|' + v['misp_type'][0]
-                                        v['misp_type'] = list()
-                                        v['misp_type'].append(misp_type)
-                                        misp_value = a['misp_value'] + \
-                                            '|' + v['misp_value'][0]
-                                        v['misp_value'] = list()
-                                        v['misp_value'].append(misp_value)
+                                    if misp_t in v:
+                                        if isinstance(v[misp_t], str):
+                                            temp_attribute = v[misp_t]
+                                            v[misp_t] = list()
+                                            v[misp_t].append(temp_attribute)
+                                        v[misp_t].append(str(a['misp_value']))
+                                    else:
+                                        v[misp_t] = str(a['misp_value'])
+
+                                    if is_object_member is True:
+                                        for ac in column_list:
+                                            if ac in a and ac in v:
+                                                if a[ac]:
+                                                    if ac.startswith("misp_object_"):
+                                                        if not v[ac]:
+                                                            v[ac] = a[ac]
+                                                        elif isinstance(v[ac], str):
+                                                            if a[ac] != v[ac]:
+                                                                temp_attribute = v[ac]
+                                                                v[ac] = list()
+                                                                v[ac].append(temp_attribute)
+                                                                v[ac].append(a[ac])
+                                                        elif a[ac] not in v[ac]:
+                                                            v[ac].append(a[ac])
+                                                    else:
+                                                        if not v[ac]:
+                                                            v[ac] = a[ac]
+                                                        elif isinstance(v[ac], str):
+                                                            temp_attribute = v[ac]
+                                                            v[ac] = list()
+                                                            v[ac].append(temp_attribute)
+                                                            v[ac].append(a[ac])
+                                                        else:
+                                                            v[ac].append(a[ac])
+                                    else:  # replace mv by original value
+                                        v['misp_type'] = a['misp_type'] \
+                                            + '|' + v['misp_type']
+                                        v['misp_value'] = a['misp_value'] + \
+                                            '|' + v['misp_value']
+
+                                    # if a['misp_attribute_tag']:
+                                    #     a_tag = v['misp_attribute_tag'] \
+                                    #         + a['misp_attribute_tag']
+                                    #     # unique_tag = list(set(a_tag))
+                                    #     v['misp_attribute_tag'] = a_tag
+
                                     output_dict[key] = dict(v)
 
                     if output_dict is not None:
@@ -717,14 +850,19 @@ class MispGetEventCommand(GeneratingCommand):
                         serial_number = 0
                         for v in output_dict.values():
                             if init_attribute_names is True:
-                                for key in v.keys():
-                                    if key not in attribute_names:
-                                        attribute_names.append(key)
+                                attribute_names = list(v.keys())
+                                for t in typelist:
+                                    misp_t = 'misp_' \
+                                        + t.replace('-', '_')\
+                                             .replace('|', '_p_')
+                                    if misp_t not in attribute_names:
+                                        attribute_names.append(misp_t)
                                 attribute_names.sort()
                                 init_attribute_names = False
                             yield MispGetEventCommand._record(
                                 serial_number, v['misp_timestamp'],
-                                my_args['host'], v, attribute_names, encoder, True)
+                                my_args['host'], v,
+                                attribute_names, encoder, True)
                             serial_number += 1
                             GeneratingCommand.flush
 
