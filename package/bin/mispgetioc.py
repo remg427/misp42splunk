@@ -304,10 +304,10 @@ class MispGetIocCommand(GeneratingCommand):
             mandatory_arg = mandatory_arg + 1
 
         if mandatory_arg == 0:
-            self.log_error('Missing "json_request", eventid", "last" or "date" argument')
+            self.log_error('Missing "json_request", "eventid", "last" or "date" argument')
             raise Exception('Missing "json_request", "eventid", "last" or "date" argument')
         elif mandatory_arg > 1:
-            self.log_error('Options "json_request", eventid", "last" and "date" are mutually exclusive')
+            self.log_error('Options "json_request", "eventid", "last" and "date" are mutually exclusive')
             raise Exception('Options "json_request", "eventid", "last" and "date" are mutually exclusive')
 
         body_dict = dict()
