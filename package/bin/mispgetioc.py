@@ -431,7 +431,7 @@ class MispGetIocCommand(GeneratingCommand):
         else:
             my_args['output'] = "default"
 
-        # add colums for each type in results
+        # add columns for each type in results
         results = []
         typelist = []
         if pagination is True:
