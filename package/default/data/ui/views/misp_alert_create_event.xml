@@ -12,6 +12,7 @@
     <set token="sample_query">| makeresults | eval misp_domain="www.example.com"</set>
   </init>
   <label>misp_alert_create_event</label>
+  <description>Adaptative alert action to create or update MISP events</description>
   <fieldset submitButton="true">
     <input type="dropdown" token="misp_instance" searchWhenChanged="true">
       <label>misp_instance*</label>
@@ -24,6 +25,9 @@
         <earliest>-24h@h</earliest>
         <latest>now</latest>
       </search>
+    </input>
+    <input type="text" token="misp_instance">
+      <label>misp_instance*</label>
     </input>
     <input type="text" token="title" searchWhenChanged="true">
       <label>title*</label>

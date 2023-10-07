@@ -1,6 +1,6 @@
 <dashboard hideEdit="false" version="1.1">
   <label>Overview</label>
-  <description>This dashboard provides an overview of MISP42 configuration and MISP alert actions in last 60 minutes. Go to other dashboards to get details.</description>
+  <description>This dashboard provides an overview of MISP42 configuration and MISP alert actions in last 60 minutes. Go to the other dashboards to get details.</description>
   <row>
     <panel>
       <single>

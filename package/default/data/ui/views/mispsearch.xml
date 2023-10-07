@@ -9,7 +9,8 @@
     <set token="param_page"></set>
     <set token="sample_query">| makeresults | eval domain="www.example.com"</set>
   </init>
-  <label>MISP custom command mispsearch</label>
+  <label>mispsearch </label>
+  <description>MISP custom command mispsearch search matching attributes in MISP (Streaming command)</description>
   <fieldset submitButton="false" autoRun="false">
     <input type="dropdown" token="misp_instance" searchWhenChanged="true">
       <label>misp_instance*</label>
@@ -22,6 +23,9 @@
         <earliest>-24h@h</earliest>
         <latest>now</latest>
       </search>
+    </input>
+    <input type="text" token="misp_instance">
+      <label>misp_instance*</label>
     </input>
     <input type="text" token="field" searchWhenChanged="true">
       <label>field*</label>

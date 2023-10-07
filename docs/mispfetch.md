@@ -3,33 +3,48 @@
 
 Use the `mispfetch` command to pull events or attributes from a [MISP](https://www.misp-project.org/) instance and **append** to the current set.  
 
-`mispfect` is very versatile command (like a Swiss knife) to pull information from MISP.
-- All parameters supported by MISP endpoint `/events/restSearch` or `/attributes/restSearch` can be used to build the HTTP body.
-
+`mispfect` is a very versatile command (like a Swiss knife) to pull information from MISP.
+- All keys supported by MISP endpoint `/events/restSearch` or `/attributes/restSearch` can be used to build the HTTP body.
 - In other words, any request that works with MISP REST client will work with `mispfetch`.
+- there are arguments to further filter or format the results.
 
-- there are parameters to further filter or format the results.
+The simplest way is to create fields with the same names as the expected keys in the HTTP body and use `tojson` command to create an output field **misp\_http\_body**.
 
-The simple way is to set the parameters and use `tojson`command to create an output field misp\_http\_body.
-
-```python
-
-```
-
-### mispfetch vs mispgetioc/mispgetevent
--   `mispfetch`is a **streaming** command that **cannot** be on the first of a search (or a sub-search).
--   all parameters of `mispfetch` can be prepared on the SPL before calling the custom command (see examples).
--   `mispgetioc`and `mispgetevent` are **generating** commands; they must be on the first line of an SPL.
+### mispfetch vs mispgetioc or mispgetevent
+-   `mispfetch`
+    * is a **streaming** command that **cannot** be on the first line of a search (or a sub-search).
+    * all `mispfetch` arguments can be prepared on the SPL as fields before calling the custom command (see examples).
+    * or passed on the same ligne as `mispfetch` (fields in the SPL have priority over the arguments on the command line).
+    * therefore arguments values may be calculated based on the fields of the main search.
+-   `mispgetioc`and `mispgetevent` 
+    * are **generating** commands.
+    * they must be on the first line of an SPL.
+    * arguments must be on the same ligne. They may be prepared with a subsearch but this is complex and without link with main search.
 
 ## Syntax
 #### | mispfetch
+> **misp_instance**=string  
+> **misp_restsearch**=(attributes|events)  
+> **misp_http_body**=JSON object  
+> attribute_limit=int  
+> expand_object=bool  
+> getioc=bool  
+> keep_galaxy=bool  
+> limit=int  
+> misp\_output\_mode=(JSON|native)  
+> not_tags=string (, comma-separated)  
+> only_to_ids=bool  
+> page=int  
+> pipesplit=bool  
+> tags=string (, comma-separated)  
 
 #### Required arguments
-With `mispfetch` there is no mandatory arguments set to keep the choice of setting them using the parameter key or an eval to have a field with the same name as the parameter.  
+With `mispfetch`, all arguments are defined as optional **but misp_instance must be a valid account name**. All other arguments have default values or are really optional.   
+
+They can be set as field names (e.g. using `eval`) before calling `mispfetch`. If not defined as field names, they can be passed as arguments on the command line.  
+Values set in field names have priority over the command arguments
 
 The field has priority over the argument following `| mispfetc`
-
-But for the command to work, 3 arguments are required
 
 ##### misp_instance
 - **Syntax:** misp_instance=<string>  
@@ -42,7 +57,7 @@ But for the command to work, 3 arguments are required
 
 ##### misp\_http\_body
 - **Syntax:** misp_http_body=<JSON>
-- **Description:**Valid JSON request
+- **Description:** A valid JSON request (use `tojson` to build it easily)
 
 #### Optional arguments to query MISP
 
@@ -140,14 +155,3 @@ The third example uses the endpoint `/attributes/restSearch`.
     | mispfetch getioc=1 limit=100 attribute_limit=1000
 
 The query will returns all (limit=0 in SPL) attributes of events published in last day.
-
-The following example shows how to use pagination and return results from several pages
-
-    | makeresults
-    | eval misp_instance="misp_instance_name", published_time="1d", published="True"
-    | eval misp_restsearch="attributes", limit=100
-    | tojson misp_instance, published_time, published output_field=misp_http_body
-    | mispfetch getioc=1 limit=100 attribute_limit=1000 page=1
-    | eval page=2
-    | mispfetch getioc=1 limit=100 attribute_limit=1000 page=1
-

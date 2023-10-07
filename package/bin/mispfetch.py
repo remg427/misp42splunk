@@ -45,11 +45,11 @@ __email__ = "remg427@gmail.com"
 
 
 MISPFETCH_INIT_PARAMS = {
-    # mandatory parameters for mispfetch
+    # mandatory parameter for mispfetch
     'misp_instance': None,
+    # optional parameters
     'misp_restsearch': 'events',
     'misp_http_body': None,
-    # optional parameters
     'misp_output_mode': 'native',
     'expand_object': False,
     'getioc': False,
@@ -195,17 +195,21 @@ def format_event_output_table(input_json, output_table, list_of_types,
                                 if 'Attribute' in misp_o:
                                     for attribute in misp_o['Attribute']:
                                         keep_attribute = True
-                                        if (only_to_ids is False
-                                           or (only_to_ids is True
-                                           and attribute['to_ids'] is True)):
-                                                if attribute['type'] \
-                                                   not in list_of_types:
-                                                    list_of_types.append(
-                                                        attribute['type'])
-                                                v['Attribute'].append(
-                                                    getattribute(attribute,
-                                                                 pipesplit,
-                                                                 object_dict))
+                                        if (
+                                            only_to_ids is False or
+                                                (
+                                                    only_to_ids is True and
+                                                    attribute['to_ids'] is True
+                                                )
+                                        ):
+                                            if attribute['type'] \
+                                               not in list_of_types:
+                                                list_of_types.append(
+                                                    attribute['type'])
+                                            v['Attribute'].append(
+                                                getattribute(attribute,
+                                                             pipesplit,
+                                                             object_dict))
 
                         if 'Attribute' in a:
                             object_dict = dict()
@@ -283,9 +287,13 @@ def format_attribute_output_table(input_json, output_table, list_of_types,
     if 'response' in input_json:
         if 'Attribute' in input_json['response']:
             for a in input_json['response']['Attribute']:
-                if (only_to_ids is False
-                   or (only_to_ids is True
-                   and a['to_ids'] is True)):
+                if (
+                    only_to_ids is False or
+                    (
+                        only_to_ids is True and
+                        a['to_ids'] is True
+                    )
+                ):
                     v = dict()
                     # prepend key names with misp_attribute_
                     for asc in attribute_specific_columns:
@@ -398,6 +406,8 @@ class MispFetchCommand(StreamingCommand):
         | MispFetchCommand misp_instance=<input> date=<<YYYY-MM-DD>
                                             (date_to=<YYYY-MM-DD>)
     ##Description
+    ### /attributes/restSearch
+    #### from REST client
     {
         "returnFormat": "mandatory",
         "page": "optional",
@@ -408,6 +418,7 @@ class MispFetchCommand(StreamingCommand):
         "org": "optional",
         "tag": "optional",
         "tags": "optional",
+        "event_tags": "optional",
         "searchall": "optional",
         "date": "optional",
         "last": "optional",
@@ -425,67 +436,55 @@ class MispFetchCommand(StreamingCommand):
         "excludeLocalTags": "optional",
         "threat_level_id": "optional"
     }
+    #### Parameters directly available
+    {
+        "returnFormat": "json",
+        "page": managed,
+        "limit": managed,
+        "tag": managed
+        "not_tags": managed
+        "withAttachments": False
+    }
+
+    ### /events/restSearch
+    #### from REST client
     {
         "returnFormat": "mandatory",
         "page": "optional",
-        "self.mf_params['limit']": "optional",
+        "limit": "optional",
         "value": "optional",
         "type": "optional",
         "category": "optional",
         "org": "optional",
-        "self.mf_params['tags']": "optional",
+        "tag": "optional",
+        "tags": "optional",
+        "event_tags": "optional",
+        "searchall": "optional",
         "date": "optional",
         "last": "optional",
         "eventid": "optional",
         "withAttachments": "optional",
+        "metadata": "optional",
         "uuid": "optional",
+        "published": "optional",
         "publish_timestamp": "optional",
         "timestamp": "optional",
-        "attribute_timestamp": "optional",
         "enforceWarninglist": "optional",
-        "to_ids": "optional",
-        "deleted": "optional",
-        "includeEventUuid": "optional",
-        "includeEventTags": "optional",
-        "event_timestamp": "optional",
-        "threat_level_id": "optional",
-        "eventinfo": "optional",
-        "sharinggroup": "optional",
-        "includeProposals": "optional",
-        "includeDecayScore": "optional",
-        "includeFullModel": "optional",
-        "decayingModel": "optional",
-        "excludeDecayed": "optional",
-        "score": "optional",
-        "first_seen": "optional",
-        "last_seen": "optional"
-    }
-    # status
-    {
-        "tag": "optional",
-        "searchall": "optional",
-        "metadata": "optional",
-        "published": "optional",
         "sgReferenceOnly": "optional",
         "eventinfo": "optional",
-        "excludeLocalTags": "optional"
+        "sharinggroup": "optional",
+        "excludeLocalTags": "optional",
+        "threat_level_id": "optional"
+    }
 
-        "returnFormat": forced to json,
-        "page": param,
-        "limit": param,
-        "value": not managed,
-        "type": param, CSV string,
-        "category": param, CSV string,
-        "org": not managed,
-        "tags": param, see also not_tags
-        "date": param,
-        "last": param,
-        "eventid": param,
-        "withAttachments": forced to false,
-        "uuid": not managed,
-        "publish_timestamp": managed via param last
-        "timestamp": not managed,
-        "enforceWarninglist": not managed,
+    #### Parzameters directly available
+    {
+        "returnFormat": "json",
+        "page": managed,
+        "limit": managed,
+        "tags": managed
+        "not_tags": managed
+        "withAttachments": False
     }
     """
     # MANDATORY MISP instance for this search
@@ -510,14 +509,15 @@ class MispFetchCommand(StreamingCommand):
     misp_output_mode = Option(
         doc='''
         **Syntax:** misp_output_mode=<string>
-        **Description:**define how to render on Splunk either as native tabular view or 
-        JSON object.
-        Either "native" or "JSON". Default native''',
-        require=False, validate=validators.Match("misp_output_mode", r"^(native|JSON)$"))
+        **Description:**define how to render on Splunk either as native
+         tabular view or JSON object.
+         Either "native" or "JSON". Default native''',
+        require=False, validate=validators.Match(
+            "misp_output_mode", r"^(native|JSON)$"))
     expand_object = Option(
         doc='''
         **Syntax:** expand_object=<1|y|Y|t|true|True|0|n|N|f|false|False>
-        **Description:**Boolean to have object attributes expanded one per line.
+        **Description:**Boolean to expand object attributes one per line.
         By default, attributes of one object are displayed on same line.''',
         require=False, validate=validators.Boolean())
     getioc = Option(
@@ -541,10 +541,11 @@ class MispFetchCommand(StreamingCommand):
     attribute_limit = Option(
         doc='''
         **Syntax:** attribute_limit=<int>
-        **Description:**define the attribute_limit for the number of returned IOC
-        for each MISP default; default 1000.
-        0 = no pagination.''',
-        require=False, validate=validators.Match("attribute_limit", r"^[0-9]+$"))
+        **Description:**define the attribute_limit for max count of
+         returned attributes for each MISP default;
+         default 1000. 0 = no pagination.''',
+        require=False, validate=validators.Match(
+            "attribute_limit", r"^[0-9]+$"))
     not_tags = Option(
         doc='''
         **Syntax:** not_tags=CSV string*
@@ -766,7 +767,7 @@ class MispFetchCommand(StreamingCommand):
                                     .format(len(output_dict)))
 
     def report_attributes(self, output_dict, attributes, typelist,
-                          expand_object=True):
+                          expand_object=False):
         common_columns = ["category", "to_ids", "timestamp", "comment",
                           "deleted", "disable_correlation",
                           "first_seen", "last_seen", "object_id",
@@ -781,7 +782,7 @@ class MispFetchCommand(StreamingCommand):
                     '_' + str(r['misp_attribute_id'])
                 is_object_member = False
             else:  # this is a  MISP object
-                if expand_object is True:
+                if expand_object is False:
                     # join attributes in 1 row
                     # key is based on object id
                     key = str(r['misp_event_id']) \
@@ -794,7 +795,7 @@ class MispFetchCommand(StreamingCommand):
                 is_object_member = True
 
             if key not in output_dict:
-                # first itezm - store on dictionary
+                # first item - store on dictionary
                 v = dict(r)
                 for t in typelist:
                     misp_t = 'misp_'\
@@ -831,13 +832,21 @@ class MispFetchCommand(StreamingCommand):
                         if misp_ac in r:
                             if misp_ac not in v:
                                 v[misp_ac] = list()
+                            elif isinstance(v[misp_ac], str):
+                                temp = v[misp_ac]
+                                v[misp_ac] = list()
+                                v[misp_ac].append(temp)
                             v[misp_ac].append(str(r[misp_ac]))
                     for asc in attribute_specific_columns:
                         misp_asc = "misp_attribute_" + asc
                         if misp_asc in r:
                             if misp_asc not in v:
                                 v[misp_asc] = list()
-                            v[misp_asc].append(str(r[misp_ac]))
+                            elif isinstance(v[misp_asc], str):
+                                temp = v[misp_asc]
+                                v[misp_asc] = list()
+                                v[misp_asc].append(temp)
+                            v[misp_asc].append(str(r[misp_asc]))
                     tag_list = v['misp_tag']
                     for tag in r['misp_tag']:
                         if tag not in tag_list:
@@ -912,7 +921,7 @@ class MispFetchCommand(StreamingCommand):
         if mf_params['misp_http_body'] is None:
             # Force some values on JSON request
             body_dict = dict()
-            body_dict['published_timestamp'] = "1h"
+            body_dict['last'] = "1h"
             body_dict['published'] = True
         else:
             body_dict = dict(json.loads(
@@ -931,19 +940,82 @@ class MispFetchCommand(StreamingCommand):
             body_dict['tags'] = tags_criteria
 
         body_dict['limit'] = mf_params['limit']
-        body_dict['page'] = mf_params['page']
+        mf_params['page'] = int(mf_params['page'])
+        if mf_params['page'] == 0:
+            body_dict['page'] = 1
+        else:
+            body_dict['page'] = mf_params['page']
         self.log_info(
             '[MF-100] actual http body: {} '.format(json.dumps(body_dict)))
 
         connection, connection_status = urllib_init_pool(self, my_args)
         if connection:
-            response = urllib_request(
-                self,
-                connection,
-                'POST',
-                my_args['misp_url'],
-                body_dict,
-                my_args)
+            if mf_params['page'] == 0:
+                request_loop = True
+                if mf_params['misp_restsearch'] == "events":
+                    response = {'response': []}
+                    while request_loop:
+                        iter_response = urllib_request(
+                            self,
+                            connection,
+                            'POST',
+                            my_args['misp_url'],
+                            body_dict,
+                            my_args)
+                        if 'response' in iter_response:
+                            rlength = len(iter_response['response'])
+                            self.log_debug(
+                                '[MF-401] returned event(s): {}'
+                                .format(rlength))
+                            if rlength != 0:
+                                response['response'].extend(
+                                    iter_response['response'])
+                            if rlength == int(mf_params['limit']):
+                                # full page returned - likely more results
+                                body_dict['page'] = body_dict['page'] + 1
+                            else:
+                                # last page is reached
+                                request_loop = False
+                        else:
+                            request_loop = False
+                else:  # Attributes
+                    response = {'response': {'Attribute': []}}
+                    while request_loop:
+                        iter_response = urllib_request(
+                            self,
+                            connection,
+                            'POST',
+                            my_args['misp_url'],
+                            body_dict,
+                            my_args)
+                        if 'response' in iter_response:
+                            if 'Attribute' in iter_response['response']:
+                                rlength = len(
+                                    iter_response['response']['Attribute'])
+                                self.log_debug(
+                                    '[MF-411] returned attribute(s): {}'
+                                    .format(rlength))
+                                if rlength != 0:
+                                    response['response']['Attribute'].extend(
+                                        iter_response['response']['Attribute'])
+                                if rlength == int(mf_params['limit']):
+                                    # full page returned - likely more results
+                                    body_dict['page'] = body_dict['page'] + 1
+                                else:
+                                    # last page is reached
+                                    request_loop = False
+                            else:
+                                request_loop = False
+                        else:
+                            request_loop = False
+            else:
+                response = urllib_request(
+                    self,
+                    connection,
+                    'POST',
+                    my_args['misp_url'],
+                    body_dict,
+                    my_args)
         else:
             response = connection_status
 
