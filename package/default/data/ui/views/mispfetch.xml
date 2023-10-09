@@ -1,8 +1,5 @@
 <form hideEdit="false" version="1.1">
-  <init>
-
- $$ $param_not_tags$ $param_onlyids$ $param_page$ $param_pipesplit$ $param_tags$
-    <set token="param_attribute_limit"></set>
+  <init>$$ $param_not_tags$ $param_onlyids$ $param_page$ $param_pipesplit$ $param_tags$<set token="param_attribute_limit"></set>
     <set token="param_restsearch"></set>
     <set token="param_expand_object"></set>
     <set token="param_getioc"></set>
@@ -71,10 +68,10 @@
         <condition match="$value$=&quot;not_set&quot;">
           <set token="param_misp_output_mode"></set>
         </condition>
-        <condition match="$value$=&quot;native&quot;">
+        <condition match="$value$=&quot;default&quot;">
           <set token="param_misp_output_mode">misp_output_mode=native</set>
         </condition>
-        <condition match="$value$=&quot;JSON&quot;">
+        <condition match="$value$=&quot;raw&quot;">
           <set token="param_misp_output_mode">misp_output_mode=JSON</set>
         </condition>
       </change>
@@ -223,166 +220,169 @@
   <row>
     <panel>
       <html>
-   <style>
+        <style>
       tr,th,td {
          text-align:left
       }
    </style>
-<h3>Quick start</h3>
-
-<p>The command <strong>mispfetch</strong> is a streaming command. It cannot be on a first line of a SPL (key difference with <strong>mispgetioc</strong> and <strong>mispgetevent</strong>).</p>
-
-<p>It can take parameters from the command line or from the result set before. The values coming from the result set have priority over the values passed on the command line.</p>
-
-<p>This way is very flexible to adapt the REST HTTP body of the request against one of the 2 supported MISP REST API endpoints: /events/restSearch or /attributes/restSearch</p>
-
-<p>It has only one <strong>mandatory</strong> parameter &quot;<strong>misp_instance:&quot;</strong> that has to be set when the command is invoked. The following SPL are equivalent:</p>
-
-<pre>
-<code class="language-python">| makeresults 
-| mispfetch misp_instance="misp"</code></pre>
-
-<pre>
-<code class="language-python">| makeresults 
-| eval misp_instance="misp"
-| mispfetch</code></pre>
-
-<h3>List of supported parameters</h3>
-
-<table border="1" cedllspacing="20" width="100%" align="center">
-  <thead>
-    <tr>
-      <th scope="col" style="width: 20%">Param</th>
-      <th scope="col" style="width: 20%">Syntax</th>
-      <th scope="col" style="width: 20%">Default</th>
-      <th scope="col">Description</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><strong>misp_instance</strong></td>
-      <td>misp_instance=&lt;misp_account&gt;</td>
-      <td>None</td>
-      <td>One of the accounts defined in tab configuration (the list is also displayed on the drop-down box)</td>
-    </tr>
-    <tr>
-      <td>misp_restsearch</td>
-      <td>misp_restsearch=(events|attributes)</td>
-      <td>events</td>
-      <td>Use this parameter to select between the endpoint &quot;/<strong>events</strong>/restSearch&quot; or &quot;/<strong>attributes</strong>/restSearch&quot;.</td>
-    </tr>
-    <tr>
-      <td>misp_http_body</td>
-      <td>misp_http_body=JSON</td>
-      <td>
+      <h3>Quick start</h3>
+      
+      <p>The command <strong>mispfetch</strong> is a streaming command. It cannot be on a first line of a SPL (key difference with <strong>mispgetioc</strong> and <strong>mispgetevent</strong>).</p>
+      
+      <p>It can take parameters from the command line or from the result set before. The values coming from the result set have priority over the values passed on the command line.</p>
+      
+      <p>This way is very flexible to adapt the REST HTTP body of the request against one of the 2 supported MISP REST API endpoints: /events/restSearch or /attributes/restSearch</p>
+      
+      <p>It has only one <strong>mandatory</strong> parameter "<strong>misp_instance:"</strong> that has to be set when the command is invoked. The following SPL are equivalent:</p>
+      
       <pre>
-<code>{
-    "returnFormat": "json",
-    "last": "1h",
-    "published": True,
-    "withAttachments": False
-}</code></pre>
-      </td>
-      <td>
-      <p>Provide an HTTP body in JSON format.</p>
-
-      <p>You can test it using the MISP RESP graphical client on MISP.</p>
-
-      <p>you can also use a SPL to prepare it.</p>
-
-      <p>⚠️ 2 keys are enforced on any HTTP body</p>
-
-      <ul>
-        <li>returnFormat: JSON</li>
-        <li>withAttachments: False</li>
-      </ul>
-      </td>
-    </tr>
-    <tr>
-      <td>attribute_limit</td>
-      <td>attribute_limit=&lt;int&gt;</td>
-      <td>1000</td>
-      <td>Limit the number of attributes per event when fetching events and getioc is True (param limit applies to the number of events). This parameter has no effect when fetching attributes (use limit in that case).</td>
-    </tr>
-    <tr>
-      <td>expand_object</td>
-      <td>expand_object=&lt;1|y|Y|t|true|True|0|n|N|f|false|False&gt;</td>
-      <td>False</td>
-      <td>Boolean to have object attributes expanded (one per row). By default, attributes of one object are displayed on same row.</td>
-    </tr>
-    <tr>
-      <td>getioc</td>
-      <td>getioc=&lt;1|y|Y|t|true|True|0|n|N|f|false|False&gt;</td>
-      <td>False</td>
-      <td>
-      <p>Include event attributes in the output. In tabular view there will be one row per object or attribute of events.</p>
-
-      <p>Valid only when fetching events.</p>
-      </td>
-    </tr>
-    <tr>
-      <td>keep_galaxy</td>
-      <td>keep_galaxy=&lt;1|y|Y|t|true|True|0|n|N|f|false|False&gt;</td>
-      <td>True</td>
-      <td>
-      <p>Boolean to keep Galaxy information (by default) or remove it.</p>
-
-      <p>It can be usefull for misp_output_mode=JSON if you plan to use spath that has a default limit of 5000 characters to parse the JSON payload.</p>
-      </td>
-    </tr>
-    <tr>
-      <td>limit</td>
-      <td>limit=&lt;1|y|Y|t|true|True|0|n|N|f|false|False&gt;</td>
-      <td>1000</td>
-      <td>Define the limit for each MISP search; default 1000. 0 = no pagination</td>
-    </tr>
-    <tr>
-      <td>misp_output_mode</td>
-      <td>misp_output_mode=(native|JSON)</td>
-      <td>native</td>
-      <td>native Splunk tabular view or JSON</td>
-    </tr>
-    <tr>
-      <td>not_tags</td>
-      <td>not_tags=&quot;&quot;</td>
-      <td>None</td>
-      <td>Comma(,)-separated string of tags to exclude. Wildcard is %.</td>
-    </tr>
-    <tr>
-      <td>only_to_ids</td>
-      <td>only_to_ids=&lt;1|y|Y|t|true|True|0|n|N|f|false|False&gt;</td>
-      <td>None</td>
-      <td>ctive only with getioc. If set to True, keep only attributes with flag to_ids set (ticked)</td>
-    </tr>
-    <tr>
-      <td>page</td>
-      <td>page=&lt;int&gt;</td>
-      <td>1</td>
-      <td>
-      <p>This parameter <strong>page</strong> works in combination with <strong>limit</strong>. Select the page to return when limit is not 0.</p>
-
-      <p><strong>Use limit=X (X!=0) and page=0 if you want to retrieve all data with pagination:</strong> The command willl iterate to retrieve X results maximum per request from page 1 to page Y in order to retrieve all data.</p>
-
-      <p>the outcome is equivalent to limit=0 except that the requests are smaller to process for MISP instance and transfer on the network with smaller responses.</p>
-      </td>
-    </tr>
-    <tr>
-      <td>pipesplit</td>
-      <td>pipesplit=&lt;1|y|Y|t|true|True|0|n|N|f|false|False&gt;</td>
-      <td>False</td>
-      <td>split combined attribute types such as domain|ip</td>
-    </tr>
-    <tr>
-      <td>tags</td>
-      <td>tags=&quot;&quot;</td>
-      <td>None</td>
-      <td>Comma(,)-separated string of tags to search for. Wildcard is %.</td>
-    </tr>
-  </tbody>
-</table>
-
-
-
+      <code class="language-python">| makeresults 
+      | mispfetch misp_instance="misp"</code>
+              </pre>
+      
+      <pre>
+      <code class="language-python">| makeresults 
+      | eval misp_instance="misp"
+      | mispfetch</code>
+              </pre>
+      
+      <h3>List of supported parameters</h3>
+      
+      <table border="1" cedllspacing="20" width="100%" align="center">
+        <thead>
+          <tr>
+            <th scope="col" style="width: 20%">Param</th>
+            <th scope="col" style="width: 20%">Syntax</th>
+            <th scope="col" style="width: 20%">Default</th>
+            <th scope="col">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+                      <strong>misp_instance</strong>
+                    </td>
+            <td>misp_instance=&lt;misp_account&gt;</td>
+            <td>None</td>
+            <td>One of the accounts defined in tab configuration (the list is also displayed on the drop-down box)</td>
+          </tr>
+          <tr>
+            <td>misp_restsearch</td>
+            <td>misp_restsearch=(events|attributes)</td>
+            <td>events</td>
+            <td>Use this parameter to select between the endpoint "/<strong>events</strong>/restSearch" or "/<strong>attributes</strong>/restSearch".</td>
+          </tr>
+          <tr>
+            <td>misp_http_body</td>
+            <td>misp_http_body=JSON</td>
+            <td>
+            <pre>
+      <code>{
+          "returnFormat": "json",
+          "last": "1h",
+          "published": True,
+          "withAttachments": False
+      }</code>
+                      </pre>
+            </td>
+            <td>
+            <p>Provide an HTTP body in JSON format.</p>
+      
+            <p>You can test it using the MISP RESP graphical client on MISP.</p>
+      
+            <p>you can also use a SPL to prepare it.</p>
+      
+            <p>⚠️ 2 keys are enforced on any HTTP body</p>
+      
+            <ul>
+              <li>returnFormat: JSON</li>
+              <li>withAttachments: False</li>
+            </ul>
+            </td>
+          </tr>
+          <tr>
+            <td>attribute_limit</td>
+            <td>attribute_limit=&lt;int&gt;</td>
+            <td>1000</td>
+            <td>Limit the number of attributes per event when fetching events and getioc is True (param limit applies to the number of events). This parameter has no effect when fetching attributes (use limit in that case).</td>
+          </tr>
+          <tr>
+            <td>expand_object</td>
+            <td>expand_object=&lt;1|y|Y|t|true|True|0|n|N|f|false|False&gt;</td>
+            <td>False</td>
+            <td>Boolean to have object attributes expanded (one per row). By default, attributes of one object are displayed on same row.</td>
+          </tr>
+          <tr>
+            <td>getioc</td>
+            <td>getioc=&lt;1|y|Y|t|true|True|0|n|N|f|false|False&gt;</td>
+            <td>False</td>
+            <td>
+            <p>Include event attributes in the output. In tabular view there will be one row per object or attribute of events.</p>
+      
+            <p>Valid only when fetching events.</p>
+            </td>
+          </tr>
+          <tr>
+            <td>keep_galaxy</td>
+            <td>keep_galaxy=&lt;1|y|Y|t|true|True|0|n|N|f|false|False&gt;</td>
+            <td>True</td>
+            <td>
+            <p>Boolean to keep Galaxy information (by default) or remove it.</p>
+      
+            <p>It can be usefull for misp_output_mode=JSON if you plan to use spath that has a default limit of 5000 characters to parse the JSON payload.</p>
+            </td>
+          </tr>
+          <tr>
+            <td>limit</td>
+            <td>limit=&lt;1|y|Y|t|true|True|0|n|N|f|false|False&gt;</td>
+            <td>1000</td>
+            <td>Define the limit for each MISP search; default 1000. 0 = no pagination</td>
+          </tr>
+          <tr>
+            <td>misp_output_mode</td>
+            <td>misp_output_mode=(native|JSON)</td>
+            <td>native</td>
+            <td>native Splunk tabular view or JSON</td>
+          </tr>
+          <tr>
+            <td>not_tags</td>
+            <td>not_tags=""</td>
+            <td>None</td>
+            <td>Comma(,)-separated string of tags to exclude. Wildcard is %.</td>
+          </tr>
+          <tr>
+            <td>only_to_ids</td>
+            <td>only_to_ids=&lt;1|y|Y|t|true|True|0|n|N|f|false|False&gt;</td>
+            <td>None</td>
+            <td>ctive only with getioc. If set to True, keep only attributes with flag to_ids set (ticked)</td>
+          </tr>
+          <tr>
+            <td>page</td>
+            <td>page=&lt;int&gt;</td>
+            <td>1</td>
+            <td>
+            <p>This parameter <strong>page</strong> works in combination with <strong>limit</strong>. Select the page to return when limit is not 0.</p>
+      
+            <p>
+                        <strong>Use limit=X (X!=0) and page=0 if you want to retrieve all data with pagination:</strong> The command willl iterate to retrieve X results maximum per request from page 1 to page Y in order to retrieve all data.</p>
+      
+            <p>the outcome is equivalent to limit=0 except that the requests are smaller to process for MISP instance and transfer on the network with smaller responses.</p>
+            </td>
+          </tr>
+          <tr>
+            <td>pipesplit</td>
+            <td>pipesplit=&lt;1|y|Y|t|true|True|0|n|N|f|false|False&gt;</td>
+            <td>False</td>
+            <td>split combined attribute types such as domain|ip</td>
+          </tr>
+          <tr>
+            <td>tags</td>
+            <td>tags=""</td>
+            <td>None</td>
+            <td>Comma(,)-separated string of tags to search for. Wildcard is %.</td>
+          </tr>
+        </tbody>
+      </table>
     </html>
     </panel>
   </row>

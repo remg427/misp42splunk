@@ -37,7 +37,7 @@
           <li>t1 is for type 1 : IOC false positive</li>
           <li>t2 is for type 2 : IOC expired</li>
         </ol>
-        <p></p>
+        <p/>
         <h3>list of of metadata per sighting type</h3>
         <p>Here is an example with type 0</p>
         <ul>

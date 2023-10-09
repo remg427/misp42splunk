@@ -2,7 +2,7 @@
   <init>
     <set token="misp_json_request"></set>
   </init>
-  <label></label>
+  <label>misprest</label>
   <description>MISP custom command misprest - Generic wrapper (Generating command)</description>
   <fieldset submitButton="false">
     <input type="time" token="TimePicker" searchWhenChanged="true">

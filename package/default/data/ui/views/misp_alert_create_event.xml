@@ -155,7 +155,7 @@
       <initialValue>False</initialValue>
     </input>
   </fieldset>
- <row>
+  <row>
     <html>
       <h3>In addition to parameters above, you can also set additional inline fields.</h3>
       <table border="1" cedllspacing="20px" width="100%" align="center">
