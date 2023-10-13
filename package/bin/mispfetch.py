@@ -132,7 +132,7 @@ def init_misp_output(event_dict, attr_dict, attr_column_names):
 
 
 def format_event_output_table(input_json, output_table, list_of_types,
-                              get_attr=False, pipesplit=False,
+                              host, get_attr=False, pipesplit=False,
                               only_to_ids=False):
 
     # process events and return a list of events
@@ -179,6 +179,7 @@ def format_event_output_table(input_json, output_table, list_of_types,
                                 tag_list.append(str(tag['name']))
                             except Exception:
                                 pass
+                    v['misp_host'] = host
                     v['misp_tag'] = tag_list
                     if get_attr is True:
                         v['Attribute'] = list()
@@ -272,7 +273,8 @@ def format_event_output_table(input_json, output_table, list_of_types,
     return list()
 
 
-def format_attribute_output_table(input_json, output_table, list_of_types,
+def format_attribute_output_table(input_json, output_table,
+                                  list_of_types, host,
                                   pipesplit=False, only_to_ids=False):
 
     common_columns = ["category", "to_ids", "timestamp", "comment",
@@ -313,6 +315,7 @@ def format_attribute_output_table(input_json, output_table, list_of_types,
                                 tag_list.append(str(tag['name']))
                             except Exception:
                                 pass
+                    v['misp_host'] = host
                     v['misp_tag'] = tag_list
                     # include Event metatdata
                     if 'Event' in a:
@@ -350,7 +353,7 @@ def format_attribute_output_table(input_json, output_table, list_of_types,
                             list_of_types.append(current_type)
 
 
-def format_attribute_output_json(input_json, output_dict):
+def format_attribute_output_json(input_json, output_dict, host):
     common_columns = ["category", "to_ids", "timestamp",
                       "first_seen", "last_seen", "type", "value"]
     attribute_specific_columns = ["id", "uuid"]
@@ -379,6 +382,7 @@ def format_attribute_output_json(input_json, output_dict):
                             tag_list.append(str(tag['name']))
                         except Exception:
                             pass
+                v['misp_host'] = host
                 v['misp_tag'] = tag_list
                 # include Event metatdata
                 if 'Event' in a:
@@ -939,7 +943,8 @@ class MispFetchCommand(StreamingCommand):
                 tags_criteria['NOT'] = mf_params['not_tags'].split(",")
             body_dict['tags'] = tags_criteria
 
-        body_dict['limit'] = mf_params['limit']
+        if 'limit' not in body_dict:
+            body_dict['limit'] = mf_params['limit']
         mf_params['page'] = int(mf_params['page'])
         if mf_params['page'] == 0:
             body_dict['page'] = 1
@@ -1036,6 +1041,7 @@ class MispFetchCommand(StreamingCommand):
                             single_event['misp_json'] = r_item['Event']
                             single_event['misp_event_uuid'] = r_item['Event']['uuid']
                             single_event['misp_timestamp'] = r_item['Event']['timestamp']
+                            single_event['misp_host'] = my_args['host']
                             single_event['_time'] = single_event['misp_timestamp']
                             # for a in list(r_item.values()):
 
@@ -1074,9 +1080,10 @@ class MispFetchCommand(StreamingCommand):
                     response,
                     events,
                     typelist,
-                    mf_params['getioc'],
-                    mf_params['pipesplit'],
-                    mf_params['only_to_ids'])
+                    my_args['host'],
+                    get_attr=mf_params['getioc'],
+                    pipesplit=mf_params['pipesplit'],
+                    only_to_ids=mf_params['only_to_ids'])
                 self.log_info(
                     '[MF-201] typelist contains {} values'
                     .format(len(typelist)))
@@ -1106,10 +1113,10 @@ class MispFetchCommand(StreamingCommand):
             attributes = list()
             typelist = list()
             if mf_params['misp_output_mode'] == "JSON":
-                format_attribute_output_json(response, output_dict)
+                format_attribute_output_json(response, output_dict, my_args['host'])
             else:
                 format_attribute_output_table(
-                    response, attributes, typelist,
+                    response, attributes, typelist, my_args['host'],
                     pipesplit=mf_params['pipesplit'],
                     only_to_ids=mf_params['only_to_ids'])
 
