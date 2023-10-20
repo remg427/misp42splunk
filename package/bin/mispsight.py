@@ -119,9 +119,6 @@ class MispSightCommand(StreamingCommand):
             m['misp_sight_' + sname + '_last_org_id'] = srec['org_id']
             m['misp_sight_' + sname + '_last_source'] = srec['source']
 
-        # s_list = m['misp_sightings']
-        # s_list.append(json.dumps(srec))
-        # m['misp_sightings'] = s_list
 
     def stream(self, records):
         # loggging
@@ -135,8 +132,7 @@ class MispSightCommand(StreamingCommand):
 
         fieldname = str(self.field)
         search_url = my_args['misp_url'] + '/attributes/restSearch'
-        sight_url = my_args['misp_url'] + \
-            '/sightings/restSearch/attribute'
+        sight_url_base = my_args['misp_url'] + '/sightings/index/'
 
         response = None
         connection, connection_status = urllib_init_pool(self, my_args)
@@ -153,7 +149,9 @@ class MispSightCommand(StreamingCommand):
                         value=str(value),
                         withAttachments="false")
                     if connection:
-                        response = urllib_request(self, connection, 'POST', search_url, search_dict, my_args) 
+                        response = urllib_request(
+                            self, connection, 'POST',
+                            search_url, search_dict, my_args)
                     if 'response' in response:
                         if 'Attribute' in response['response']:
                             # MISP API returned a JSON response
@@ -162,6 +160,15 @@ class MispSightCommand(StreamingCommand):
                                 "MISP REST API {}: response: with {} records"
                                 .format(search_url, str(r_number))
                             )
+
+                            event_list = list()
+                            attribute_list = dict()
+                            for a in response['response']['Attribute']:
+                                if a['event_id'] not in event_list:
+                                    event_list.append(a['event_id'])
+                                if a['id'] not in attribute_list:
+                                    attribute_list[a['id']] = a['value']
+
                             sightings = dict()
                             sight_types = ['t0', 't1', 't2']
                             metrics = [
@@ -180,30 +187,33 @@ class MispSightCommand(StreamingCommand):
                                 for metric in metrics:
                                     skey = 'misp_sight_' + stype + '_' + metric
                                     sight_counter[skey] = ''
+
                             # iterate through results to get sighting counters
-                            for a in response['response']['Attribute']:
-                                misp_value = str(a['value'])
-                                if misp_value in sightings:
-                                    a_sight = sightings[misp_value]
-                                else:
-                                    a_sight = sight_counter.copy()
-                                    a_sight['misp_value'] = misp_value
-                                sight_dict = {"returnFormat": "json"}
-                                sight_dict['id'] = str(a['id'])
-                                sight = urllib_request(self, connection, 'POST', sight_url, sight_dict, my_args) 
-                                if 'response' in sight:
-                                    for s in sight['response']:
-                                        if 'Sighting' in s:
-                                            # true sighting
-                                            sr = s['Sighting']
-                                            ty = int(sr['type'])
-                                            if ty == 0:
-                                                MispSightCommand._sight_metric(a_sight, 't0', sr)
-                                            elif ty == 1:
-                                                MispSightCommand._sight_metric(a_sight, 't1', sr)
-                                            elif ty == 2:
-                                                MispSightCommand._sight_metric(a_sight, 't2', sr)
-                                sightings[misp_value] = a_sight
+                            sight_dict = {"returnFormat": "json"}
+                            for e in event_list:
+                                sight_url = sight_url_base + e
+                                sight = urllib_request(
+                                    self, connection, 'GET',
+                                    sight_url, sight_dict, my_args)
+                                for s in sight:
+                                    if s['attribute_id'] in attribute_list:
+                                        misp_value = str(
+                                            attribute_list[s['attribute_id']])
+                                        if misp_value in sightings:
+                                            a_sight = sightings[misp_value]
+                                        else:
+                                            a_sight = sight_counter.copy()
+                                            a_sight['misp_value'] = misp_value
+                                        # true sighting
+                                        ty = int(s['type'])
+                                        if ty == 0:
+                                            MispSightCommand._sight_metric(a_sight, 't0', s)
+                                        elif ty == 1:
+                                            MispSightCommand._sight_metric(a_sight, 't1', s)
+                                        elif ty == 2:
+                                            MispSightCommand._sight_metric(a_sight, 't2', s)
+
+                                        sightings[misp_value] = a_sight
 
                             init_record = True
                             for srec in sightings.values():
