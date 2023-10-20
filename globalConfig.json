@@ -3,7 +3,7 @@
         "name": "misp42splunk",
         "restRoot": "misp42splunk",
         "displayName": "misp42",
-        "version": "4.2.3",
+        "version": "4.3.0",
         "schemaVersion": "0.0.3"
     },
     "pages": {
@@ -472,6 +472,14 @@
                             {
                                 "value": "TLP_RED",
                                 "label": "RED"
+                            },
+                            {
+                                "value": "TLP_UNCLEAR",
+                                "label": "UNCLEAR"
+                            },
+                            {
+                                "value": "TLP_EX_CHR",
+                                "label": "EX_CHR"
                             }
                         ]
                     },

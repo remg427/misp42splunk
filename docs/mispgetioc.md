@@ -27,6 +27,11 @@ The command syntax is as follow:
             to_ids = boolean
             type = string (comma-separated)
             warning_list = boolean
+            include_decay_score = boolean
+            decaying_model = integer
+            exclude_decayed = boolean
+            decay_score_threshold = integer
+
         
 ----
     Note: Boolean can be <1|y|Y|t|true|True|0|n|N|f|false|False>
@@ -192,6 +197,26 @@ another example:
         **Syntax:** **warning_list=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
         **Description:**Boolean to filter out well known values.''',
         require=False, validate=validators.Boolean())
+    include_decay_score = Option(
+        doc='''
+        **Syntax:** **include_decay_score=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
+        **Description:**Boolean to return decay sores.''',
+        require=False, validate=validators.Boolean(), default=False)
+    decaying_model = Option(
+        doc='''
+        **Syntax:** **decaying_model=***<int>*
+        **Description:**ID of the decaying model to select specific model.''',
+        require=False, validate=validators.Match("decaying_model", r"^[0-9]+$"))
+    exclude_decayed = Option(
+        doc='''
+        **Syntax:** **exclude_decayed=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
+        **Description:**Boolean to exclude decayed attributes.''',
+        require=False, validate=validators.Boolean(), default=False)
+    decay_score_threshold = Option(
+        doc='''
+        **Syntax:** **decay_score_threshold=***<int>*
+        **Description:**define the minimum sore to override on-the-fly the threshold of the decaying model.''',
+        require=False, validate=validators.Match("decay_score_threshold", r"^[0-9]+$"))
 
 ## logging
 in the app, you can set the logging level. logs are written to misp42.log (access via inspect jobs).

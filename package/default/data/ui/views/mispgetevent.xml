@@ -21,7 +21,8 @@
     <set token="param_type"></set>
     <set token="param_warning_list"></set>
   </init>
-  <label>MISP custom command mispgetevent</label>
+  <label>mispgetevent</label>
+  <description>MISP custom command mispgetevent (Generating command)</description>
   <fieldset submitButton="true" autoRun="false">
     <input type="dropdown" token="misp_instance" searchWhenChanged="true">
       <label>misp_instance*</label>
@@ -34,6 +35,9 @@
         <earliest>-24h@h</earliest>
         <latest>now</latest>
       </search>
+    </input>
+    <input type="text" token="misp_instance">
+      <label>misp_instance*</label>
     </input>
     <input type="text" token="timestamp" searchWhenChanged="true">
       <label>timestamp</label>
@@ -125,9 +129,9 @@
           <set token="param_getioc"></set>
         </condition>
       </change>
+      <choice value="not_set">not set</choice>
       <choice value="true">True</choice>
       <choice value="false">False</choice>
-      <choice value="not_set">Not set</choice>
     </input>
     <input type="radio" token="expand_object" searchWhenChanged="true">
       <label>expand_object</label>
@@ -139,12 +143,12 @@
           <set token="param_expand_object">expand_object=$expand_object$</set>
         </condition>
         <condition match="$value$=&quot;not_set&quot;">
-          <set token="param_expand_object">expand_object=$expand_object$</set>
+          <set token="param_expand_object"></set>
         </condition>
       </change>
+      <choice value="not_set">not set</choice>
       <choice value="true">True</choice>
       <choice value="false">False</choice>
-      <choice value="not_set">not set</choice>
     </input>
     <input type="radio" token="onlyids" searchWhenChanged="true">
       <label>only_to_ids</label>
@@ -159,9 +163,9 @@
           <set token="param_onlyids"></set>
         </condition>
       </change>
+      <choice value="not_set">not set</choice>
       <choice value="true">True</choice>
       <choice value="false">False</choice>
-      <choice value="not_set">Not set</choice>
     </input>
     <input type="radio" token="keep_galaxy" searchWhenChanged="true">
       <label>keep_galaxy</label>
@@ -176,9 +180,9 @@
           <set token="param_keep_galaxy"></set>
         </condition>
       </change>
+      <choice value="not_set">not set</choice>
       <choice value="true">True</choice>
       <choice value="false">False</choice>
-      <choice value="not_set">Not set</choice>
     </input>
     <input type="radio" token="keep_related" searchWhenChanged="true">
       <label>keep_related</label>
@@ -193,9 +197,9 @@
           <set token="param_keep_related"></set>
         </condition>
       </change>
+      <choice value="not_set">not set</choice>
       <choice value="true">True</choice>
       <choice value="false">False</choice>
-      <choice value="not_set">Not set</choice>
     </input>
     <input type="radio" token="pipesplit" searchWhenChanged="true">
       <label>pipesplit</label>
@@ -210,9 +214,9 @@
           <set token="param_pipesplit"></set>
         </condition>
       </change>
+      <choice value="not_set">not set</choice>
       <choice value="true">True</choice>
       <choice value="false">False</choice>
-      <choice value="not_set">Not set</choice>
     </input>
     <input type="radio" token="published" searchWhenChanged="true">
       <label>published</label>
@@ -227,9 +231,9 @@
           <set token="param_published"></set>
         </condition>
       </change>
+      <choice value="not_set">not set</choice>
       <choice value="true">True</choice>
       <choice value="false">False</choice>
-      <choice value="not_set">Not set</choice>
     </input>
     <input type="radio" token="warning_list" searchWhenChanged="true">
       <label>warning_list</label>
@@ -244,9 +248,9 @@
           <set token="param_warning_list"></set>
         </condition>
       </change>
+      <choice value="not_set">not set</choice>
       <choice value="true">True</choice>
       <choice value="false">False</choice>
-      <choice value="not_set">Not set</choice>
     </input>
     <input type="radio" token="output" searchWhenChanged="true">
       <label>output</label>
@@ -316,17 +320,17 @@
         <h3>Select a misp_instance and one (and only one) parameter amongst:</h3>
         <ul>
           <li>
-            <strong>timestamp:</strong> Restrict the results by the timestamp (last edit). Any event with a timestamp newer than the given timestamp will be returned. In case you are dealing with /attributes as scope, the attribute's timestamp will be used for the lookup. The input can be a timestamp or a short-hand time description (7d or 24h for example). You can also pass a list with two values to set a time range (for example "14d,7d").
+            <strong>timestamp:</strong> Restrict the results by the timestamp (last edit). Any event with a timestamp newer than the given timestamp will be returned. The input can be a timestamp or a short-hand time description (7d or 24h for example). You can also pass a list with two values to set a time range (for example "14d,7d").
           </li>
           <li>
-            <strong>json_request:</strong> a valid JSON payload</li>
+            <strong>json_request:</strong> a valid JSON payload equivalent to MISP REST HTTP body.</li>
           <li>
             <strong>eventid:</strong> list of event ID(s) or event UUID(s) (the separator is a comma ",")</li>
           <li>
             <strong>publish_timestamp:</strong> Restrict the results by the timestamp of the last publishing of the event. The input can be a timsetamp or a short-hand time description (7d or 24h for example). You can also pass a list with two values to set a time range (for example "14d,7d").
           </li>
           <li>
-            <strong>date:</strong>You can use either ISO 8601 date format (YYYY-mm-dd) or any of the valid time related filters (examples: 7d, timestamps,  etc.)
+            <strong>date:</strong> You can use either ISO 8601 date format (YYYY-mm-dd) or any of the valid time related filters (examples: 7d, timestamps,  etc.)
             <ul>
               <li>If only one value is provided, it will search from that date e.g. "2023-01-01" or "100d".</li>
               <li>To provide a range, use following notation "2023-01-01,2023-01-31" or "93d,62d".</li>
@@ -350,7 +354,7 @@
         <tr>
             <td>expand_object</td>
             <td>expand_object=1|y|Y|t|true|True|0|n|N|f|false|False </td>
-            <td>Boolean to have object attributes expanded (one per line). By default, attributes of one object are displayed on same line.</td>
+            <td>Boolean to have object attributes expanded (one per row). By default, attributes of one object are displayed on same row.</td>
         </tr>
         <tr>
             <td>getioc</td>
@@ -360,12 +364,12 @@
         <tr>
             <td>keep_galaxy</td>
             <td>keep_galaxy=1|y|Y|t|true|True|0|n|N|f|false|False </td>
-            <td>Boolean to keep Galaxy info (by default) or remove it in ouput=raw (full JSON record). This is useful if you plan to use spath that has a limit opf 5000 characters to parse.</td>
+            <td>Boolean to keep Galaxy info (by default) or remove it in ouput=raw (full JSON record). This is useful if you plan to use spath that has a limit of 5000 characters to parse the JSON payload.</td>
         </tr>
        <tr>
             <td>keep_related</td>
             <td>keep_related=1|y|Y|t|true|True|0|n|N|f|false|False </td>
-            <td>Boolean to keep Related event info (by default) or remove it in ouput=raw (full JSON record). This is useful if you plan to use spath that has a limit opf 5000 characters to parse.</td>
+            <td>Boolean to keep Related event info (by default) or remove it in ouput=raw (full JSON record). This is useful if you plan to use spath that has a limit of 5000 characters to parse the JSON payload.</td>
         </tr>
         <tr>
             <td>limit</td>
@@ -385,7 +389,7 @@
         <tr>
             <td>output</td>
             <td>output=(default|raw)</td>
-            <td>selection between the default behaviou or JSON output by attribute.</td>
+            <td>selection between the default Splunk tabular view or JSON output.</td>
         </tr>
         <tr>
             <td>page</td>
@@ -395,7 +399,7 @@
         <tr>
             <td>pipesplit</td>
             <td>pipesplit=1|y|Y|t|true|True|0|n|N|f|false|False </td>
-            <td>Boolean to split multivalue attributes.</td>
+            <td>Boolean to split combined attributes.</td>
         </tr>
         <tr>
             <td>published</td>

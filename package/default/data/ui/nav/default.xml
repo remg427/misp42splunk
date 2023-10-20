@@ -1,6 +1,7 @@
 <nav search_view="search" color="#2FA1DB">
-	<view name="misp-overview" label="Overview" default="true"/>
+	<view name="misp_overview" label="Overview" default="true"/>
 	<collection label="MISP custom commands">
+		<view name="mispfetch" label="Fetch MISP data"/>
 		<view name="mispgetioc" label="Get MISP attributes"/>
       	<view name="mispgetevent" label="Get MISP events"/>
 		<view name="mispsearch" label="Search MISP for matching attributes"/>

@@ -156,12 +156,16 @@
                 name="action.misp_alert_create_event.param.tlp" 
                 id="misp_alert_create_event_tlp">
                 <option value="TLP_WHITE">WHITE</option>
+                <option value="TLP_CLEAR">CLEAR</option>
                 <option value="TLP_GREEN">GREEN</option>
                 <option value="TLP_AMBER" selected>AMBER</option>
+                <option value="TLP_AMBER+STRICT">AMBER+STRICT</option>
                 <option value="TLP_RED">RED</option>
+                <option value="TLP_UNCLEAR">UNCLEAR</option>
+                <option value="TLP_EX_CHR">EX:CHR</option>
             </select>
             <span class="help-block"> 
-                Change the TLP of the created alert. Defaults to TLP-Amber
+                Change the TLP of the created alert. Defaults to TLP:AMBER
             </span>
         </div>
     </div>

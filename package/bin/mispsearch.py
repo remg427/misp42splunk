@@ -15,11 +15,28 @@ from splunklib.searchcommands import dispatch, StreamingCommand, Configuration, 
 from misp_common import prepare_config, logging_level, urllib_init_pool, urllib_request
 import json
 import logging
+import os
 import sys
+
+splunkhome = os.environ['SPLUNK_HOME']
+
+# set logging
+filehandler = logging.FileHandler(splunkhome
+                                  + "/var/log/splunk/misp42splunk.log", 'a')
+formatter = logging.Formatter('%(asctime)s %(levelname)s %(filename)s \
+                              %(funcName)s %(lineno)d %(message)s')
+filehandler.setFormatter(formatter)
+log = logging.getLogger()  # root logger - Good to get it only once.
+for hdlr in log.handlers[:]:  # remove the existing file handlers
+    if isinstance(hdlr, logging.FileHandler):
+        log.removeHandler(hdlr)
+log.addHandler(filehandler)      # set the new handler
+# set the log level to INFO, DEBUG as the default is ERROR
+log.setLevel(logging.INFO)
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "4.2.1"
+__version__ = "4.3.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -153,12 +170,8 @@ class MispSearchCommand(StreamingCommand):
         my_args['misp_url'] = my_args['misp_url'] + '/attributes/restSearch'
 
         fieldname = str(self.field)
-        pagination = True
         if self.limit is not None:
-            if int(self.limit) == 0:
-                pagination = False
-            else:
-                limit = int(self.limit)
+            limit = int(self.limit)
         else:
             limit = 1000
         if self.page is not None:
@@ -169,20 +182,13 @@ class MispSearchCommand(StreamingCommand):
         if self.json_request is not None:
             body_dict = json.loads(self.json_request)
             self.log_info('Option "json_request" set')
-            body_dict['returnFormat'] = 'json'
-            body_dict['withAttachments'] = False
             if 'limit' in body_dict:
                 limit = int(body_dict['limit'])
-                if limit == 0:
-                    pagination = False
             if 'page' in body_dict:
                 page = body_dict['page']
-                pagination = False
         else:
             # build search JSON object
-            body_dict = {"returnFormat": "json",
-                         "withAttachments": False
-                         }
+            body_dict = dict()
             if self.to_ids is True:
                 body_dict['to_ids'] = "True"
             if self.includeEventUuid is not None:
@@ -191,29 +197,29 @@ class MispSearchCommand(StreamingCommand):
                 body_dict['includeEventTags'] = self.includeEventTags
             if self.last is not None:
                 body_dict['last'] = self.last
+        body_dict['returnFormat'] = 'json'
+        body_dict['withAttachments'] = False
+        body_dict['limit'] = limit
+        body_dict['page'] = page
 
         response = None
         connection, connection_status = urllib_init_pool(self, my_args)
+
+        common_columns = ["category", "to_ids", "timestamp", "comment",
+                          "deleted", "disable_correlation",
+                          "first_seen", "last_seen", "object_id",
+                          "object_relation", "type", "value"]
+        attribute_specific_columns = ["id", "distribution",
+                                      "sharing_group_id", "uuid"]
+        attr_event_columns = ["id", "uuid", "distribution", "info"]
+        organisation_columns = ["org_id", "orgc_id"]
 
         for record in records:
             if fieldname in record:
                 value = record.get(fieldname, None)
                 if value is not None:
                     body_dict['value'] = str(value)
-                    misp_category = []
-                    misp_event_id = []
-                    misp_event_uuid = []
-                    misp_orgc_id = []
-                    misp_to_ids = []
-                    misp_comment = []
-                    misp_tag = []
-                    misp_type = []
-                    misp_value = []
-                    misp_uuid = []
                     # search
-                    if pagination is True:
-                        body_dict['page'] = page
-                        body_dict['limit'] = limit
 
                     if connection:
                         response = urllib_request(self,
@@ -225,44 +231,64 @@ class MispSearchCommand(StreamingCommand):
 
                     if 'response' in response:
                         if 'Attribute' in response['response']:
+                            # prepend key names with misp_attribute
+                            for asc in attribute_specific_columns:
+                                misp_asc = "misp_attribute_" + asc
+                                record[misp_asc] = list()
+                            # prepend key names with misp_
+                            for cc in common_columns:
+                                misp_cc = "misp_" + cc
+                                record[misp_cc] = list()
+                            record['misp_tag'] = list()
+                            # prepend key names with misp_event_
+                            for aec in attr_event_columns:
+                                misp_aec = "misp_event_" + aec
+                                record[misp_aec] = list()
+                            for oc in organisation_columns:
+                                misp_oc = "misp_" + oc
+                                record[misp_oc] = list()
+
                             for a in response['response']['Attribute']:
-                                if str(a['type']) not in misp_type:
-                                    misp_type.append(str(a['type']))
-                                if str(a['value']) not in misp_value:
-                                    misp_value.append(str(a['value']))
-                                if str(a['to_ids']) not in misp_to_ids:
-                                    misp_to_ids.append(str(a['to_ids']))
-                                if str(a['comment']) not in misp_comment:
-                                    misp_comment.append(str(a['comment']))
-                                if str(a['category']) not in misp_category:
-                                    misp_category.append(str(a['category']))
-                                if str(a['uuid']) not in misp_uuid:
-                                    misp_uuid.append(str(a['uuid']))
-                                if str(a['event_id']) not in misp_event_id:
-                                    misp_event_id.append(str(a['event_id']))
+                                # prepend key names with misp_attribute_
+                                for asc in attribute_specific_columns:
+                                    misp_asc = "misp_attribute_" + asc
+                                    if asc in a:
+                                        value = str(a[asc])
+                                        if value not in record[misp_asc]:
+                                            record[misp_asc].append(value)
+                                # prepend key names with misp_
+                                for cc in common_columns:
+                                    misp_cc = "misp_" + cc
+                                    if cc in a:
+                                        value = str(a[cc])
+                                        if value not in record[misp_cc]:
+                                            record[misp_cc].append(value)
+                                # append attribute tags to tag list
+                                tag_list = record['misp_tag']
                                 if 'Tag' in a:
                                     for tag in a['Tag']:
-                                        if str(tag['name']) not in misp_tag:
-                                            misp_tag.append(str(tag['name']))
+                                        try:
+                                            if tag not in tag_list:
+                                                tag_list.append(
+                                                    str(tag['name']))
+                                        except Exception:
+                                            pass
+                                record['misp_tag'] = tag_list
+                                # include Event metatdata
                                 if 'Event' in a:
-                                    if a['Event']['uuid'] \
-                                       not in misp_event_uuid:
-                                        misp_event_uuid.append(
-                                            str(a['Event']['uuid']))
-                                    if a['Event']['orgc_id'] \
-                                       not in misp_orgc_id:
-                                        misp_orgc_id.append(
-                                            str(a['Event']['orgc_id']))
-                            record['misp_type'] = misp_type
-                            record['misp_value'] = misp_value
-                            record['misp_to_ids'] = misp_to_ids
-                            record['misp_comment'] = misp_comment
-                            record['misp_category'] = misp_category
-                            record['misp_attribute_uuid'] = misp_uuid
-                            record['misp_event_id'] = misp_event_id
-                            record['misp_event_uuid'] = misp_event_uuid
-                            record['misp_orgc_id'] = misp_orgc_id
-                            record['misp_tag'] = misp_tag
+                                    for aec in attr_event_columns:
+                                        misp_aec = "misp_event_" + aec
+                                        if aec in a['Event']:
+                                            value = a['Event'][aec]
+                                            if value not in record[misp_aec]:
+                                                record[misp_aec].append(value)
+                                    for oc in organisation_columns:
+                                        misp_oc = "misp_" + oc
+                                        if oc in a['Event']:
+                                            value = a['Event'][oc]
+                                            if value not in record[misp_oc]:
+                                                record[misp_oc].append(value)
+            # return enriched record
             yield record
 
 
