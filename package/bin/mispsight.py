@@ -16,10 +16,10 @@ from misp_common import prepare_config, logging_level, urllib_init_pool, urllib_
 import json
 import logging
 import sys
-
+·
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "4.2.1"
+__version__ = "4.3.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
