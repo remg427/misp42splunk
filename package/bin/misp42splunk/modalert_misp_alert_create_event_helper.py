@@ -21,7 +21,7 @@ from io import open
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "4.2.1"
+__version__ = "4.3.1"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -281,43 +281,38 @@ def prepare_misp_events(helper, config, event_list):
         no_template = init_object_template(helper, 'domain-ip')
         no_attribute = []
         for key, value in list(row.items()):
-            if '\n' in value: # was a multivalue field
-                values = value.splitlines()
-            else:
-                values = value.split()
-
-            for v in values:
+            for single in str(value).split("\n"):
                 attribute_metadata = attribute_baseline.copy()
-                if key.startswith("misp_") and v not in [None, '']:
+                if key.startswith("misp_") and single not in [None, '']:
                     misp_key = str(key).replace('misp_', '').replace('_', '-')
                     attribute_metadata['type'] = misp_key
-                    attribute_metadata['value'] = str(v)
+                    attribute_metadata['value'] = str(single)
                     attributes.append(attribute_metadata)
-                elif key.startswith("fo_") and v not in [None, '']:
+                elif key.startswith("fo_") and single not in [None, '']:
                     fo_key = str(key).replace('fo_', '').replace('_', '-')
                     object_attribute = store_object_attribute(
-                        fo_template['attributes'], fo_key, str(v),
+                        fo_template['attributes'], fo_key, str(single),
                         metadata=attribute_metadata)
                     if object_attribute:
                         fo_attribute.append(object_attribute)
-                elif key.startswith("eo_") and v not in [None, '']:
+                elif key.startswith("eo_") and single not in [None, '']:
                     eo_key = str(key).replace('eo_', '').replace('_', '-')
                     object_attribute = store_object_attribute(
-                        eo_template['attributes'], eo_key, str(v),
+                        eo_template['attributes'], eo_key, str(single),
                         metadata=attribute_metadata)
                     if object_attribute:
                         eo_attribute.append(object_attribute)
-                elif key.startswith("no_") and v not in [None, '']:
+                elif key.startswith("no_") and single not in [None, '']:
                     no_key = str(key).replace('no_', '').replace('_', '-')
                     object_attribute = store_object_attribute(
-                        no_template['attributes'], no_key, str(v),
+                        no_template['attributes'], no_key, str(single),
                         metadata=attribute_metadata)
                     if object_attribute:
                         no_attribute.append(object_attribute)
                 elif key in data_type:
                     misp_key = data_type[key]
                     attribute_metadata['type'] = misp_key
-                    attribute_metadata['value'] = str(v)
+                    attribute_metadata['value'] = str(single)
                     attributes.append(attribute_metadata)
 
         # update event attribute list
