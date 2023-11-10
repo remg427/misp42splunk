@@ -21,7 +21,7 @@ from io import open
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "4.2.1"
+__version__ = "4.3.1"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -281,38 +281,39 @@ def prepare_misp_events(helper, config, event_list):
         no_template = init_object_template(helper, 'domain-ip')
         no_attribute = []
         for key, value in list(row.items()):
-            attribute_metadata = attribute_baseline.copy()
-            if key.startswith("misp_") and value not in [None, '']:
-                misp_key = str(key).replace('misp_', '').replace('_', '-')
-                attribute_metadata['type'] = misp_key
-                attribute_metadata['value'] = str(value)
-                attributes.append(attribute_metadata)
-            elif key.startswith("fo_") and value not in [None, '']:
-                fo_key = str(key).replace('fo_', '').replace('_', '-')
-                object_attribute = store_object_attribute(
-                    fo_template['attributes'], fo_key, str(value),
-                    metadata=attribute_metadata)
-                if object_attribute:
-                    fo_attribute.append(object_attribute)
-            elif key.startswith("eo_") and value not in [None, '']:
-                eo_key = str(key).replace('eo_', '').replace('_', '-')
-                object_attribute = store_object_attribute(
-                    eo_template['attributes'], eo_key, str(value),
-                    metadata=attribute_metadata)
-                if object_attribute:
-                    eo_attribute.append(object_attribute)
-            elif key.startswith("no_") and value not in [None, '']:
-                no_key = str(key).replace('no_', '').replace('_', '-')
-                object_attribute = store_object_attribute(
-                    no_template['attributes'], no_key, str(value),
-                    metadata=attribute_metadata)
-                if object_attribute:
-                    no_attribute.append(object_attribute)
-            elif key in data_type:
-                misp_key = data_type[key]
-                attribute_metadata['type'] = misp_key
-                attribute_metadata['value'] = str(value)
-                attributes.append(attribute_metadata)
+            for single in str(value).split("\n"):
+                attribute_metadata = attribute_baseline.copy()
+                if key.startswith("misp_") and single not in [None, '']:
+                    misp_key = str(key).replace('misp_', '').replace('_', '-')
+                    attribute_metadata['type'] = misp_key
+                    attribute_metadata['value'] = str(single)
+                    attributes.append(attribute_metadata)
+                elif key.startswith("fo_") and single not in [None, '']:
+                    fo_key = str(key).replace('fo_', '').replace('_', '-')
+                    object_attribute = store_object_attribute(
+                        fo_template['attributes'], fo_key, str(single),
+                        metadata=attribute_metadata)
+                    if object_attribute:
+                        fo_attribute.append(object_attribute)
+                elif key.startswith("eo_") and single not in [None, '']:
+                    eo_key = str(key).replace('eo_', '').replace('_', '-')
+                    object_attribute = store_object_attribute(
+                        eo_template['attributes'], eo_key, str(single),
+                        metadata=attribute_metadata)
+                    if object_attribute:
+                        eo_attribute.append(object_attribute)
+                elif key.startswith("no_") and single not in [None, '']:
+                    no_key = str(key).replace('no_', '').replace('_', '-')
+                    object_attribute = store_object_attribute(
+                        no_template['attributes'], no_key, str(single),
+                        metadata=attribute_metadata)
+                    if object_attribute:
+                        no_attribute.append(object_attribute)
+                elif key in data_type:
+                    misp_key = data_type[key]
+                    attribute_metadata['type'] = misp_key
+                    attribute_metadata['value'] = str(single)
+                    attributes.append(attribute_metadata)
 
         # update event attribute list
         event['Attribute'] = list(attributes)
@@ -368,6 +369,7 @@ def process_misp_events(helper, config, results, event_list):
     status = 200
     connection, connection_status = urllib_init_pool(helper, config)
     for eventkey in results:
+        helper.log_debug("[AL-PME-D01] payload is {}".format(results[eventkey]))
         if event_list[eventkey] == "0":  # create new event
 
             if connection:
