@@ -209,7 +209,7 @@ def format_output_table(input_json, output_table, list_of_types,
                                             attribute['type'].split('|')
                                         mv_value_list = \
                                             str(attribute['value']).split('|')
-                                        left_a = attribute.deepcopy()
+                                        left_a = attribute.copy()
                                         left_a['type'] = mv_type_list.pop()
                                         left_a['value'] = mv_value_list.pop()
                                         if left_a['type'] not in list_of_types:
@@ -218,7 +218,7 @@ def format_output_table(input_json, output_table, list_of_types,
                                             getattribute(left_a, 
                                                          pipesplit,
                                                          object_dict))
-                                        right_a = attribute.deepcopy()
+                                        right_a = attribute.copy()
                                         right_a['type'] = mv_type_list.pop()
                                         right_a['value'] = mv_value_list.pop()
                                         if right_a['type'] not in list_of_types:
