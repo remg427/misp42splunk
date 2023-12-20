@@ -10,7 +10,7 @@ import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 __license__ = "LGPLv3"
-__version__ = "4.2.0"
+__version__ = "4.3.1.1"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -269,7 +269,6 @@ def urllib_request(helper, url_connection, method, misp_url, body, config):
 
         r = misp_url_request(url_connection, method, misp_url, body, headers)
 
-
         if r.status in (200, 201, 204):
             helper.log_info(
                 "[MC501] INFO {} request is successful. url={}, HTTP status={}".format(
@@ -287,8 +286,8 @@ def urllib_request(helper, url_connection, method, misp_url, body, config):
                     }
     except Exception as e:  # failed to execute request
         data = {'_time': time.time(),
-                '_raw': "[MC503] DEBUG urlib3 {} request failed error={} url={} body={} HTTP status={} r={}".format(
-                method, e, misp_url, body, r.status, r.data)
+                '_raw': "[MC503] DEBUG urlib3 {} request failed error={} url={} body={}".format(
+                method, e, misp_url, body)
                 }
 
     return data
