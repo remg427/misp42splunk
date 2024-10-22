@@ -39,7 +39,7 @@ log.setLevel(logging.INFO)
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "4.3.0"
+__version__ = "4.4.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -50,14 +50,13 @@ MISPFETCH_INIT_PARAMS = {
     # optional parameters
     'misp_restsearch': 'events',
     'misp_http_body': None,
-    'misp_output_mode': 'native',
+    'misp_output_mode': 'fields',
     'expand_object': False,
     'getioc': False,
     'keep_galaxy': True,
     'only_to_ids': False,
     'pipesplit': False,
     'limit': 1000,
-    'page': 1,
     'attribute_limit': 1000,
     'not_tags': None,
     'tags': None}
@@ -82,7 +81,7 @@ def getattribute(a_item, pipesplit=False, object_data={}):
     if 'Tag' in a_item:
         tags = a_item['Tag']
         for tag in tags:
-            if tag not in tag_list:
+            if tag['name'] not in tag_list:
                 tag_list.append(str(tag['name']))
     misp_a['misp_attribute_tag'] = tag_list
 
@@ -443,7 +442,6 @@ class MispFetchCommand(StreamingCommand):
     #### Parameters directly available
     {
         "returnFormat": "json",
-        "page": managed,
         "limit": managed,
         "tag": managed
         "not_tags": managed
@@ -484,7 +482,6 @@ class MispFetchCommand(StreamingCommand):
     #### Parzameters directly available
     {
         "returnFormat": "json",
-        "page": managed,
         "limit": managed,
         "tags": managed
         "not_tags": managed
@@ -496,88 +493,131 @@ class MispFetchCommand(StreamingCommand):
         doc='''
         **Syntax:** misp_instance=<string>
         **Description:**MISP instance parameters as described
-         in local/misp42splunk_instances.conf.''',
-        require=False)
+         in local/misp42splunk_instances.conf.
+         ''',
+        require=False
+    )
+
     misp_restsearch = Option(
         doc='''
         **Syntax:** misp_restsearch=<string>
         **Description:**define the restSearch endpoint.
-        Either "events" or "attributes". Default events''',
-        require=False, validate=validators.Match(
-            "misp_restsearch", r"^(events|attributes)$"))
+        Either "events" or "attributes". Default events
+        ''',
+        require=False, 
+        validate=validators.Match(
+            "misp_restsearch", r"^(events|attributes)$")
+    )
+
     misp_http_body = Option(
         doc='''
         **Syntax:** misp_http_body=<JSON>
-        **Description:**Valid JSON request''',
-        require=False)
+        **Description:**Valid JSON request
+        ''',
+        require=False
+    )
+
     misp_output_mode = Option(
         doc='''
         **Syntax:** misp_output_mode=<string>
         **Description:**define how to render on Splunk either as native
-         tabular view or JSON object.
-         Either "native" or "JSON". Default native''',
-        require=False, validate=validators.Match(
-            "misp_output_mode", r"^(native|JSON)$"))
+        tabular view (`fields`)or JSON object (`json`).
+        ''',
+        require=False,
+        default="fields",
+        validate=validators.Match(
+            "misp_output_mode", r"^(fields|json)$")
+    )
+
     expand_object = Option(
         doc='''
         **Syntax:** expand_object=<1|y|Y|t|true|True|0|n|N|f|false|False>
         **Description:**Boolean to expand object attributes one per line.
-        By default, attributes of one object are displayed on same line.''',
-        require=False, validate=validators.Boolean())
+        By default, attributes of one object are displayed on same line.
+        ''',
+        require=False, 
+        validate=validators.Boolean()
+    )
+
     getioc = Option(
         doc='''
         **Syntax:** getioc=<1|y|Y|t|true|True|0|n|N|f|false|False>
         **Description:**Boolean to return the list of attributes
-         together with the event.''',
-        require=False, validate=validators.Boolean())
+         together with the event.
+        ''',
+        require=False, 
+        validate=validators.Boolean()
+    )
+
     keep_galaxy = Option(
         doc='''
         **Syntax:** keep_galaxy=<1|y|Y|t|true|True|0|n|N|f|false|False>
         **Description:**Boolean to remove galaxy part
-        (useful with misp_output_mode=JSON)''',
-        require=False, validate=validators.Boolean())
+        (useful with misp_output_mode=json)
+        ''',
+        require=False, 
+        validate=validators.Boolean()
+    )
+
     limit = Option(
         doc='''
         **Syntax:** limit=<int>
-        **Description:**define the limit for each MISP search; default 1000.
-        0 = no pagination.''',
-        require=False, validate=validators.Match("limit", r"^[0-9]+$"))
+        **Description:**define the limit for each MISP search 
+        0 = no pagination.
+        ''',
+        require=False,
+        default=1000,
+        validate=validators.Integer()
+    )
+
     attribute_limit = Option(
         doc='''
         **Syntax:** attribute_limit=<int>
         **Description:**define the attribute_limit for max count of
          returned attributes for each MISP default;
-         default 1000. 0 = no pagination.''',
-        require=False, validate=validators.Match(
-            "attribute_limit", r"^[0-9]+$"))
+         default 1000. 0 = no pagination.
+        ''',
+        require=False, 
+        default=1000,
+        validate=validators.Integer()
+    )
+
     not_tags = Option(
         doc='''
-        **Syntax:** not_tags=CSV string*
+        **Syntax:** not_tags=<string>,<string>*
         **Description:**Comma(,)-separated string of tags to exclude.
-        Wildcard is %.''',
-        require=False)
+        Wildcard is %.
+        ''',
+        require=False
+    )
+
     only_to_ids = Option(
         doc='''
         **Syntax:** only_to_ids=<1|y|Y|t|true|True|0|n|N|f|false|False>
         **Description:**Boolean to search only attributes with the flag
-         "to_ids" set to true.''',
-        require=False, validate=validators.Boolean())
-    page = Option(
-        doc='''
-        **Syntax:** page=<int>
-        **Description:**define the page for each MISP search; default 1.''',
-        require=False, validate=validators.Match("page", r"^[0-9]+$"))
+         "to_ids" set to true.
+         ''',
+        require=False,
+        validate=validators.Boolean()
+    )
+
     pipesplit = Option(
         doc='''
         **Syntax:** pipesplit=<1|y|Y|t|true|True|0|n|N|f|false|False>
-        **Description:**Boolean to split multivalue attributes.''',
-        require=False, validate=validators.Boolean())
+        **Description:**Boolean to split multivalue attributes.
+        ''',
+        require=False,
+        validate=validators.Boolean()
+    )
+
     tags = Option(
         doc='''
-        **Syntax:** tags=CSV string
+        **Syntax:** tags=<string>,<string>
         **Description:**Comma(,)-separated string of tags to search for.
-         Wildcard is %.''',
-        require=False)
+         Wildcard is %.
+        ''',
+        require=False
+    )
 
     def log_error(self, msg):
         logging.error(msg)
@@ -883,262 +923,260 @@ class MispFetchCommand(StreamingCommand):
         self.set_log_level()
 
         output_dict = dict()
+        my_args = dict()
+        result_columns = list()
         for record in records:
             key = uuid.uuid4().hex
             output_dict[key] = record
-        result_columns = list()
 
-        # extract parameters from last record from input set
-        # Phase 1: Preparation
-        try:
-            mf_params = self.create_mf_params(record)
-            self.mf_params = mf_params
-            self.log_info('[MF-050] mf_params {}'.format(mf_params))
+            # extract parameters from last record from input set
+            # Phase 1: Preparation
+            try:
+                mf_params = self.create_mf_params(record)
+                self.mf_params = mf_params
+                self.log_info('[MF-050] mf_params {}'.format(mf_params))
 
-        except Exception as e:
-            raise Exception(
-                "[MF-001] Sorry, mf_params failed {}".format(e))
+            except Exception as e:
+                raise Exception(
+                    "[MF-001] Sorry, mf_params failed {}".format(e))
 
-        if mf_params['misp_instance'] is None:
-            raise Exception(
-                "Sorry, self.mf_params['misp_instance'] is not defined")
-        storage = self.service.storage_passwords
-        my_args = prepare_config(self,
-                                 'misp42splunk',
-                                 mf_params['misp_instance'],
-                                 storage)
-        if my_args is None:
-            raise Exception(
-                "Sorry, no configuration for misp_instance={}"
-                .format(mf_params['misp_instance']))
-        my_args['host'] = str(my_args['misp_url']).replace('https://', '')
-        if mf_params['misp_restsearch'] == "events":
-            my_args['misp_url'] = my_args['misp_url'] + '/events/restSearch'
-        elif mf_params['misp_restsearch'] == "attributes":
-            my_args['misp_url'] = my_args['misp_url']\
-                + '/attributes/restSearch'
-        self.log_info(
-            '[MF-030] misp_instance {} restSearch {} url {}'
-            .format(mf_params['misp_instance'],
-                    mf_params['misp_restsearch'],
-                    my_args['misp_url']))
-        if mf_params['misp_http_body'] is None:
-            # Force some values on JSON request
-            body_dict = dict()
-            body_dict['last'] = "1h"
-            body_dict['published'] = True
-        else:
-            body_dict = dict(json.loads(
-                mf_params['misp_http_body']))
-        # enforce returnFormat to JSON
-        body_dict['returnFormat'] = 'json'
-        body_dict['withAttachments'] = False
+            if mf_params['misp_instance'] is None:
+                raise Exception(
+                    "Sorry, self.mf_params['misp_instance'] is not defined")
+            storage = self.service.storage_passwords
+            my_args = prepare_config(self,
+                                     'misp42splunk',
+                                     mf_params['misp_instance'],
+                                     storage)
+            if my_args is None:
+                raise Exception(
+                    "Sorry, no configuration for misp_instance={}"
+                    .format(mf_params['misp_instance']))
+            my_args['host'] = str(my_args['misp_url']).replace('https://', '')
+            if mf_params['misp_restsearch'] == "events":
+                my_args['misp_url'] = my_args['misp_url'] + '/events/restSearch'
+            elif mf_params['misp_restsearch'] == "attributes":
+                my_args['misp_url'] = my_args['misp_url']\
+                    + '/attributes/restSearch'
+            self.log_info(
+                '[MF-030] misp_instance {} restSearch {} url {}'
+                .format(mf_params['misp_instance'],
+                        mf_params['misp_restsearch'],
+                        my_args['misp_url']))
+            if mf_params['misp_http_body'] is None:
+                # Force some values on JSON request
+                body_dict = dict()
+                body_dict['last'] = "1h"
+                body_dict['published'] = True
+            else:
+                body_dict = dict(json.loads(
+                    mf_params['misp_http_body']))
+            # enforce returnFormat to JSON
+            body_dict['returnFormat'] = 'json'
+            body_dict['withAttachments'] = False
 
-        if mf_params['tags'] is not None or\
-           mf_params['not_tags'] is not None:
-            tags_criteria = {}
-            if mf_params['tags'] is not None:
-                tags_criteria['OR'] = mf_params['tags'].split(",")
-            if mf_params['not_tags'] is not None:
-                tags_criteria['NOT'] = mf_params['not_tags'].split(",")
-            body_dict['tags'] = tags_criteria
+            if mf_params['tags'] is not None or\
+               mf_params['not_tags'] is not None:
+                tags_criteria = {}
+                if mf_params['tags'] is not None:
+                    tags_criteria['OR'] = mf_params['tags'].split(",")
+                if mf_params['not_tags'] is not None:
+                    tags_criteria['NOT'] = mf_params['not_tags'].split(",")
+                body_dict['tags'] = tags_criteria
 
-        if 'limit' not in body_dict:
-            body_dict['limit'] = mf_params['limit']
-        mf_params['page'] = int(mf_params['page'])
-        if mf_params['page'] == 0:
-            body_dict['page'] = 1
-        else:
-            body_dict['page'] = mf_params['page']
-        self.log_info(
-            '[MF-100] actual http body: {} '.format(json.dumps(body_dict)))
+            if 'limit' not in body_dict:
+                body_dict['limit'] = mf_params['limit']
+            if 'page' in body_dict:
+                mf_params['page'] = body_dict['page']
+            else:
+                mf_params['page'] = 0
 
-        connection, connection_status = urllib_init_pool(self, my_args)
-        if connection:
-            if mf_params['page'] == 0:
-                request_loop = True
-                if mf_params['misp_restsearch'] == "events":
-                    response = {'response': []}
-                    while request_loop:
-                        iter_response = urllib_request(
-                            self,
-                            connection,
-                            'POST',
-                            my_args['misp_url'],
-                            body_dict,
-                            my_args)
-                        if 'response' in iter_response:
-                            rlength = len(iter_response['response'])
-                            self.log_debug(
-                                '[MF-401] returned event(s): {}'
-                                .format(rlength))
-                            if rlength != 0:
-                                response['response'].extend(
-                                    iter_response['response'])
-                            if rlength == int(mf_params['limit']):
-                                # full page returned - likely more results
-                                body_dict['page'] = body_dict['page'] + 1
-                            else:
-                                # last page is reached
-                                request_loop = False
-                        else:
-                            request_loop = False
-                else:  # Attributes
-                    response = {'response': {'Attribute': []}}
-                    while request_loop:
-                        iter_response = urllib_request(
-                            self,
-                            connection,
-                            'POST',
-                            my_args['misp_url'],
-                            body_dict,
-                            my_args)
-                        if 'response' in iter_response:
-                            if 'Attribute' in iter_response['response']:
-                                rlength = len(
-                                    iter_response['response']['Attribute'])
+            self.log_info(
+                '[MF-100] actual http body: {} '.format(json.dumps(body_dict)))
+
+            connection, connection_status = urllib_init_pool(self, my_args)
+            if connection:
+                if mf_params['page'] == 0:
+                    request_loop = True
+                    body_dict['page'] = 1
+                    if mf_params['misp_restsearch'] == "events":
+                        response = {'response': []}
+                        while request_loop:
+                            iter_response = urllib_request(
+                                self,
+                                connection,
+                                'POST',
+                                my_args['misp_url'],
+                                body_dict,
+                                my_args)
+                            if 'response' in iter_response:
+                                rlength = len(iter_response['response'])
                                 self.log_debug(
-                                    '[MF-411] returned attribute(s): {}'
+                                    '[MF-401] returned event(s): {}'
                                     .format(rlength))
                                 if rlength != 0:
-                                    response['response']['Attribute'].extend(
-                                        iter_response['response']['Attribute'])
-                                if rlength == int(mf_params['limit']):
-                                    # full page returned - likely more results
+                                    response['response'].extend(
+                                        iter_response['response'])
                                     body_dict['page'] = body_dict['page'] + 1
                                 else:
                                     # last page is reached
                                     request_loop = False
                             else:
                                 request_loop = False
-                        else:
-                            request_loop = False
+                    else:  # Attributes
+                        response = {'response': {'Attribute': []}}
+                        while request_loop:
+                            iter_response = urllib_request(
+                                self,
+                                connection,
+                                'POST',
+                                my_args['misp_url'],
+                                body_dict,
+                                my_args)
+                            if 'response' in iter_response:
+                                if 'Attribute' in iter_response['response']:
+                                    rlength = len(
+                                        iter_response['response']['Attribute'])
+                                    self.log_debug(
+                                        '[MF-411] returned attribute(s): {}'
+                                        .format(rlength))
+                                    if rlength != 0:
+                                        response['response']['Attribute'].extend(
+                                            iter_response['response']['Attribute'])
+                                        body_dict['page'] = body_dict['page'] + 1
+                                    else:
+                                        # last page is reached
+                                        request_loop = False
+                                else:
+                                    request_loop = False
+                            else:
+                                request_loop = False
+                else:
+                    response = urllib_request(
+                        self,
+                        connection,
+                        'POST',
+                        my_args['misp_url'],
+                        body_dict,
+                        my_args)
             else:
-                response = urllib_request(
-                    self,
-                    connection,
-                    'POST',
-                    my_args['misp_url'],
-                    body_dict,
-                    my_args)
-        else:
-            response = connection_status
+                response = connection_status
 
-        self.log_info(
-            '[MF-200] response contains {} records'.format(len(response)))
+            self.log_info(
+                '[MF-200] response contains {} records'.format(len(response)))
 
-        if mf_params['misp_restsearch'] == "events":
-            if mf_params['misp_output_mode'] == "JSON":
-                self.log_info(
-                    '[MF-301] misp_output_mode={}, returning event in JSON'
-                    .format(mf_params['misp_output_mode']))
-                if 'response' in response:
-                    event_specific_columns = ["id", "date", "info", "published", "uuid"]
-                    organisation_columns = ["id", "name", "uuid", "local"]
-                    for r_item in response['response']:
-                        if 'Event' in r_item:
-                            single_event = dict()
-                            single_event['misp_json'] = r_item['Event']
-                            single_event['misp_event_uuid'] = r_item['Event']['uuid']
-                            single_event['misp_timestamp'] = r_item['Event']['timestamp']
-                            single_event['misp_host'] = my_args['host']
-                            single_event['_time'] = single_event['misp_timestamp']
-                            # for a in list(r_item.values()):
+            if mf_params['misp_restsearch'] == "events":
+                if mf_params['misp_output_mode'] == "json":
+                    self.log_info(
+                        '[MF-301] misp_output_mode={}, returning event in JSON'
+                        .format(mf_params['misp_output_mode']))
+                    if 'response' in response:
+                        event_specific_columns = ["id", "date", "info", "published", "uuid"]
+                        organisation_columns = ["id", "name", "uuid", "local"]
+                        for r_item in response['response']:
+                            if 'Event' in r_item:
+                                single_event = dict()
+                                single_event['misp_json'] = r_item['Event']
+                                single_event['misp_event_uuid'] = r_item['Event']['uuid']
+                                single_event['misp_timestamp'] = r_item['Event']['timestamp']
+                                single_event['misp_host'] = my_args['host']
+                                single_event['_time'] = single_event['misp_timestamp']
+                                # for a in list(r_item.values()):
 
-                            # prepend key names with misp_event_
-                            for esc in event_specific_columns:
-                                misp_esc = "misp_event_" + esc
-                                single_event[misp_esc] = str(r_item['Event'][esc])
-                            if 'Org' in r_item['Event']:
-                                # prepend key names with misp_org_
-                                for oc in organisation_columns:
-                                    misp_oc = "misp_org_" + oc
-                                    single_event[misp_oc] = str(r_item['Event']['Org'][oc])
-                            if 'Orgc' in r_item['Event']:
-                                # prepend key names with misp_orgc_
-                                for oc in organisation_columns:
-                                    misp_oc = "misp_orgc_" + oc
-                                    single_event[misp_oc] = str(r_item['Event']['Orgc'][oc])
-                            # append attribute self.mf_params['tags'] to tag list
-                            tag_list = list()
-                            if 'Tag' in r_item['Event']:
-                                for tag in r_item['Event']['Tag']:
-                                    try:
-                                        tag_list.append(str(tag['name']))
-                                    except Exception:
-                                        pass
-                            single_event['misp_tag'] = tag_list
-                            key = single_event['misp_event_uuid']
-                            self.log_info(
-                                '[MF-303] JSON event {}'.format(single_event))
-                            output_dict[key] = single_event
+                                # prepend key names with misp_event_
+                                for esc in event_specific_columns:
+                                    misp_esc = "misp_event_" + esc
+                                    single_event[misp_esc] = str(r_item['Event'][esc])
+                                if 'Org' in r_item['Event']:
+                                    # prepend key names with misp_org_
+                                    for oc in organisation_columns:
+                                        misp_oc = "misp_org_" + oc
+                                        single_event[misp_oc] = str(r_item['Event']['Org'][oc])
+                                if 'Orgc' in r_item['Event']:
+                                    # prepend key names with misp_orgc_
+                                    for oc in organisation_columns:
+                                        misp_oc = "misp_orgc_" + oc
+                                        single_event[misp_oc] = str(r_item['Event']['Orgc'][oc])
+                                # append attribute self.mf_params['tags'] to tag list
+                                tag_list = list()
+                                if 'Tag' in r_item['Event']:
+                                    for tag in r_item['Event']['Tag']:
+                                        try:
+                                            tag_list.append(str(tag['name']))
+                                        except Exception:
+                                            pass
+                                single_event['misp_tag'] = tag_list
+                                key = single_event['misp_event_uuid']
+                                self.log_info(
+                                    '[MF-303] JSON event {}'.format(single_event))
+                                output_dict[key] = single_event
+                else:
+                    # build output table and list of types
+                    events = list()
+                    typelist = list()
+                    column_list = format_event_output_table(
+                        response,
+                        events,
+                        typelist,
+                        my_args['host'],
+                        get_attr=mf_params['getioc'],
+                        pipesplit=mf_params['pipesplit'],
+                        only_to_ids=mf_params['only_to_ids'])
+                    self.log_info(
+                        '[MF-201] typelist contains {} values'
+                        .format(len(typelist)))
+                    self.log_info(
+                        '[MF-202] results contains {} records'
+                        .format(len(events)))
+
+                    for output in output_dict.values():
+                        for key in list(output.keys()):
+                            if key not in result_columns:
+                                result_columns.append(key)
+                        for t in typelist:
+                            misp_t = 'misp_' \
+                                + t.replace('-', '_')\
+                                     .replace('|', '_p_')
+                            if misp_t not in result_columns:
+                                result_columns.append(misp_t)
+                    result_columns.sort()
+
+                    self.report_events(output_dict, events, result_columns,
+                                       column_list, typelist,
+                                       get_attr=mf_params['getioc'],
+                                       attr_limit=mf_params['attribute_limit'],
+                                       expand_obj=mf_params['expand_object'])
             else:
-                # build output table and list of types
-                events = list()
+                # add colums for each type in results
+                attributes = list()
                 typelist = list()
-                column_list = format_event_output_table(
-                    response,
-                    events,
-                    typelist,
-                    my_args['host'],
-                    get_attr=mf_params['getioc'],
-                    pipesplit=mf_params['pipesplit'],
-                    only_to_ids=mf_params['only_to_ids'])
-                self.log_info(
-                    '[MF-201] typelist contains {} values'
-                    .format(len(typelist)))
-                self.log_info(
-                    '[MF-202] results contains {} records'
-                    .format(len(events)))
+                if mf_params['misp_output_mode'] == "json":
+                    format_attribute_output_json(response, output_dict, my_args['host'])
+                else:
+                    format_attribute_output_table(
+                        response, attributes, typelist, my_args['host'],
+                        pipesplit=mf_params['pipesplit'],
+                        only_to_ids=mf_params['only_to_ids'])
 
-                for output in output_dict.values():
-                    for key in list(output.keys()):
-                        if key not in result_columns:
-                            result_columns.append(key)
-                    for t in typelist:
-                        misp_t = 'misp_' \
-                            + t.replace('-', '_')\
-                                 .replace('|', '_p_')
-                        if misp_t not in result_columns:
-                            result_columns.append(misp_t)
-                result_columns.sort()
+                    self.report_attributes(output_dict,
+                                           attributes,
+                                           typelist,
+                                           expand_object=mf_params['expand_object'])
 
-                self.report_events(output_dict, events, result_columns,
-                                   column_list, typelist,
-                                   get_attr=mf_params['getioc'],
-                                   attr_limit=mf_params['attribute_limit'],
-                                   expand_obj=mf_params['expand_object'])
-        else:
-            # add colums for each type in results
-            attributes = list()
-            typelist = list()
-            if mf_params['misp_output_mode'] == "JSON":
-                format_attribute_output_json(response, output_dict, my_args['host'])
-            else:
-                format_attribute_output_table(
-                    response, attributes, typelist, my_args['host'],
-                    pipesplit=mf_params['pipesplit'],
-                    only_to_ids=mf_params['only_to_ids'])
+            for output in output_dict.values():
+                output.update(mf_params)
+                for key in list(output.keys()):
+                    if key not in result_columns:
+                        result_columns.append(key)
+            result_columns.sort()
 
-                self.report_attributes(output_dict,
-                                       attributes,
-                                       typelist,
-                                       expand_object=mf_params['expand_object'])
-
-        for output in output_dict.values():
-            output.update(mf_params)
-            for key in list(output.keys()):
-                if key not in result_columns:
-                    result_columns.append(key)
-        result_columns.sort()
-
-        if output_dict is not None:
-            # init columns of output
-            serial_number = 0
-            for v in output_dict.values():
-                yield MispFetchCommand._record(
-                    serial_number, v, result_columns)
-                serial_number += 1
+            if output_dict is not None:
+                # init columns of output
+                serial_number = 0
+                for v in output_dict.values():
+                    yield MispFetchCommand._record(
+                        serial_number, v, result_columns)
+                    serial_number += 1
 
 
 if __name__ == "__main__":

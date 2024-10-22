@@ -14,7 +14,7 @@
     <set token="param_tags"></set>
   </init>
   <label>mispfetch</label>
-  <description>MISP custom command mispfetch to retrieve events or attributes or events with attributes (Streaming command)</description>
+  <description>MISP custom command mispfetch to retrieve events or attributes or events with attributes (Streaming command) - check https://github.com/remg427/misp42splunk/ for any update</description>
   <fieldset submitButton="true" autoRun="false">
     <input type="dropdown" token="misp_instance" searchWhenChanged="true">
       <label>misp_instance*</label>
@@ -62,17 +62,17 @@
     <input type="radio" token="output" searchWhenChanged="true">
       <label>output</label>
       <choice value="not_set">not set</choice>
-      <choice value="native">native</choice>
-      <choice value="JSON">JSON</choice>
+      <choice value="fields">fields</choice>
+      <choice value="json">json</choice>
       <change>
         <condition match="$value$=&quot;not_set&quot;">
           <set token="param_misp_output_mode"></set>
         </condition>
         <condition match="$value$=&quot;default&quot;">
-          <set token="param_misp_output_mode">misp_output_mode=native</set>
+          <set token="param_misp_output_mode">misp_output_mode=fields</set>
         </condition>
         <condition match="$value$=&quot;raw&quot;">
-          <set token="param_misp_output_mode">misp_output_mode=JSON</set>
+          <set token="param_misp_output_mode">misp_output_mode=json</set>
         </condition>
       </change>
     </input>
@@ -329,7 +329,7 @@
             <td>
             <p>Boolean to keep Galaxy information (by default) or remove it.</p>
       
-            <p>It can be usefull for misp_output_mode=JSON if you plan to use spath that has a default limit of 5000 characters to parse the JSON payload.</p>
+            <p>It can be usefull for misp_output_mode=json if you plan to use spath that has a default limit of 5000 characters to parse the JSON payload.</p>
             </td>
           </tr>
           <tr>
@@ -340,8 +340,8 @@
           </tr>
           <tr>
             <td>misp_output_mode</td>
-            <td>misp_output_mode=(native|JSON)</td>
-            <td>native</td>
+            <td>misp_output_mode=(fields|json)</td>
+            <td>fields</td>
             <td>native Splunk tabular view or JSON</td>
           </tr>
           <tr>
@@ -355,19 +355,6 @@
             <td>only_to_ids=&lt;1|y|Y|t|true|True|0|n|N|f|false|False&gt;</td>
             <td>None</td>
             <td>ctive only with getioc. If set to True, keep only attributes with flag to_ids set (ticked)</td>
-          </tr>
-          <tr>
-            <td>page</td>
-            <td>page=&lt;int&gt;</td>
-            <td>1</td>
-            <td>
-            <p>This parameter <strong>page</strong> works in combination with <strong>limit</strong>. Select the page to return when limit is not 0.</p>
-      
-            <p>
-                        <strong>Use limit=X (X!=0) and page=0 if you want to retrieve all data with pagination:</strong> The command willl iterate to retrieve X results maximum per request from page 1 to page Y in order to retrieve all data.</p>
-      
-            <p>the outcome is equivalent to limit=0 except that the requests are smaller to process for MISP instance and transfer on the network with smaller responses.</p>
-            </td>
           </tr>
           <tr>
             <td>pipesplit</td>
