@@ -3,7 +3,7 @@
     <set token="sample_query">| makeresults | eval domain="www.example.com"</set>
   </init>
   <label>mispsight</label>
-  <description>MISP custom command mispsight retrieves the sightings counters for attributes</description>
+  <description>MISP custom command mispsight retrieves the sightings counters for attributes - check https://github.com/remg427/misp42splunk/ for any update</description>
   <fieldset submitButton="false" autoRun="false">
     <input type="dropdown" token="misp_instance" searchWhenChanged="true">
       <label>misp_instance*</label>
