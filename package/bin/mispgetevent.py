@@ -38,7 +38,7 @@ log.setLevel(logging.INFO)
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "4.3.0"
+__version__ = "4.4.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -264,6 +264,7 @@ class MispGetEventCommand(GeneratingCommand):
         "org": "optional",
         "tag": "optional",
         "tags": "optional",
+        "event_tags": "optional",
         "searchall": "optional",
         "date": "optional",
         "last": "optional",
@@ -277,33 +278,38 @@ class MispGetEventCommand(GeneratingCommand):
         "enforceWarninglist": "optional",
         "sgReferenceOnly": "optional",
         "eventinfo": "optional",
-        "excludeLocalTags": "optional"
+        "sharinggroup": "optional",
+        "excludeLocalTags": "optional",
+        "threat_level_id": "optional"
     }
     # status
-        "tag": "optional",
-        "searchall": "optional",
-        "metadata": "optional",
-        "published": "optional",
-        "sgReferenceOnly": "optional",
-        "eventinfo": "optional",
-        "excludeLocalTags": "optional"
-
+    {
         "returnFormat": forced to json,
         "page": param,
         "limit": param,
         "value": not managed,
-        "type": param, CSV string,
-        "category": param, CSV string,
+        "type": param,
+        "category": param,
         "org": not managed,
+        "tag": not managed,
         "tags": param, see also not_tags
+        "event_tags": not managed,
+        "searchall": not managed,
         "date": param,
         "last": param,
         "eventid": param,
-        "withAttachments": forced to false,
+        "withAttachments": forced to False,
+        "metadata": not managed,
         "uuid": not managed,
-        "publish_timestamp": managed via param last
-        "timestamp": not managed,
-        "enforceWarninglist": not managed,
+        "published": param,
+        "publish_timestamp": param,
+        "timestamp": param,
+        "enforceWarninglist": param,
+        "sgReferenceOnly": not managed,
+        "eventinfo": not managed,
+        "sharinggroup": not managed,
+        "excludeLocalTags": not managed,
+        "threat_level_id": param
     }
     """
     # MANDATORY MISP instance for this search
@@ -408,14 +414,9 @@ class MispGetEventCommand(GeneratingCommand):
         require=False, validate=validators.Boolean())
     output = Option(
         doc='''
-        **Syntax:** **output=***<default|rawy>*
-        **Description:**selection between a tabular or JSON output.''',
-        require=False, validate=validators.Match("output", r"(default|raw)"))
-    page = Option(
-        doc='''
-        **Syntax:** **page=***<int>*
-        **Description:**define the page for each MISP search; default 1.''',
-        require=False, validate=validators.Match("page", r"^[0-9]+$"))
+        **Syntax:** **output=***<fields|json>*
+        **Description:**Selection between the default Splunk tabular view - output=fields - or JSON - output=json''',
+        require=False, validate=validators.Match("output", r"(fields|json|default|raw)"))
     pipesplit = Option(
         doc='''
         **Syntax:** **pipesplit=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
@@ -432,6 +433,11 @@ class MispGetEventCommand(GeneratingCommand):
         **Description:**Comma(,)-separated string of tags to search for.
          Wildcard is %.''',
         require=False)
+    threat_level_id = Option(
+        doc='''
+        **Syntax:** **threat_level_id=***<int>*
+        **Description:**define the threat level (1-High, 2-Medium, 3-Low, 4-Undefined).''',
+        require=False, validate=validators.Match("limit", r"^[0-9]+$"))
     type = Option(
         doc='''
         **Syntax:** **type=***CSV string*
@@ -520,7 +526,7 @@ class MispGetEventCommand(GeneratingCommand):
         my_args = prepare_config(self, 'misp42splunk', misp_instance, storage)
         if my_args is None:
             raise Exception(
-                "Sorry, no configuration for misp_instance={}".format(misp_instance))
+                "[EV-101] Sorry, no configuration for misp_instance={}".format(misp_instance))
         my_args['host'] = str(my_args['misp_url']).replace('https://', '')
         my_args['misp_url'] = my_args['misp_url'] + '/events/restSearch'
 
@@ -540,15 +546,15 @@ class MispGetEventCommand(GeneratingCommand):
             mandatory_arg = mandatory_arg + 1
 
         if mandatory_arg == 0:
-            self.log_error('Missing "timestamp", "json_request", eventid", \
+            self.log_error('[EV-102] Missing "timestamp", "json_request", "eventid", \
                 "publish_timestamp" or "date" argument')
-            raise Exception('Missing "timestamp", "json_request", eventid", \
+            raise Exception('[EV-102] Missing "timestamp", "json_request", "eventid", \
                 "publish_timestamp" or "date" argument')
         elif mandatory_arg > 1:
-            self.log_error('Options "timestamp", "json_request", eventid", \
+            self.log_error('[EV-103] Options "timestamp", "json_request", "eventid", \
                 "last"(deprecated),  "publish_timestamp" \
                 and "date" are mutually exclusive')
-            raise Exception('Options "timestamp", "json_request", eventid", \
+            raise Exception('[EV-103] Options "timestamp", "json_request", "eventid", \
                 "last"(deprecated),  "publish_timestamp" \
                 and "date" are mutually exclusive')
 
@@ -560,12 +566,12 @@ class MispGetEventCommand(GeneratingCommand):
                 body_dict['timestamp'] = [str(timestamp_list[0]),
                                           str(timestamp_list[1])]
                 self.log_info(
-                    'Option "timestamp" with range {}'
+                    '[EV-201] Option "timestamp" with range {}'
                     .format(json.dumps(body_dict['timestamp'])))
             else:  # contain a timestamp EPOCH or relative time
                 body_dict['timestamp'] = self.timestamp
                 self.log_info(
-                    'Option "timestamp" {}'
+                    '[EV-202] Option "timestamp" {}'
                     .format(json.dumps(body_dict['timestamp'])))
         elif self.publish_timestamp is not None:
             if "," in self.publish_timestamp:  # contain a range
@@ -573,16 +579,16 @@ class MispGetEventCommand(GeneratingCommand):
                 body_dict['publish_timestamp'] = [str(publish_list[0]),
                                                   str(publish_list[1])]
                 self.log_info(
-                    'Option "publish_timestamp " with range {}'
+                    '[EV-203] Option "publish_timestamp " with range {}'
                     .format(json.dumps(body_dict['publish_timestamp'])))
             else:
                 body_dict['publish_timestamp'] = self.publish_timestamp
                 self.log_info(
-                    'Option "publish_timestamp " {}'
+                    '[EV-204] Option "publish_timestamp " {}'
                     .format(json.dumps(body_dict['publish_timestamp'])))
         elif self.json_request is not None:
             body_dict = json.loads(self.json_request)
-            self.log_info('Option "json_request" set')
+            self.log_info('[EV-205] Option "json_request" set')
         elif self.eventid:
             if "," in self.eventid:
                 event_criteria = {}
@@ -591,11 +597,11 @@ class MispGetEventCommand(GeneratingCommand):
                 body_dict['eventid'] = event_criteria
             else:
                 body_dict['eventid'] = self.eventid
-            self.log_info('Option "eventid" set with {}'
+            self.log_info('[EV-206] Option "eventid" set with {}'
                           .format(json.dumps(body_dict['eventid'])))
         elif self.last:
             body_dict['last'] = self.last
-            self.log_info('Option "last" set with {}'
+            self.log_info('[EV-207] Option "last" set with {}'
                           .format(body_dict['last']))
         else:  # implicit param date
             if "," in self.date:  # string should contain a range
@@ -603,7 +609,7 @@ class MispGetEventCommand(GeneratingCommand):
                 body_dict['date'] = [str(date_list[0]), str(date_list[1])]
             else:
                 body_dict['date'] = self.date
-            self.log_info('Option "date range" key date {}'
+            self.log_info('[EV-208] Option "date range" key date {}'
                           .format(json.dumps(body_dict['date'])))
 
         # Force some values on JSON request
@@ -611,32 +617,35 @@ class MispGetEventCommand(GeneratingCommand):
         body_dict['withAttachments'] = False
 
         # Search pagination
-        pagination = True
-        if self.limit is not None:
-            limit = int(self.limit)
-        elif 'limit' in body_dict:
-            limit = int(body_dict['limit'])
-        else:
-            limit = 1000
-        if limit == 0:
-            pagination = False
-
-        if self.page is not None:
-            page = int(self.page)
-        elif 'page' in body_dict:
+        if 'page' in body_dict:
             page = body_dict['page']
         else:
-            page = 1
+            page = 0
+
+        if 'limit' in body_dict:
+            limit = int(body_dict['limit'])
+        elif self.limit is not None:
+            limit = int(self.limit)
+        else:
+            limit = 1000
+        body_dict['limit'] = limit
+        if limit == 0:
+            body_dict.pop('page', None)
+
+        self.log_debug('[EV-301] limit {} page {}'
+            .format(limit,page))
+ 
+        # Search parameters: boolean and filter
+        # manage enforceWarninglist
         if self.published is True:
             body_dict['published'] = True
         elif self.published is False:
             body_dict['published'] = False
-        # Search parameters: boolean and filter
-        # manage enforceWarninglist
         if self.warning_list is True:
             body_dict['enforceWarninglist'] = True
         elif self.warning_list is False:
             body_dict['enforceWarninglist'] = False
+
         if self.category is not None:
             if "," in self.category:
                 cat_criteria = {}
@@ -686,34 +695,63 @@ class MispGetEventCommand(GeneratingCommand):
         if self.output is not None:
             output = self.output
         else:
-            output = "default"
+            output = "fields"
         if self.pipesplit is True:
             pipesplit = True
         else:
             pipesplit = False
-
-        if pagination is True:
-            body_dict['page'] = page
-            body_dict['limit'] = limit
+        if self.threat_level_id is not None:
+            my_args['threat_level_id'] = self.threat_level_id
 
         connection, connection_status = urllib_init_pool(self, my_args)
         if connection:
-            response = urllib_request(
-                self,
-                connection,
-                'POST',
-                my_args['misp_url'],
-                body_dict,
-                my_args)
+            if page == 0 and limit != 0:
+                request_loop = True
+                response = {'response': []}
+                body_dict['page'] = 1
+                while request_loop:
+                    iter_response = urllib_request(
+                        self,
+                        connection,
+                        'POST',
+                        my_args['misp_url'],
+                        body_dict,
+                        my_args)
+                    if 'response' in iter_response:
+                        rlength = len(
+                            iter_response['response'])
+                        if rlength != 0:
+                            response['response'].extend(
+                                iter_response['response'])
+                            self.log_debug(
+                                '[EV-302] request on page {} returned {} event(s); querying next page'
+                                .format(body_dict['page'],rlength))
+                            body_dict['page'] = body_dict['page'] + 1
+                        else:
+                            # last page is reached
+                            request_loop = False
+                    else:
+                        request_loop = False
+            else:
+                response = urllib_request(
+                    self,
+                    connection,
+                    'POST',
+                    my_args['misp_url'],
+                    body_dict,
+                    my_args)
         else:
             response = connection_status
+
+        self.log_info(
+            '[EV-303] response contains {} records'.format(len(response)))
 
         if "_raw" in response:
             yield response
         else:
             encoder = json.JSONEncoder(
                 ensure_ascii=False, separators=(',', ':'))
-            if output == "raw":
+            if output == "json" or output == "raw":
                 if 'response' in response:
                     attribute_names = list()
                     serial_number = 0
