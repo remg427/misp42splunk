@@ -3,7 +3,7 @@
     <set token="misp_json_request"></set>
   </init>
   <label>misprest</label>
-  <description>MISP custom command misprest - Generic wrapper (Generating command)</description>
+  <description>MISP custom command misprest - Generic wrapper (Generating command) - check https://github.com/remg427/misp42splunk/ for any update</description>
   <fieldset submitButton="false">
     <input type="time" token="TimePicker" searchWhenChanged="true">
       <label>Time</label>

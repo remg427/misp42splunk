@@ -11,7 +11,7 @@
     <unset token="launch_alert"></unset>
     <set token="sample_query">| makeresults | eval misp_domain="www.example.com"</set>
   </init>
-  <label>misp_alert_create_event</label>
+  <label>misp_alert_create_event - check https://github.com/remg427/misp42splunk/ for any update</label>
   <description>Adaptative alert action to create or update MISP events</description>
   <fieldset submitButton="true">
     <input type="dropdown" token="misp_instance" searchWhenChanged="true">

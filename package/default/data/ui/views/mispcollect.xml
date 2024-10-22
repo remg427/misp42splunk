@@ -17,7 +17,7 @@
     <set token="param_warning_list"></set>
   </init>
   <label>mispcollect</label>
-  <description>MISP custom command mispcollect (Generating command)</description>
+  <description>MISP custom command mispcollect (Generating command) - check https://github.com/remg427/misp42splunk/ for any update</description>
   <fieldset submitButton="false" autoRun="false">
     <input type="dropdown" token="misp_instance" searchWhenChanged="true">
       <label>misp_instance*</label>
