@@ -16,10 +16,9 @@ from misp_common import prepare_config, logging_level, urllib_init_pool, urllib_
 import json
 import logging
 import sys
-·
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "4.3.0"
+__version__ = "4.4.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -151,7 +150,7 @@ class MispSightCommand(StreamingCommand):
                     if connection:
                         response = urllib_request(
                             self, connection, 'POST',
-                            search_url, search_dict, my_args)
+                            search_url, search_dict, my_args, connection_timeout=3, read_timeout=60)
                     if 'response' in response:
                         if 'Attribute' in response['response']:
                             # MISP API returned a JSON response
@@ -194,7 +193,7 @@ class MispSightCommand(StreamingCommand):
                                 sight_url = sight_url_base + e
                                 sight = urllib_request(
                                     self, connection, 'GET',
-                                    sight_url, sight_dict, my_args)
+                                    sight_url, sight_dict, my_args, connection_timeout=3, read_timeout=60)
                                 for s in sight:
                                     if s['attribute_id'] in attribute_list:
                                         misp_value = str(

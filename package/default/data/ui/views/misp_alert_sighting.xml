@@ -10,7 +10,7 @@
     <set token="sample_query">| makeresults | eval misp_domain="www.example.com"</set>
   </init>
   <label>misp_alert_sighting</label>
-  <description>Adaptative alert action to increase sightings counters on attributes of MISP events</description>
+  <description>Adaptative alert action to increase sightings counters on attributes of MISP events - check https://github.com/remg427/misp42splunk/ for any update</description>
   <fieldset submitButton="true">
     <input type="dropdown" token="misp_instance" searchWhenChanged="true">
       <label>misp_instance*</label>

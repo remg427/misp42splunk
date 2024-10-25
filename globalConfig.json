@@ -3,8 +3,9 @@
         "name": "misp42splunk",
         "restRoot": "misp42splunk",
         "displayName": "misp42",
-        "version": "4.3.2",
-        "schemaVersion": "0.0.3"
+        "version": "4.4.0",
+        "schemaVersion": "0.0.7",
+        "_uccVersion": "5.50.1"
     },
     "pages": {
         "configuration": {
@@ -55,9 +56,7 @@
                         {
                             "required": true,
                             "label": "MISP url",
-                            "options": {
-                                "placeholder": "https://mymisp.instance.org:port"
-                            },
+                            "tooltip": "https://mymisp.instance.org:port",
                             "field": "misp_url",
                             "validators": [
                                 {
@@ -73,9 +72,7 @@
                             "field": "misp_key",
                             "required": true,
                             "label": "MISP API key",
-                            "options": {
-                                "placeholder": "***AUTH KEY***"
-                            },
+                            "tooltip": "***AUTH KEY***",
                             "encrypted": true,
                             "validators": [
                                 {
@@ -239,41 +236,7 @@
                     "title": "Proxy"
                 },
                 {
-                    "name": "logging",
-                    "entity": [
-                        {
-                            "options": {
-                                "disableSearch": true,
-                                "autoCompleteFields": [
-                                    {
-                                        "label": "DEBUG",
-                                        "value": "DEBUG"
-                                    },
-                                    {
-                                        "label": "INFO",
-                                        "value": "INFO"
-                                    },
-                                    {
-                                        "label": "WARNING",
-                                        "value": "WARNING"
-                                    },
-                                    {
-                                        "label": "ERROR",
-                                        "value": "ERROR"
-                                    },
-                                    {
-                                        "label": "CRITICAL",
-                                        "value": "CRITICAL"
-                                    }
-                                ]
-                            },
-                            "field": "loglevel",
-                            "defaultValue": "INFO",
-                            "label": "Log level",
-                            "type": "singleSelect"
-                        }
-                    ],
-                    "title": "Logging"
+                    "type": "loggingTab"
                 }
             ]
         }
@@ -283,7 +246,7 @@
             "name": "misp_alert_create_event",
             "label": "MISP Create Event",
             "description": "Create events in MISP (alert action)",
-            "activeResponse": {
+            "adaptiveResponse": {
                 "task": [
                     "Create",
                     "Update"
@@ -306,7 +269,8 @@
                     }
                 ],
                 "drilldownUri": "search?q=search%20index%3D\"_internal\"&earliest=0&latest=",
-                "sourcetype": "misp:misp_alert_create_event"
+                "sourcetype": "misp:misp_alert_create_event",
+                "supportsCloud": true
             },
             "entity": [
                 {
@@ -549,7 +513,7 @@
             "name": "misp_alert_sighting",
             "label": "Alert for sighting MISP attribute(s)",
             "description": "Increment sighting counters for attributes in MISP (alert action)",
-            "activeResponse": {
+            "adaptiveResponse": {
                 "task": [
                     "Create",
                     "Update"
@@ -572,7 +536,8 @@
                     }
                 ],
                 "drilldownUri": "search?q=search%20index%3D\"_internal\"&earliest=0&latest=",
-                "sourcetype": "misp:misp_alert_sighting"
+                "sourcetype": "misp:misp_alert_sighting",
+                "supportsCloud": true
             },
             "entity": [
                 {

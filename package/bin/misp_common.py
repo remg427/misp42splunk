@@ -10,7 +10,7 @@ import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 __license__ = "LGPLv3"
-__version__ = "4.3.1.1"
+__version__ = "4.4.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -176,37 +176,76 @@ def prepare_config(helper, app_name, misp_instance,
 
     return config_args
 
+def normalise_data(key, value):
+    normalised_data = list()
+    if isinstance(value, str) or isinstance(value, int) or isinstance(value, float):
+        normalised_data.append((key, value))
+    if isinstance(value, list):
+        for item in value:
+            normalised_data.extend(normalise_data(key, item))
+    if isinstance(value, dict):
+        for k,v in value.items():
+            normalised_data.extend(normalise_data(k,v))
+    return normalised_data 
 
-def misp_url_request(url_connection, method, url, body, headers):
+def generate_record(data, time=time.time(), generator=None):
+    encoder = json.JSONEncoder(ensure_ascii=False, separators=(',', ':'))
+
+    data_dict = dict()
+    data_dict['_time'] = time
+    data_dict['_raw'] = encoder.encode(data)
+    record = normalise_data('none', data)
+    for key,val in record:
+        val = str(val)
+        key = str(key)
+        if key in data_dict:
+            if isinstance(data_dict[key], list):
+                data_dict[key].append(val)
+            else:
+                data_dict[key] = [data_dict[key], val]
+        else:
+            data_dict[key] = val
+
+    if generator:
+        return generator.gen_record(**data_dict)
+    return data_dict
+
+
+def misp_url_request(url_connection, method, url, body, headers, connection_timeout=3, read_timeout=200):
+
     if method == "GET":
         r = url_connection.request('GET',
                                    url,
                                    headers=headers,
-                                   fields=body
+                                   fields=body,
+                                   timeout=urllib3.Timeout(connect=connection_timeout, read=read_timeout)
                                    )
     elif method == 'POST':
         encoded_body = json.dumps(body).encode('utf-8')
         r = url_connection.request('POST',
                                    url,
                                    headers=headers,
-                                   body=encoded_body
+                                   body=encoded_body,
+                                   timeout=urllib3.Timeout(connect=connection_timeout, read=read_timeout)
                                    )
     elif method == "DELETE":
         r = url_connection.request('DELETE',
                                    url,
                                    headers=headers,
-                                   fields=body
+                                   fields=body,
+                                   timeout=urllib3.Timeout(connect=connection_timeout, read=read_timeout)
                                    )
     elif method == "PUT":
         r = url_connection.request('PUT',
                                    url,
                                    headers=headers,
-                                   fields=body
+                                   fields=body,
+                                   timeout=urllib3.Timeout(connect=connection_timeout, read=read_timeout)
                                    )
     else:
         raise Exception(
             "Sorry, no valid method provided (GET/POST/PUT/DELETE)."
-            " it was {}.".format(method)
+            "it was {}.".format(method)
         )
     return r
 
@@ -259,7 +298,7 @@ def urllib_init_pool(helper, config):
     return connection, status
 
 
-def urllib_request(helper, url_connection, method, misp_url, body, config):
+def urllib_request(helper, url_connection, method, misp_url, body, config, connection_timeout=3, read_timeout=200):
     # set proper headers
     headers = {'Content-type': 'application/json'}
     headers['Authorization'] = config['misp_key']

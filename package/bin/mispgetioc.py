@@ -19,11 +19,11 @@ from itertools import chain
 import sys
 import json
 import logging
-from misp_common import prepare_config, logging_level, urllib_init_pool, urllib_request
+from misp_common import prepare_config, generate_record, logging_level, urllib_init_pool, urllib_request
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "4.2.1"
+__version__ = "4.4.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -54,6 +54,7 @@ class MispGetIocCommand(GeneratingCommand):
         "uuid": "optional",
         "publish_timestamp": "optional",
         "timestamp": "optional",
+        "attribute_timestamp": "optional",
         "enforceWarninglist": "optional",
         "to_ids": "optional",
         "deleted": "optional",
@@ -62,16 +63,19 @@ class MispGetIocCommand(GeneratingCommand):
         "event_timestamp": "optional",
         "threat_level_id": "optional",
         "eventinfo": "optional",
+        "sharinggroup": "optional",
         "includeProposals": "optional",
         "includeDecayScore": "optional",
         "includeFullModel": "optional",
         "decayingModel": "optional",
         "excludeDecayed": "optional",
-        "score": "optional"
+        "score": "optional",
+        "first_seen": "optional",
+        "last_seen": "optional"
     }
     # status
         "returnFormat": forced to json,
-        "page": param,
+        "page": not managed,
         "limit": param,
         "value": not managed,
         "type": param, CSV string,
@@ -83,22 +87,25 @@ class MispGetIocCommand(GeneratingCommand):
         "eventid": param,
         "withAttachments": forced to false,
         "uuid": not managed,
-        "publish_timestamp": managed via param last
-        "timestamp": not managed,
+        "publish_timestamp": param
+        "timestamp": param,
+        "attribute_timestamp": not managed,
         "enforceWarninglist": param,
         "to_ids": param,
-        "deleted": forced to False,
+        "deleted": param,
         "includeEventUuid": set to True,
         "includeEventTags": param,
         "event_timestamp":  not managed,
-        "threat_level_id":  not managed,
+        "threat_level_id":  param
         "eventinfo": not managed,
         "includeProposals": not managed
-        "includeDecayScore": set to False,
+        "includeDecayScore": param
         "includeFullModel": not managed,
         "decayingModel": param,
-        "excludeDecayed": set to False,
-        "score": not managed
+        "excludeDecayed": param,
+        "score": param
+        "first_seen": not managed
+        "last_seen": not managed
     }
     """
     # MANDATORY MISP instance for this search
@@ -112,8 +119,14 @@ class MispGetIocCommand(GeneratingCommand):
     json_request = Option(
         doc='''
         **Syntax:** **json_request=***valid JSON request*
-        **Description:**Valid JSON request''',
+        **Description:**Valid JSON request - see MISP REST API endpoint attributes/ restSearch''',
         require=False, validate=validators.Match("json_request", r"^{.+}$"))
+    date = Option(
+        doc='''
+        **Syntax:** **date=***The user set event date field*
+        **Description:**the user set date field at event level.
+        The date format follows ISO 8061.''',
+        require=False, validate=validators.Match("date", r"^[0-9\-,d]+$"))
     eventid = Option(
         doc='''
         **Syntax:** **eventid=***id1(,id2,...)*
@@ -122,17 +135,21 @@ class MispGetIocCommand(GeneratingCommand):
     last = Option(
         doc='''
         **Syntax:** **last=***<int>d|h|m*
-        **Description:** publication duration in day(s), hour(s) or minute(s).
+        **Description:** Events published within the last x amount of time, 
+        where x can be defined in (d)ays, (h)ours, (m)inutes 
+        (for example 5d or 12h or 30m), ISO 8601 datetime format or timestamp.
         **nota bene:** last is an alias of published_timestamp''',
-        require=False, validate=validators.Match("last", r"^[0-9]+[hdm]$"))
-    date = Option(
+        require=False, validate=validators.Match("last", r"^(\d+[hdm]|\d+|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})$"))
+    publish_timestamp = Option(
         doc='''
-        **Syntax:** **date=***The user set event date field
-         - any of valid time related filters"*
-        **Description:**the user set date field on event level.
-        The date format follows ISO 8061.
-        **eventid**, **last** and **date** are mutually exclusive''',
-        require=False, validate=validators.Match("date", r"^[0-9\-,d]+$"))
+        **Syntax:** **publish_timestamp=***<int>d|h|m*
+        **Description:** relative publication duration in day(s), hour(s) or minute(s).''',
+        require=False, validate=validators.Match("last", r"^(\d+[hdm]|\d+|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})$"))
+    timestamp = Option(
+        doc='''
+        **Syntax:** **timestamp=***<int>d|h|m*
+        **Description:** event timestamp (last change).''',
+        require=False, validate=validators.Match("last", r"^(\d+[hdm]|\d+|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})$"))
     # Other params
     add_description = Option(
         doc='''
@@ -146,29 +163,41 @@ class MispGetIocCommand(GeneratingCommand):
         **Description:**Comma(,)-separated string of categories to search for.
          Wildcard is %.''',
         require=False)
+    decay_score_threshold = Option(
+        doc='''
+        **Syntax:** **decay_score_threshold=***<int>*
+        **Description:**define the minimum sore to override on-the-fly the threshold of the decaying model.''',
+        require=False, validate=validators.Match("decay_score_threshold", r"^[0-9]+$"))
+    decaying_model = Option(
+        doc='''
+        **Syntax:** **decaying_model=***<int>*
+        **Description:**ID of the decaying model to select specific model.''',
+        require=False, validate=validators.Match("decaying_model", r"^[0-9]+$"))
+    exclude_decayed = Option(
+        doc='''
+        **Syntax:** **exclude_decayed=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
+        **Description:**Boolean to exclude decayed attributes.''',
+        require=False, validate=validators.Boolean(), default=False)
     expand_object = Option(
         doc='''
         **Syntax:** **gexpand_object=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
         **Description:**Boolean to have object attributes expanded (one per line).
-        By default, attributes of one object are displayed on same line.''',
-        require=False, validate=validators.Boolean())
+        By default, attributes of one object are displayed on same line.
+        ''',
+        require=False, 
+        default=False,
+        validate=validators.Boolean())
     geteventtag = Option(
         doc='''
         **Syntax:** **geteventtag=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
         **Description:**Boolean includeEventTags. By default only
          attribute tag(s) are returned.''',
         require=False, validate=validators.Boolean())
-    getorg = Option(
+    include_decay_score = Option(
         doc='''
-        **Syntax:** **getorg=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
-        **Description:**Boolean to return the ID of the organisation that
-         created the event.''',
-        require=False, validate=validators.Boolean())
-    getuuid = Option(
-        doc='''
-        **Syntax:** **getuuid=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
-        **Description:**Boolean to return attribute UUID.''',
-        require=False, validate=validators.Boolean())
+        **Syntax:** **include_decay_score=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
+        **Description:**Boolean to return decay sores.''',
+        require=False, validate=validators.Boolean(), default=False)
     include_deleted = Option(
         doc='''
         **Syntax:** **include_deleted=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
@@ -189,26 +218,31 @@ class MispGetIocCommand(GeneratingCommand):
         require=False)
     output = Option(
         doc='''
-        **Syntax:** **output=***<default|rawy>*
-        **Description:**selection between the default behaviou or JSON output by attribute.''',
-        require=False, validate=validators.Match(
-            "output", r"(default|raw)"))
-    page = Option(
-        doc='''
-        **Syntax:** **page=***<int>*
-        **Description:**define the page for each MISP search; default 1.''',
-        require=False, validate=validators.Match("page", r"^[0-9]+$"))
+        **Syntax:** **output=***<fields|json>*
+        **Description:**Selection between the default Splunk tabular view - output=fields - or JSON - output=json.
+        ''',
+        require=False,
+        default='fields', 
+        validate=validators.Match("output", r"(fields|json)"))
     pipesplit = Option(
         doc='''
         **Syntax:** **pipesplit=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
-        **Description:**Boolean to split multivalue attributes.''',
-        require=False, validate=validators.Boolean())
+        **Description:**Boolean to split multivalue attributes.
+        ''',
+        require=False, 
+        default=True, 
+        validate=validators.Boolean())
     tags = Option(
         doc='''
         **Syntax:** **tags=***CSV string*
         **Description:**Comma(,)-separated string of tags to search for.
          Wildcard is %.''',
         require=False)
+    threat_level_id = Option(
+        doc='''
+        **Syntax:** **threat_level_id=***<int>*
+        **Description:**define the threat level (1-High, 2-Medium, 3-Low, 4-Undefined).''',
+        require=False, validate=validators.Match("limit", r"^[1-4]$"))
     to_ids = Option(
         doc='''
         **Syntax:** **to_ids=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
@@ -226,26 +260,8 @@ class MispGetIocCommand(GeneratingCommand):
         **Syntax:** **warning_list=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
         **Description:**Boolean to filter out well known values.''',
         require=False, validate=validators.Boolean())
-    include_decay_score = Option(
-        doc='''
-        **Syntax:** **include_decay_score=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
-        **Description:**Boolean to return decay sores.''',
-        require=False, validate=validators.Boolean(), default=False)
-    decaying_model = Option(
-        doc='''
-        **Syntax:** **decaying_model=***<int>*
-        **Description:**ID of the decaying model to select specific model.''',
-        require=False, validate=validators.Match("decaying_model", r"^[0-9]+$"))
-    exclude_decayed = Option(
-        doc='''
-        **Syntax:** **exclude_decayed=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
-        **Description:**Boolean to exclude decayed attributes.''',
-        require=False, validate=validators.Boolean(), default=False)
-    decay_score_threshold = Option(
-        doc='''
-        **Syntax:** **decay_score_threshold=***<int>*
-        **Description:**define the minimum sore to override on-the-fly the threshold of the decaying model.''',
-        require=False, validate=validators.Match("decay_score_threshold", r"^[0-9]+$"))
+
+
 
     def log_error(self, msg):
         logging.error(msg)
@@ -263,8 +279,8 @@ class MispGetIocCommand(GeneratingCommand):
         logging.root
         loglevel = logging_level('misp42splunk')
         logging.root.setLevel(loglevel)
-        logging.error('[IO-101] logging level is set to %s', loglevel)
-        logging.error('[IO-102] PYTHON VERSION: ' + sys.version)
+        logging.error('[IO-201] logging level is set to %s', loglevel)
+        logging.error('[IO-202] PYTHON VERSION: ' + sys.version)
 
     @staticmethod
     def _record(
@@ -308,33 +324,37 @@ class MispGetIocCommand(GeneratingCommand):
         storage = self.service.storage_passwords
         my_args = prepare_config(self, 'misp42splunk', misp_instance, storage)
         if my_args is None:
-            raise Exception("Sorry, no configuration for misp_instance={}".format(misp_instance))
+            raise Exception("[IO-101] Sorry, no configuration for misp_instance={}".format(misp_instance))
         my_args['host'] = my_args['misp_url'].replace('https://', '')
         my_args['misp_url'] = my_args['misp_url'] + '/attributes/restSearch'
 
         # check that ONE of mandatory fields is present
         mandatory_arg = 0
-        if self.json_request is not None:
+        if self.date:
             mandatory_arg = mandatory_arg + 1
         if self.eventid:
             mandatory_arg = mandatory_arg + 1
+        if self.json_request is not None:
+            mandatory_arg = mandatory_arg + 1
         if self.last:
             mandatory_arg = mandatory_arg + 1
-        if self.date:
+        if self.publish_timestamp:
+            mandatory_arg = mandatory_arg + 1
+        if self.timestamp:
             mandatory_arg = mandatory_arg + 1
 
         if mandatory_arg == 0:
-            self.log_error('Missing "json_request", "eventid", "last" or "date" argument')
-            raise Exception('Missing "json_request", "eventid", "last" or "date" argument')
+            self.log_error('[IO-102] Missing "date", "eventid", "json_request", "last", "publish_timestamp" or "timestamp" argument')
+            raise Exception('[IO-102] Missing "date", "eventid", "json_request", "last", "publish_timestamp" or "timestamp" argument')
         elif mandatory_arg > 1:
-            self.log_error('Options "json_request", "eventid", "last" and "date" are mutually exclusive')
-            raise Exception('Options "json_request", "eventid", "last" and "date" are mutually exclusive')
+            self.log_error('[IO-103] Options "date", "eventid", "json_request", "last", "publish_timestamp" and "timestamp" are mutually exclusive')
+            raise Exception('[IO-103] Options "date", "eventid", "json_request", "last", "publish_timestamp" and "timestamp" are mutually exclusive')
 
         body_dict = dict()
         # Only ONE combination was provided
         if self.json_request is not None:
             body_dict = json.loads(self.json_request)
-            self.log_info('Option "json_request" set')
+            self.log_info('[IO-104] Option "json_request" set')
         elif self.eventid:
             if "," in self.eventid:
                 event_criteria = {}
@@ -343,19 +363,27 @@ class MispGetIocCommand(GeneratingCommand):
                 body_dict['eventid'] = event_criteria
             else:
                 body_dict['eventid'] = self.eventid
-            self.log_info('Option "eventid" set with {}'
+            self.log_info('[IO-105] Option "eventid" set with {}'
                           .format(json.dumps(body_dict['eventid'])))
         elif self.last:
             body_dict['last'] = self.last
-            self.log_info('Option "last" set with {}'
+            self.log_info('[IO-106] Option "last" set with {}'
                           .format(body_dict['last']))
+        elif self.publish_timestamp:
+            body_dict['publish_timestamp'] = self.publish_timestamp
+            self.log_info('[IO-107] Option "publish_timestamp" set with {}'
+                          .format(body_dict['publish_timestamp']))
+        elif self.timestamp:
+            body_dict['timestamp'] = self.timestamp
+            self.log_info('[IO-108] Option "timestamp" set with {}'
+                          .format(body_dict['timestamp']))
         else:  # implicit param date
             if "," in self.date:  # string should contain a range
                 date_list = self.date.split(",")
                 body_dict['date'] = [str(date_list[0]), str(date_list[1])]
             else:
                 body_dict['date'] = self.date
-            self.log_info('Option "date range" key date {}'
+            self.log_info('[IO-109] Option "date range" key date {}'
                           .format(json.dumps(body_dict['date'])))
 
         # Force some values on JSON request
@@ -364,21 +392,24 @@ class MispGetIocCommand(GeneratingCommand):
         body_dict['includeEventUuid'] = True
 
         # Search pagination
-        pagination = True
-        if self.limit is not None:
-            limit = int(self.limit)
-        elif 'limit' in body_dict:
-            limit = int(body_dict['limit'])
-        else:
-            limit = 1000
-        if limit == 0:
-            pagination = False
-        if self.page is not None:
-            page = int(self.page)
-        elif 'page' in body_dict:
+        if 'page' in body_dict:
             page = body_dict['page']
         else:
-            page = 1
+            page = 0
+
+        if 'limit' in body_dict:
+            limit = int(body_dict['limit'])
+        elif self.limit is not None:
+            limit = int(self.limit)
+        else:
+            limit = 1000
+        body_dict['limit'] = limit
+        if limit == 0:
+            body_dict.pop('page', None)
+
+        self.log_debug('[IO-201] limit {} page {}'
+            .format(limit,page))
+
 
         # Search parameters: boolean and filter
         # manage to_ids and enforceWarninglist
@@ -410,8 +441,8 @@ class MispGetIocCommand(GeneratingCommand):
         if self.type is not None:
             if "," in self.type:
                 type_criteria = {}
-                type_list = self.type.split(",")
-                type_criteria['OR'] = type_list
+                types = self.type.split(",")
+                type_criteria['OR'] = types
                 body_dict['type'] = type_criteria
             else:
                 body_dict['type'] = self.type
@@ -424,6 +455,8 @@ class MispGetIocCommand(GeneratingCommand):
                 tags_list = self.not_tags.split(",")
                 tags_criteria['NOT'] = tags_list
             body_dict['tags'] = tags_criteria
+        if self.threat_level_id is not None:
+            body_dict['threat_level_id'] = self.threat_level_id
 
         # Decaying Model related Search parameters
         if self.include_decay_score is True:
@@ -437,291 +470,251 @@ class MispGetIocCommand(GeneratingCommand):
 
         # output filter parameters
         if self.add_description is True:
-            my_args['add_desc'] = True
+            my_args['add_description'] = True
         else:
-            my_args['add_desc'] = False
+            my_args['add_description'] = False
         if self.expand_object is True:
-            my_args['expand'] = True
+            my_args['expand_object'] = True
         else:
-            my_args['expand'] = False
-        if self.getorg is True:
-            my_args['getorg'] = True
+            my_args['expand_object'] = False
+        if self.pipesplit is False:
+            my_args['pipesplit'] = False
         else:
-            my_args['getorg'] = False
-        if self.getuuid is True:
-            my_args['getuuid'] = True
-        else:
-            my_args['getuuid'] = False
-        if self.pipesplit is True:
-            my_args['pipe'] = True
-        else:
-            my_args['pipe'] = False
+            my_args['pipesplit'] = True
         if self.output is not None:
             my_args['output'] = self.output
         else:
-            my_args['output'] = "default"
-
-        # add columns for each type in results
-        results = []
-        typelist = []
-        if pagination is True:
-            body_dict['page'] = page
-            body_dict['limit'] = limit
+            my_args['output'] = "fields"
 
         connection, connection_status = urllib_init_pool(self, my_args)
         if connection:
-            response = urllib_request(self, connection, 'POST', my_args['misp_url'], body_dict, my_args)
+            if page == 0 and limit != 0:
+                request_loop = True
+                body_dict['page'] = 1
+                response = {'response': {'Attribute': []}}
+                while request_loop:
+                    iter_response = urllib_request(
+                        self,
+                        connection,
+                        'POST',
+                        my_args['misp_url'],
+                        body_dict,
+                        my_args)
+                    if 'response' in iter_response:
+                        if 'Attribute' in iter_response['response']:
+                            rlength = len(
+                                iter_response['response']['Attribute'])
+                            if rlength != 0:
+                                response['response']['Attribute'].extend(
+                                    iter_response['response']['Attribute'])
+                                self.log_debug(
+                                    '[IO-202] request on page {} returned {} attribute(s); querying next page'
+                                    .format(body_dict['page'],rlength))
+                                body_dict['page'] = body_dict['page'] + 1
+                            else:
+                                # last page is reached
+                                request_loop = False
+                        else:
+                            request_loop = False
+                    else:
+                        request_loop = False
+            else:
+                response = urllib_request(
+                    self,
+                    connection,
+                    'POST',
+                    my_args['misp_url'],
+                    body_dict,
+                    my_args)
         else:
             response = connection_status
 
+        self.log_info(
+            '[IO-203] response contains {} records'.format(len(response)))
+
         if "_raw" in response:
             yield response
-        else:  
+        else: 
+            # response_dict contains results
+            attribute_list = response['response'].get('Attribute', [])
             encoder = json.JSONEncoder(ensure_ascii=False, separators=(',', ':'))
-            # if raw output, returns JSON object
-            if 'response' in response:
-                if 'Attribute' in response['response']:
-                    if my_args['output'] == "raw":
-                        attribute_names = list()
-                        serial_number = 0
-                        for a in response['response']['Attribute']:
-                            yield MispGetIocCommand._record(
-                                serial_number, a['timestamp'], my_args['host'],
-                                a, attribute_names, encoder)
-                            serial_number += 1
-                            GeneratingCommand.flush
-            # default output: extract some values from JSON attributes
+
+            # if output=json, returns JSON objects
+            if my_args['output'] == "json":
+                for a in attribute_list:
+                    splunk_ts = a['timestamp']
+                    yield generate_record(
+                        a,
+                        splunk_ts,
+                        self
+                    )
+
+            # default output=fields: extract some values from JSON attributes
+            else:
+                results = []
+                prefix = "misp_"
+                misp_type_list = list()
+                attribute_mapping = {
+                    'category': 'category',
+                    'comment': 'comment',
+                    'deleted': 'deleted',
+                    'distribution': 'attribute_distribution',
+                    'event_id': 'event_id',
+                    'event_uuid': 'event_uuid',
+                    'first_seen': 'first_seen',
+                    'id': 'attribute_id',
+                    'last_seen': 'last_seen',
+                    'object_id': 'object_id',
+                    'object_relation': 'object_relation',
+                    'sharing_group_id': 'sharing_group_id',
+                    'timestamp': 'timestamp',
+                    'to_ids': 'to_ids',
+                    'type': 'type',
+                    'uuid': 'attribute_uuid',
+                    'value': 'value',
+                }
+                for a in attribute_list:
+                    attribute = dict()
+                    splunk_ts = a['timestamp']
+                    for key, value in attribute_mapping.items():
+                        if key in a:
+                            attribute[f'{prefix}{value}'] = a[key]
+                    if 'Event' in a:
+                        e = a['Event']
+                        event_mapping = {
+                            'distribution': 'event_distribution',
+                            'id': 'event_id',
+                            'info': 'event_info',
+                            'org_id': 'org_id',
+                            'orgc_id': 'orgc_id',
+                            'publish_timestamp': 'publish_timestamp',
+                            'uuid': 'event_uuid',
+                        } 
+                        for key, value in event_mapping.items():
+                            if key in e:
+                                attribute[f'{prefix}{value}'] = e[key]
+
+                    if 'Tag' in a:
+                        attribute[f'{prefix}tag'] = list()
+                        if isinstance(a['Tag'], list):
+                            for tag in a.get('Tag', []):
+                                attribute[f'{prefix}tag'].append(tag['name'].strip())
+                        elif isinstance(a['Tag'], dict):
+                            attribute[f'{prefix}tag'].append(a['Tag']['name'].strip())
+
+                    # add description sttring
+                    if my_args['add_description'] is True:
+                        if int(attribute['misp_object_id']) == 0:
+                            attribute['misp_description'] = 'MISP event:' \
+                                + str(attribute['misp_event_uuid']) + ' attribute:' \
+                                + str(attribute['misp_attribute_uuid']) + ' of type "' \
+                                + str(attribute['misp_type']) \
+                                + '" in category "' + str(attribute['misp_category']) \
+                                + '" (to_ids:' + str(attribute['misp_to_ids']) + ')'
+                        else:
+                            attribute['misp_description'] = 'MISP event:' \
+                                + str(attribute['misp_event_uuid']) + ' attribute:' \
+                                + str(attribute['misp_attribute_uuid']) + ' of type "' \
+                                + str(attribute['misp_type']) \
+                                + '" in category "' + str(attribute['misp_category']) \
+                                + '" (to_ids:' + str(attribute['misp_to_ids']) \
+                                + ' - object_id:' + str(attribute['misp_object_id']) \
+                                + ' object_relation:' + str(attribute['misp_object_relation']) + ')'
+
+                    # combined: not part of an object
+                    # AND multivalue attribute AND to be split
+                    if int(a['object_id']) == 0 \
+                       and '|' in a['type'] \
+                       and my_args['pipesplit'] is True:
+                        mv_type_list = str(a['type']).split('|')
+                        mv_value_list = str(a['value']).split('|')
+                        left_v = attribute.copy()
+                        left_v['misp_type'] = str(mv_type_list.pop())
+                        left_v['misp_value'] = str(mv_value_list.pop())
+                        results.append(left_v)
+                        if left_v['misp_type'] not in misp_type_list:
+                            misp_type_list.append(left_v['misp_type'])
+                        right_v = attribute.copy()
+                        right_v['misp_type'] = str(mv_type_list.pop())
+                        right_v['misp_value'] = str(mv_value_list.pop())
+                        results.append(right_v)
+                        if right_v['misp_type'] not in misp_type_list:
+                            misp_type_list.append(right_v['misp_type'])
                     else:
-                        common_columns = ["category", "to_ids", "timestamp", "comment",
-                                          "sharing_group_id", "deleted", "disable_correlation",
-                                          "first_seen", "last_seen", "object_id", "object_relation",
-                                          "type", "value"]
-                        attribute_specific_columns = ["id", "distribution"]
-                        if my_args['getuuid']:
-                            attribute_specific_columns.append("uuid")
-                        for a in response['response']['Attribute']:
-                            v = {}
-                            # prepend key names with misp_attribute_
-                            for asc in attribute_specific_columns:
-                                misp_asc = "misp_attribute_" + asc
-                                if asc in a:
-                                    v[misp_asc] = str(a[asc])
-                            # prepend key names with misp_
-                            for cc in common_columns:
-                                misp_cc = "misp_" + cc
-                                if cc in a:
-                                    v[misp_cc] = str(a[cc])
-                            # append attribute tags to tag list
-                            tag_list = []
-                            if 'Tag' in a:
-                                for tag in a['Tag']:
-                                    try:
-                                        tag_list.append(
-                                            str(tag['name'])
-                                        )
-                                    except Exception:
-                                        pass
-                            v['misp_tag'] = tag_list
-                            # append decaying models                            
-                            if 'decay_score' in a:
-                                decaying_models_list = []
-                                max_score = 0
-                                min_score = 999999999
-                                for decaying_model in a['decay_score']:
-                                    if 'score' in decaying_model:
-                                        decaying_score = int(decaying_model['score']) # integer should be sufficient
-                                        if 'DecayingModel' in decaying_model and 'name' in decaying_model['DecayingModel']:
-                                            decaying_models_list.append(
-                                                f"{decaying_model['DecayingModel']['name']}:{decaying_score}"
-                                            )
-                                        if decaying_score > max_score:
-                                            max_score = decaying_score
-                                        if decaying_score < min_score:
-                                            min_score = decaying_score
-
-                                if len(decaying_models_list) > 0:
-                                    v['misp_decaying_scores'] = decaying_models_list
-                                    v['misp_decaying_score_max'] = max_score
-                                    v['misp_decaying_score_min'] = min_score
-
-                            # include Event metatdata
-                            if 'Event' in a:
-                                attr_event_columns = ["id", "uuid", "distribution", "info"]
-                                for aec in attr_event_columns:
-                                    misp_aec = "misp_event_" + aec
-                                    if aec in a['Event']:
-                                        v[misp_aec] = str(a['Event'][aec])
-                                if my_args['getorg'] is True:
-                                    attr_org_columns = ["org_id", "orgc_id"]
-                                    for aoc in attr_org_columns:
-                                        misp_aoc = "misp_" + aoc
-                                        if aoc in a['Event']:
-                                            v[misp_aoc] = str(a['Event'][aoc])
-                                
-                            # add description sttring
-                            if my_args['add_desc'] is True:
-                                if int(a['object_id']) == 0:
-                                    v['misp_description'] = 'MISP e' \
-                                        + str(a['event_id']) + ' attribute ' \
-                                        + str(a['uuid']) + ' of type "' \
-                                        + str(a['type']) \
-                                        + '" in category "' + str(a['category']) \
-                                        + '" (to_ids:' + str(a['to_ids']) + ')'
-                                else:
-                                    v['misp_description'] = 'MISP e' \
-                                        + str(a['event_id']) + ' attribute ' \
-                                        + str(a['uuid']) + ' of type "' \
-                                        + str(a['type']) + '" in category "' \
-                                        + str(a['category']) \
-                                        + '" (to_ids:' + str(a['to_ids']) \
-                                        + ' - o' + str(a['object_id']) + ' )'
-     
-                            current_type = str(a['type'])
-                            # combined: not part of an object
-                            # AND multivalue attribute AND to be split
-                            if int(a['object_id']) == 0 and '|' in current_type \
-                               and my_args['pipe'] is True:
-                                mv_type_list = current_type.split('|')
-                                mv_value_list = str(a['value']).split('|')
-                                left_v = v.copy()
-                                left_v['misp_type'] = str(mv_type_list.pop())
-                                left_v['misp_value'] = str(mv_value_list.pop())
-                                results.append(left_v)
-                                if left_v['misp_type'] not in typelist:
-                                    typelist.append(left_v['misp_type'])
-                                right_v = v.copy()
-                                right_v['misp_type'] = str(mv_type_list.pop())
-                                right_v['misp_value'] = str(mv_value_list.pop())
-                                results.append(right_v)
-                                if right_v['misp_type'] not in typelist:
-                                    typelist.append(right_v['misp_type'])
-                            else:
-                                results.append(v)
-                                if current_type not in typelist:
-                                    typelist.append(current_type)
-
-                self.log_info(json.dumps(typelist))
+                        results.append(attribute)
+                        if attribute['misp_type'] not in misp_type_list:
+                            misp_type_list.append(attribute['misp_type'])
+                self.log_info(json.dumps(misp_type_list))
 
                 # consolidate attribute values under output table
                 output_dict = {}
-                if my_args['expand'] is True:
-                    for r in results:
-                        key = str(r['misp_event_id']) + \
+                for r in results:
+                    if my_args['expand_object'] is False \
+                       and int(r['misp_object_id']) != 0:
+                        r_key = str(r['misp_event_id']) \
+                            + '_object_' + str(r['misp_object_id'])
+                    else:
+                        r_key = str(r['misp_event_id']) + \
                             '_' + str(r['misp_attribute_id'])
-                        if key not in output_dict:
-                            v = dict(r)
-                            for t in typelist:
-                                misp_t = 'misp_' + t.replace('-', '_').replace('|', '_p_')
-                                v[misp_t] = []
-                                if t == r['misp_type']:
-                                    v[misp_t].append(r['misp_value'])
-                            output_dict[key] = dict(v)
-                        else:
-                            v = dict(output_dict[key])
-                            misp_t = 'misp_' + r['misp_type'].replace('-', '_').replace('|', '_p_')
+
+                    if r_key not in output_dict:
+                        v = dict(r)
+                        for t in misp_type_list:
+                            misp_t = prefix + t.replace('-', '_').replace('|','_p_')
+                            v[misp_t] = list()
+                            if t == r['misp_type']:
+                                v[misp_t].append(r['misp_value'])
+                        output_dict[r_key] = dict(v)
+                    else:
+                        v = dict(output_dict[r_key])
+                        if v['misp_object_id'] == 0:  # this is a composed attribute
+                            misp_t = prefix + r['misp_type'].replace('-', '_').replace('|','_p_')
                             v[misp_t].append(r['misp_value'])  # set value for type
-                            misp_type = r['misp_type'] + '|' + v['misp_type']
-                            v['misp_type'] = list()
-                            v['misp_type'].append(misp_type)
-                            misp_value = str(r['misp_value']) + '|' + str(v['misp_value'])
-                            v['misp_value'] = list()
-                            v['misp_value'].append(misp_value)
-                            output_dict[key] = dict(v)
-                else:
-                    for r in results:
-                        if int(r['misp_object_id']) == 0:  # not an object
-                            key = str(r['misp_event_id']) + \
-                                '_' + str(r['misp_attribute_id'])
-                            is_object_member = False
-                        else:  # this is a  MISP object
-                            key = str(r['misp_event_id']) \
-                                + '_object_' + str(r['misp_object_id'])
-                            is_object_member = True
-                        if key not in output_dict:
-                            v = dict(r)
-                            for t in typelist:
-                                misp_t = 'misp_' + t.replace('-', '_').replace('|', '_p_')
-                                v[misp_t] = list()
-                                if t == r['misp_type']:
-                                    v[misp_t].append(r['misp_value'])
-                            for ac in common_columns:
-                                misp_ac = "misp_" + ac
-                                if misp_ac in r:
-                                    v[misp_ac] = list()
-                                    v[misp_ac].append(str(r[misp_ac]))
-                            v['misp_attribute_id'] = list()
-                            v['misp_attribute_id'].append(r['misp_attribute_id'])
-                            if my_args['getuuid'] is True:
-                                v['misp_attribute_uuid'] = list()
-                                v['misp_attribute_uuid'].append(r['misp_attribute_uuid'])
-                            if my_args['add_desc'] is True:
-                                v['misp_description'] = list()
-                                v['misp_description'].append(r['misp_description'])
-                            output_dict[key] = dict(v)
-                        else:
-                            v = dict(output_dict[key])
-                            misp_t = 'misp_' + r['misp_type'].replace('-', '_').replace('|', '_p_')
+                            composed_misp_type = list(r['misp_type'].replace('_', '-') \
+                                                    + '|' \
+                                                    + v['misp_type'].replace('_', '-'))
+                            v['misp_type'] = composed_misp_type
+                            composed_misp_value = list(str(r['misp_value']) + '|' + str(v['misp_value']))
+                            v['misp_value'] = composed_misp_value
+                        else:  # object to merge
+                            misp_t = 'misp_' + r['misp_type'].replace('-', '_')
                             v[misp_t].append(r['misp_value'])  # set value for type
-                            for ac in common_columns:
-                                misp_ac = "misp_" + ac
-                                if misp_ac in r:
-                                    if misp_ac not in v:
-                                        v[misp_ac] = list()
-                                    v[misp_ac].append(str(r[misp_ac]))
+
+                            for orig_key, misp_key in attribute_mapping.items():
+                                misp_key = prefix + misp_key
+                                if misp_key in r:
+                                    if misp_key in v:
+                                        if not isinstance(v[misp_key], list):
+                                            misp_key_list = list()
+                                            misp_key_list.append(v[misp_key])
+                                            v[misp_key] = misp_key_list
+                                        if r[misp_key] not in v[misp_key]:
+                                            v[misp_key].append(r[misp_key]) 
+                                    else:
+                                        v[misp_key] = r[misp_key]
+
                             tag_list = v['misp_tag']
                             for tag in r['misp_tag']:
                                 if tag not in tag_list:
                                     tag_list.append(tag)
                             v['misp_tag'] = tag_list
-                            if my_args['add_desc'] is True:
-                                description = v['misp_description']
-                                if r['misp_description'] not in description:
-                                    description.append(r['misp_description'])
-                                v['misp_description'] = description
-                            if is_object_member is False:
-                                if r['misp_attribute_id'] not in v['misp_attribute_id']:
-                                    v['misp_attribute_id'].append(r['misp_attribute_id'])
-                                if my_args['getuuid'] is True:
-                                    if r['misp_attribute_uuid'] not in v['misp_attribute_uuid']:
-                                        v['misp_attribute_uuid'].append(r['misp_attribute_uuid'])
-                                misp_type = []  # composed attribute
-                                misp_type.append(r['misp_type'] + '|' + v['misp_type'][0])
-                                v['misp_type'] = misp_type
-                                misp_value = []
-                                misp_value.append(str(r['misp_value']) + '|' + str(v['misp_value'][0]))
-                                v['misp_value'] = misp_value
-                            else:
-                                v['misp_attribute_id'].append(r['misp_attribute_id'])
-                                if my_args['getuuid'] is True:
-                                    v['misp_attribute_uuid'].append(r['misp_attribute_uuid'])
-                            output_dict[key] = dict(v)
+                            
+                        output_dict[r_key] = dict(v)
 
-                # return output table
-                attribute_names = list()
-                init_attribute_names = True
-                serial_number = 0
-                for v in output_dict.values():
-                    if init_attribute_names is True:
-                        for key in v.keys():
-                            if key not in attribute_names:
-                                attribute_names.append(key)
-                        attribute_names.sort()
-                        init_attribute_names = False
-
-                    if isinstance(v['misp_timestamp'], list):
-                        timestamp = 999999999999
-                        for ts in v['misp_timestamp']:
-                            if int(ts) < timestamp:
-                                timestamp = int(ts)
+                for r_key, result in output_dict.items():
+                    if isinstance(result['misp_timestamp'], list):
+                        splunk_ts = 999999999999
+                        for ts in result['misp_timestamp']:
+                            if int(ts) < splunk_ts:
+                                splunk_ts = int(ts)
                     else:
-                        timestamp = int(v['misp_timestamp'])
+                        splunk_ts = int(result['misp_timestamp'])
 
-                    yield MispGetIocCommand._record(
-                        serial_number, timestamp, my_args['host'],
-                        v, attribute_names, encoder, True)
-                    serial_number += 1
-                    GeneratingCommand.flush
-
+                    yield generate_record(
+                        result,
+                        splunk_ts,
+                        self
+                    )    
 
 if __name__ == "__main__":
     dispatch(MispGetIocCommand, sys.argv, sys.stdin, sys.stdout, __name__)

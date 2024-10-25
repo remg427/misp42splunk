@@ -1,33 +1,32 @@
-<form hideEdit="false" version="1.1">
+<form hideEdit="false" version="1.1" theme="light">
   <init>
     <set token="param_json_request"></set>
+    <set token="param_date"></set>
     <set token="param_eventid"></set>
     <set token="param_last"></set>
-    <set token="param_date"></set>
-    <set token="param_category"></set>
-    <set token="param_type"></set>
+    <set token="param_publish_timestamp"></set>
+    <set token="param_timestamp"></set>
     <set token="param_add_description"></set>
-    <set token="param_deleted"></set>
+    <set token="param_category"></set>
+    <set token="param_decay_score_threshold"></set>
+    <set token="param_decaying_model"></set>
+    <set token="param_exclude_decayed"></set>
     <set token="param_expand_object"></set>
     <set token="param_geteventtag"></set>
-    <set token="param_getorg"></set>
-    <set token="param_getuuid"></set>
+    <set token="param_include_decay_score"></set>
+    <set token="param_include_deleted"></set>
+    <set token="param_limit"></set>
+    <set token="param_not_tags"></set>
     <set token="param_output"></set>
     <set token="param_pipesplit"></set>
     <set token="param_tags"></set>
-    <set token="param_not_tags"></set>
+    <set token="param_threat_level_id"></set>
     <set token="param_to_ids"></set>
+    <set token="param_type"></set>
     <set token="param_warning_list"></set>
-    <set token="param_keep_related"></set>
-    <set token="param_limit"></set>
-    <set token="param_page"></set>
-    <set token="param_include_decay_score"></set>
-    <set token="param_decaying_model"></set>
-    <set token="param_exclude_decayed"></set>
-    <set token="param_decay_score_threshold"></set>
   </init>
   <label>mispgetioc</label>
-  <description>MISP custom command mispgetioc (Generating command)</description>
+  <description>MISP custom command mispgetioc (Generating command) - check https://github.com/remg427/misp42splunk/ for any update</description>
   <fieldset submitButton="true" autoRun="false">
     <input type="dropdown" token="misp_instance" searchWhenChanged="true">
       <label>misp_instance*</label>
@@ -44,306 +43,133 @@
     <input type="text" token="misp_instance">
       <label>misp_instance*</label>
     </input>
-    <input type="text" token="json_request" searchWhenChanged="true">
-      <label>json_request</label>
-      <change>
-        <condition match="$value$=&quot;&quot;">
-          <set token="param_json_request"></set>
-        </condition>
-        <condition>
-          <set token="param_json_request">json_request="$json_request$"</set>
-        </condition>
-      </change>
-    </input>
-    <input type="text" token="eventid" searchWhenChanged="true">
-      <label>eventid</label>
-      <change>
-        <condition match="$value$=&quot;&quot;">
-          <set token="param_eventid"></set>
-        </condition>
-        <condition>
-          <set token="param_eventid">eventid="$eventid$"</set>
-        </condition>
-      </change>
-    </input>
-    <input type="text" token="last" searchWhenChanged="true">
-      <label>last</label>
-      <change>
-        <condition match="$value$=&quot;&quot;">
-          <set token="param_last"></set>
-        </condition>
-        <condition>
-          <set token="param_last">last="$last$"</set>
-        </condition>
-      </change>
-    </input>
-    <input type="text" token="date" searchWhenChanged="true">
-      <label>date</label>
-      <change>
-        <condition match="$value$=&quot;&quot;">
-          <set token="param_date"></set>
-        </condition>
-        <condition>
-          <set token="param_date">date="$date$"</set>
-        </condition>
-      </change>
-    </input>
-    <input type="text" token="category" searchWhenChanged="true">
-      <label>category</label>
-      <change>
-        <condition match="$value$=&quot;&quot;">
-          <set token="param_category"></set>
-        </condition>
-        <condition>
-          <set token="param_category">category="$category$"</set>
-        </condition>
-      </change>
-    </input>
-    <input type="text" token="type" searchWhenChanged="true">
-      <label>type</label>
-      <change>
-        <condition match="$value$=&quot;&quot;">
-          <set token="param_type"></set>
-        </condition>
-        <condition>
-          <set token="param_type">type="$type$"</set>
-        </condition>
-      </change>
-    </input>
-    <input type="radio" token="add_description" searchWhenChanged="true">
-      <label>add_description</label>
-      <change>
-        <condition>
-          <set token="param_add_description">add_description="$add_description$"</set>
-        </condition>
-      </change>
-      <choice value="true">True</choice>
-      <choice value="false">False</choice>
-    </input>
-    <input type="radio" token="expand_object" searchWhenChanged="true">
-      <label>expand_object</label>
-      <change>
-        <condition match="$value$=&quot;true&quot;">
-          <set token="param_expand_object">expand_object="$expand_object$"</set>
-        </condition>
-        <condition match="$value$=&quot;false&quot;">
-          <set token="param_expand_object">expand_object="$expand_object$"</set>
-        </condition>
-        <condition match="$value$=&quot;not_set&quot;">
-          <set token="param_expand_object"></set>
-        </condition>
-      </change>
-      <choice value="not_set">not set</choice>
-      <choice value="true">True</choice>
-      <choice value="false">False</choice>
-    </input>
-    <input type="radio" token="geteventtag" searchWhenChanged="true">
-      <label>geteventtag</label>
-      <change>
-        <condition>
-          <set token="param_geteventtag">geteventtag="$geteventtag$"</set>
-        </condition>
-      </change>
-      <choice value="true">True</choice>
-      <choice value="false">False</choice>
-    </input>
-    <input type="radio" token="getorg" searchWhenChanged="true">
-      <label>getorg</label>
-      <change>
-        <condition>
-          <set token="param_getorg">getorg="$getorg$"</set>
-        </condition>
-      </change>
-      <choice value="true">True</choice>
-      <choice value="false">False</choice>
-    </input>
-    <input type="radio" token="getuuid" searchWhenChanged="true">
-      <label>getuuid</label>
-      <change>
-        <condition>
-          <set token="param_getuuid">getuuid="$getuuid$"</set>
-        </condition>
-      </change>
-      <choice value="true">True</choice>
-      <choice value="false">False</choice>
-    </input>
-    <input type="radio" token="deleted" searchWhenChanged="true">
-      <label>Get soft deleted</label>
-      <change>
-        <condition>
-          <set token="param_deleted">include_deleted="$deleted$"</set>
-        </condition>
-      </change>
-      <choice value="true">True</choice>
-      <choice value="false">False</choice>
-    </input>
-    <input type="radio" token="pipesplit" searchWhenChanged="true">
-      <label>pipesplit</label>
-      <change>
-        <condition match="$value$=&quot;true&quot;">
-          <set token="param_pipesplit">pipesplit="$pipesplit$"</set>
-        </condition>
-        <condition match="$value$=&quot;false&quot;">
-          <set token="param_pipesplit">pipesplit="$pipesplit$"</set>
-        </condition>
-        <condition match="$value$=&quot;not_set&quot;">
-          <set token="param_pipesplit"></set>
-        </condition>
-      </change>
-      <choice value="not_set">not set</choice>
-      <choice value="true">True</choice>
-      <choice value="false">False</choice>
-    </input>
-    <input type="radio" token="to_ids" searchWhenChanged="true">
-      <label>to_ids</label>
-      <change>
-        <condition match="$value$=&quot;true&quot;">
-          <set token="param_to_ids">pipesplit="$pipesplit$"</set>
-        </condition>
-        <condition match="$value$=&quot;false&quot;">
-          <set token="param_to_ids">pipesplit="$pipesplit$"</set>
-        </condition>
-        <condition match="$value$=&quot;not_set&quot;">
-          <set token="param_to_ids"></set>
-        </condition>
-      </change>
-      <choice value="not_set">not set</choice>
-      <choice value="true">True</choice>
-      <choice value="false">False</choice>
-    </input>
-    <input type="radio" token="warning_list" searchWhenChanged="true">
-      <label>warning_list</label>
-      <change>
-        <condition match="$value$=&quot;true&quot;">
-          <set token="param_warning_list">warning_list="$warning_list$"</set>
-        </condition>
-        <condition match="$value$=&quot;false&quot;">
-          <set token="param_warning_list">warning_list="$warning_list$"</set>
-        </condition>
-        <condition match="$value$=&quot;not_set&quot;">
-          <set token="param_warning_list"></set>
-        </condition>
-      </change>
-      <choice value="not_set">not set</choice>
-      <choice value="true">True</choice>
-      <choice value="false">False</choice>
-    </input>
     <input type="radio" token="output" searchWhenChanged="true">
       <label>output</label>
-      <choice value="">not set</choice>
-      <choice value="default">default</choice>
-      <choice value="raw">raw</choice>
+      <choice value="">not set - default to fields</choice>
+      <choice value="fields">fields</choice>
+      <choice value="json">json</choice>
       <change>
         <condition match="$value$=&quot;&quot;">
           <set token="param_output"></set>
         </condition>
-        <condition match="$value$=&quot;default&quot;">
-          <set token="param_output">output=default</set>
+        <condition match="$value$=&quot;fields&quot;">
+          <set token="param_output">output=fields</set>
         </condition>
-        <condition match="$value$=&quot;raw&quot;">
-          <set token="param_output">output=raw</set>
+        <condition match="$value$=&quot;json&quot;">
+          <set token="param_output">output=json</set>
         </condition>
       </change>
       <default></default>
     </input>
-    <input type="text" token="tags" searchWhenChanged="true">
-      <label>tags</label>
-      <change>
-        <condition match="$value$=&quot;&quot;">
-          <set token="param_tags"></set>
-        </condition>
-        <condition>
-          <set token="param_tags">tags="$tags$"</set>
-        </condition>
-      </change>
-    </input>
-    <input type="text" token="not_tags" searchWhenChanged="true">
-      <label>not_tags</label>
-      <change>
-        <condition match="$value$=&quot;&quot;">
-          <set token="param_not_tags"></set>
-        </condition>
-        <condition>
-          <set token="param_not_tags">not_tags="$not_tags$"</set>
-        </condition>
-      </change>
-    </input>
-    <input type="radio" token="include_decay_score" searchWhenChanged="true">
-      <label>include_decay_score</label>
-      <change>
-        <condition match="$value$=&quot;true&quot;">
-          <set token="param_include_decay_score">include_decay_score="$include_decay_score$"</set>
-        </condition>
-        <condition match="$value$=&quot;false&quot;">
-          <set token="param_include_decay_score">include_decay_score="$include_decay_score$"</set>
-        </condition>
-      </change>
-      <choice value="true">True</choice>
-      <choice value="false">False</choice>
-    </input>
-    <input type="text" token="decaying_model" searchWhenChanged="true">
-      <label>decaying_model</label>
-      <change>
-        <condition>
-          <set token="param_decaying_model">decaying_model="$decaying_model$"</set>
-        </condition>
-      </change>
-    </input>
-    <input type="radio" token="exclude_decayed" searchWhenChanged="true">
-      <label>exclude_decayed</label>
-      <change>
-        <condition match="$value$=&quot;true&quot;">
-          <set token="param_exclude_decayed">exclude_decayed="$exclude_decayed$"</set>
-        </condition>
-        <condition match="$value$=&quot;false&quot;">
-          <set token="param_exclude_decayed">exclude_decayed="$exclude_decayed$"</set>
-        </condition>
-      </change>
-      <choice value="true">True</choice>
-      <choice value="false">False</choice>
-    </input>
-    <input type="text" token="decay_score_threshold" searchWhenChanged="true">
-      <label>decay_score_threshold</label>
-      <change>
-        <condition>
-          <set token="param_decay_score_threshold">decay_score_threshold="$decay_score_threshold$"</set>
-        </condition>
-      </change>
-    </input>
-    <input type="text" token="limit" searchWhenChanged="true">
-      <label>limit</label>
-      <change>
-        <condition match="$value$=&quot;&quot;">
-          <set token="param_limit"></set>
-        </condition>
-        <condition>
-          <set token="param_limit">limit=$limit$</set>
-        </condition>
-      </change>
-    </input>
-    <input type="text" token="page" searchWhenChanged="true">
-      <label>page</label>
-      <change>
-        <condition match="$value$=&quot;&quot;">
-          <set token="param_page"></set>
-        </condition>
-        <condition>
-          <set token="param_page">page=$page$</set>
-        </condition>
-      </change>
-    </input>
   </fieldset>
   <row>
     <panel>
+      <title>Quick reference mispgetioc</title>
       <html>
-        <h3>Select a misp_instance and one (and only one) parameter amongst:</h3>
+        <h2>
+          <strong>mispgetioc</strong> is a generating command (it needs to be on the "first" line of an SPL) that leverages the MISP REST API endpoint <code>/attributes/restSearch</code> to retrieve MISP attributes and add them to the event pipeline of the search.
+        </h2>
+        <h2>Select a misp_instance.</h2>
+        <p>
+          To select a misp instance, use the dropdown list that is populated if your Splunk account has the capability <code>rest_properties_get</code>to use the internal REST API <code>| rest</code>
+        </p>
+        <p>Otherwise simply type one of the names of the MISP instances that have been configured.</p>
+    </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Custom command mispgetioc</title>
+      <table>
+        <title>| mispgetioc misp_instance=$misp_instance$ $param_json_request$ $param_date$ $param_eventid$ $param_last$ $param_publish_timestamp$ $param_timestamp$ $param_add_description$ $param_category$ $param_decay_score_threshold$ $param_decaying_model$ $param_exclude_decayed$ $param_expand_object$ $param_geteventtag$ $param_include_decay_score$ $param_include_deleted$ $param_limit$ $param_not_tags$ $param_output$ $param_pipesplit$ $param_tags$ $param_threat_level_id$ $param_to_ids$ $param_type$ $param_warning_list$</title>
+        <search>
+          <query>
+            | mispgetioc misp_instance=$misp_instance$ $param_json_request$ $param_date$ $param_eventid$ $param_last$ $param_publish_timestamp$ $param_timestamp$ $param_add_description$ $param_category$ $param_decay_score_threshold$ $param_decaying_model$ $param_exclude_decayed$ $param_expand_object$ $param_geteventtag$ $param_include_decay_score$ $param_include_deleted$ $param_limit$ $param_not_tags$ $param_output$ $param_pipesplit$ $param_tags$ $param_threat_level_id$ $param_to_ids$ $param_type$ $param_warning_list$
+            | table * 
+          </query>
+          <earliest>-15m</earliest>
+          <latest></latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">5</option>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Select ONE and only one of the following input fields</title>
+      <input type="text" token="json_request" searchWhenChanged="true">
+        <label>json_request</label>
+        <change>
+          <condition match="$value$=&quot;&quot;">
+            <set token="param_json_request"></set>
+          </condition>
+          <condition>
+            <set token="param_json_request">json_request="$json_request$"</set>
+          </condition>
+        </change>
+      </input>
+      <input type="text" token="date" searchWhenChanged="true">
+        <label>date</label>
+        <change>
+          <condition match="$value$=&quot;&quot;">
+            <set token="param_date"></set>
+          </condition>
+          <condition>
+            <set token="param_date">date="$date$"</set>
+          </condition>
+        </change>
+      </input>
+      <input type="text" token="eventid" searchWhenChanged="true">
+        <label>eventid</label>
+        <change>
+          <condition match="$value$=&quot;&quot;">
+            <set token="param_eventid"></set>
+          </condition>
+          <condition>
+            <set token="param_eventid">eventid="$eventid$"</set>
+          </condition>
+        </change>
+      </input>
+      <input type="text" token="last" searchWhenChanged="true">
+        <label>last</label>
+        <change>
+          <condition match="$value$=&quot;&quot;">
+            <set token="param_last"></set>
+          </condition>
+          <condition>
+            <set token="param_last">last="$last$"</set>
+          </condition>
+        </change>
+      </input>
+      <input type="text" token="publish_timestamp" searchWhenChanged="true">
+        <label>publish_timestamp</label>
+        <change>
+          <condition match="$value$=&quot;&quot;">
+            <set token="param_publish_timestamp"></set>
+          </condition>
+          <condition>
+            <set token="param_publish_timestamp">publish_timestamp="$publish_timestamp$"</set>
+          </condition>
+        </change>
+      </input>
+      <input type="text" token="timestamp" searchWhenChanged="true">
+        <label>timestamp</label>
+        <change>
+          <condition match="$value$=&quot;&quot;">
+            <set token="param_timestamp"></set>
+          </condition>
+          <condition>
+            <set token="param_timestamp">timestamp="$timestamp$"</set>
+          </condition>
+        </change>
+      </input>
+      <html>
         <ul>
           <li>
             <strong>json_request:</strong> a valid JSON payload equivalent to MISP REST HTTP body (with escaped ")</li>
-          <li>
-            <strong>eventid:</strong> list of event ID(s) or event UUID(s) (the separator is a comma ",")</li>
-          <li>
-            <strong>last:</strong> Events <strong>published</strong> within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m), ISO 8601 datetime format or timestamp.</li>
           <li>
             <strong>date:</strong> You can use either ISO 8601 date format (YYYY-mm-dd) or any of the valid time related filters (examples: 7d, timestamps,  etc.)
             <ul>
@@ -352,9 +178,247 @@
             </ul>
             Do not use [14d, 7d] as without proper escaping it conflicts with Splunk sub-search.
             That's why notation is kept simple with one or 2 values separated by a comma date
-            </li>
+          </li>
+          <li>
+            <strong>eventid:</strong> list of event ID(s) or event UUID(s) (the separator is a comma ",")</li>
+          <li>
+            <strong>last:</strong> Events <strong>published</strong> within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m), ISO 8601 datetime format or timestam
+          </li>
+          <li>
+            <strong>publish_timestamp:</strong> Events <strong>published</strong> within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m), ISO 8601 datetime format or timestam
+          </li>
+          <li>
+            <strong>timestamp:</strong> Events timestamp: you may use valid timestamp expression including relative timestamp for example 5d or 12h or 30m, ISO 8601 datetime format or timestam
+          </li>        
         </ul>
-        <h3>Additional arguments:</h3>
+    </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>More information on json_request</title>
+<html>
+<head>
+    <title>Splunk Query with MISP REST API Integration</title>
+    <style>
+        body {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            font-family: monospace;
+            padding: 15px;
+        }
+        a {
+            color: #569cd6;
+        }
+        .command {
+            color: #569cd6;
+        }
+        .string {
+            color: #ce9178;
+        }
+        .code-block {
+            color: #dcdcaa;
+        }
+        /* Updated CSS for the code block background and text color */
+        pre {
+            background-color: #252526;
+            padding: 15px;
+            border-radius: 5px;
+            overflow: auto;
+            color: #f0f0f0; /* Lighter text color */
+        }
+    </style>
+</head>
+<body>
+    <p>
+        The following Splunk query utilises the <code>json_request</code> field to perform the same operations as the MISP REST API endpoint <code>"/attributes/restSearch"</code>. This integration allows you to execute detailed attribute searches within your MISP instance directly from Splunk. For more information, you can visit the <a href="https://www.misp-project.org/">MISP Project</a> and explore the <a href="https://www.misp-standard.org/openapi/">MISP OpenAPI documentation</a>.
+    </p>
+<pre><span class="command">| mispgetioc</span> misp_instance=<span class="string">"misp"</span>
+    [
+    <span class="command">| makeresults</span>
+    <span class="code-block">``` returnFormat="json", withAttachments=False", includeEventUuid="True" ```</span>
+    <span class="command">| eval</span>  limit=<span class="string">"optional"</span>, value=<span class="string">"optional"</span>, type=<span class="string">"optional"</span>, category=<span class="string">"optional"</span>, org=<span class="string">"optional"</span>, tags=<span class="string">"optional"</span>, date=<span class="string">"optional"</span>, last=<span class="string">"optional"</span>, eventid=<span class="string">"optional"</span>, uuid=<span class="string">"optional"</span>, publish_timestamp=<span class="string">"optional"</span>, timestamp=<span class="string">"optional"</span>, attribute_timestamp=<span class="string">"optional"</span>, enforceWarninglist=<span class="string">"optional"</span>, to_ids=<span class="string">"optional"</span>, deleted=<span class="string">"optional"</span>, includeEventTags=<span class="string">"optional"</span>, event_timestamp=<span class="string">"optional"</span>, threat_level_id=<span class="string">"optional"</span>, eventinfo=<span class="string">"optional"</span>, sharinggroup=<span class="string">"optional"</span>, includeProposals=<span class="string">"optional"</span>, includeDecayScore=<span class="string">"optional"</span>, includeFullModel=<span class="string">"optional"</span>, decayingModel=<span class="string">"optional"</span>, excludeDecayed=<span class="string">"optional"</span>, score=<span class="string">"optional"</span>, first_seen=<span class="string">"optional"</span>, last_seen=<span class="string">"optional"</span>
+    <span class="command">| tojson</span> * output_field=<span class="string">"json_request"</span>
+    <span class="command">| fields</span> json_request
+    ]
+<span class="command">| table</span> *
+</pre>
+    <p><strong>Explanation of Syntax Highlighting:</strong></p>
+    <ul>
+        <li>
+          <strong>Commands</strong> are highlighted in <span style="color:#569cd6;">blue</span>.
+        </li>
+        <li>
+          <strong>Strings and literals</strong> are highlighted in <span style="color:#ce9178;">light red</span>.
+        </li>
+        <li>
+          <strong>Inline comments</strong> enclosed in triple backticks <code>```</code> are highlighted in <span style="color:#dcdcaa;">light yellow</span>.
+        </li>
+        <li>
+          <strong>Field names and parameters</strong> are in the default text color.
+        </li>
+    </ul>
+</body>
+</html>
+
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Additional filters</title>
+      <input type="text" token="limit" searchWhenChanged="true">
+        <label>limit</label>
+        <change>
+          <condition match="$value$=&quot;&quot;">
+            <set token="param_limit"></set>
+          </condition>
+          <condition>
+            <set token="param_limit">limit=$limit$</set>
+          </condition>
+        </change>
+      </input>
+      <input type="text" token="category" searchWhenChanged="true">
+        <label>category</label>
+        <change>
+          <condition match="$value$=&quot;&quot;">
+            <set token="param_category"></set>
+          </condition>
+          <condition>
+            <set token="param_category">category="$category$"</set>
+          </condition>
+        </change>
+      </input>
+      <input type="text" token="type" searchWhenChanged="true">
+        <label>type</label>
+        <change>
+          <condition match="$value$=&quot;&quot;">
+            <set token="param_type"></set>
+          </condition>
+          <condition>
+            <set token="param_type">type="$type$"</set>
+          </condition>
+        </change>
+      </input>
+      <input type="radio" token="to_ids" searchWhenChanged="true">
+        <label>to_ids</label>
+        <change>
+          <condition match="$value$=&quot;true&quot;">
+            <set token="param_to_ids">pipesplit="$pipesplit$"</set>
+          </condition>
+          <condition match="$value$=&quot;false&quot;">
+            <set token="param_to_ids">pipesplit="$pipesplit$"</set>
+          </condition>
+          <condition match="$value$=&quot;not_set&quot;">
+            <set token="param_to_ids"></set>
+          </condition>
+        </change>
+        <choice value="not_set">not set</choice>
+        <choice value="true">True</choice>
+        <choice value="false">False</choice>
+      </input>
+      <input type="radio" token="include_deleted" searchWhenChanged="true">
+        <label>include_deleted</label>
+        <change>
+          <condition>
+            <set token="param_include_deleted">deleted="$include_deleted$"</set>
+          </condition>
+        </change>
+        <choice value="true">True</choice>
+        <choice value="false">False</choice>
+      </input>
+      <input type="radio" token="warning_list" searchWhenChanged="true">
+        <label>warning_list</label>
+        <change>
+          <condition match="$value$=&quot;true&quot;">
+            <set token="param_warning_list">warning_list="$warning_list$"</set>
+          </condition>
+          <condition match="$value$=&quot;false&quot;">
+            <set token="param_warning_list">warning_list="$warning_list$"</set>
+          </condition>
+          <condition match="$value$=&quot;not_set&quot;">
+            <set token="param_warning_list"></set>
+          </condition>
+        </change>
+        <choice value="not_set">not set</choice>
+        <choice value="true">True</choice>
+        <choice value="false">False</choice>
+      </input>
+      <input type="text" token="tags" searchWhenChanged="true">
+        <label>tags</label>
+        <change>
+          <condition match="$value$=&quot;&quot;">
+            <set token="param_tags"></set>
+          </condition>
+          <condition>
+            <set token="param_tags">tags="$tags$"</set>
+          </condition>
+        </change>
+      </input>
+      <input type="text" token="not_tags" searchWhenChanged="true">
+        <label>not_tags</label>
+        <change>
+          <condition match="$value$=&quot;&quot;">
+            <set token="param_not_tags"></set>
+          </condition>
+          <condition>
+            <set token="param_not_tags">not_tags="$not_tags$"</set>
+          </condition>
+        </change>
+      </input>
+      <input type="text" token="threat_level_id" searchWhenChanged="true">
+        <label>threat_level_id</label>
+        <change>
+          <condition match="$value$=&quot;&quot;">
+            <set token="param_threat_level_id"></set>
+          </condition>
+          <condition>
+            <set token="param_threat_level_id">threat_level_id="$threat_level_id$"</set>
+          </condition>
+        </change>
+      </input>
+      <input type="radio" token="include_decay_score" searchWhenChanged="true">
+        <label>include_decay_score</label>
+        <change>
+          <condition match="$value$=&quot;true&quot;">
+            <set token="param_include_decay_score">include_decay_score="$include_decay_score$"</set>
+          </condition>
+          <condition match="$value$=&quot;false&quot;">
+            <set token="param_include_decay_score">include_decay_score="$include_decay_score$"</set>
+          </condition>
+        </change>
+        <choice value="true">True</choice>
+        <choice value="false">False</choice>
+      </input>
+      <input type="text" token="decaying_model" searchWhenChanged="true">
+        <label>decaying_model</label>
+        <change>
+          <condition>
+            <set token="param_decaying_model">decaying_model="$decaying_model$"</set>
+          </condition>
+        </change>
+      </input>
+      <input type="radio" token="exclude_decayed" searchWhenChanged="true">
+        <label>exclude_decayed</label>
+        <change>
+          <condition match="$value$=&quot;true&quot;">
+            <set token="param_exclude_decayed">exclude_decayed="$exclude_decayed$"</set>
+          </condition>
+          <condition match="$value$=&quot;false&quot;">
+            <set token="param_exclude_decayed">exclude_decayed="$exclude_decayed$"</set>
+          </condition>
+        </change>
+        <choice value="true">True</choice>
+        <choice value="false">False</choice>
+      </input>
+      <input type="text" token="decay_score_threshold" searchWhenChanged="true">
+        <label>decay_score_threshold</label>
+        <change>
+          <condition>
+            <set token="param_decay_score_threshold">decay_score_threshold="$decay_score_threshold$"</set>
+          </condition>
+        </change>
+      </input>
+      <html>
       <table border="1" cedllspacing="10" width="90%" align="center">
         <tr>
           <th width="20%">Parameter</th>
@@ -362,38 +426,34 @@
           <th width="50%">Description</th>
         </tr>
         <tr>
-            <td>add_description</td>
-            <td>add_description=1|y|Y|t|true|True|0|n|N|f|false|False </td>
-            <td>return misp_description='MISP e' + event_id + ' attribute ' + a['uuid'] + ' of type "' + type + '" in category "' + category+ " (to_ids:'+ to_ids + ')'</td>
-        </tr>
-        <tr>
             <td>category</td>
             <td>category=CSV string </td>
             <td>Comma(,)-separated string of categories to search for. Wildcard is %.</td>
         </tr>
         <tr>
-            <td>expand_object</td>
-            <td>expand_object=1|y|Y|t|true|True|0|n|N|f|false|False </td>
-            <td>Boolean to have object attributes expanded (one per row). By default, attributes of one object are displayed on same row.</td>
+            <td>decay_score_threshold</td>
+            <td>decay_score_threshold=int </td>
+            <td>Define the minimum sore to override on-the-fly the threshold of the decaying model.</td>
         </tr>
         <tr>
-            <td>geteventtag</td>
-            <td>geteventtag=1|y|Y|t|true|True|0|n|N|f|false|False </td>
-            <td>include Event Tags.</td>
+            <td>decaying_model</td>
+            <td>include_decay_score=int </td>
+            <td>ID of the decaying model to select specific model.</td>
         </tr>
         <tr>
-            <td>getorg</td>
-            <td>getorg=1|y|Y|t|true|True|0|n|N|f|false|False </td>
-            <td>Boolean to return the ID of the organisation that created the event.</td>
+            <td>exclude_decayed</td>
+            <td>exclude_decayed=(1|y|Y|t|true|True|0|n|N|f|false|False)</td>
+            <td>Boolean to exclude decayed attributes.</td>
         </tr>
+
         <tr>
-            <td>getuuid</td>
-            <td>getuuid=1|y|Y|t|true|True|0|n|N|f|false|False </td>
-            <td>Boolean to return attribute UUIDs</td>
+            <td>include_decay_score</td>
+            <td>include_decay_score=(1|y|Y|t|true|True|0|n|N|f|false|False)</td>
+            <td>Boolean to return decay sores.</td>
         </tr>
         <tr>
             <td>include_deleted</td>
-            <td>include_deleted=1|y|Y|t|true|True|0|n|N|f|false|False </td>
+            <td>include_deleted=(1|y|Y|t|true|True|0|n|N|f|false|False)</td>
             <td>IMPORTANT Boolean to get only soft deleted attributes with the flag "deleted" set to true. By default this is set to False.</td>
         </tr>
         <tr>
@@ -407,28 +467,18 @@
             <td>Comma(,)-separated string of tags to exclude. Wildcard is %.</td>
         </tr>
         <tr>
-            <td>output</td>
-            <td>output=(default|raw)</td>
-            <td>Selection between the default Splunk tabular view or JSON output by attribute.</td>
-        </tr>
-        <tr>
-            <td>page</td>
-            <td>page=int </td>
-            <td>Define the page for each MISP search; default 1. Not used if limit=0</td>
-        </tr>
-        <tr>
-            <td>pipesplit</td>
-            <td>pipesplit=1|y|Y|t|true|True|0|n|N|f|false|False </td>
-            <td>Boolean to split combined MISP attributes.</td>
-        </tr>
-        <tr>
             <td>tags</td>
             <td>tags=CSV string </td>
             <td>Comma(,)-separated string of tags to search for. Wildcard is %.</td>
         </tr>
         <tr>
+            <td>threat_level_id</td>
+            <td>type=Cint </td>
+            <td>Threat level 1-High, 2-Medium, 3-Low, 4-Undefined.</td>
+        </tr>
+        <tr>
             <td>to_ids</td>
-            <td>to_ids=1|y|Y|t|true|True|0|n|N|f|false|False </td>
+            <td>to_ids=(1|y|Y|t|true|True|0|n|N|f|false|False)</td>
             <td>Boolean to search only attributes with the flag "to_ids" set to true.</td>
         </tr>
         <tr>
@@ -438,28 +488,8 @@
         </tr>
         <tr>
             <td>warning_list</td>
-            <td>warning_list=1|y|Y|t|true|True|0|n|N|f|false|False </td>
+            <td>warning_list=(1|y|Y|t|true|True|0|n|N|f|false|False)</td>
             <td>Boolean to filter out well known values.</td>
-        </tr>
-        <tr>
-            <td>include_decay_score</td>
-            <td>include_decay_score=1|y|Y|t|true|True|0|n|N|f|false|False </td>
-            <td>Boolean to return decay sores.</td>
-        </tr>
-        <tr>
-            <td>decaying_model</td>
-            <td>include_decay_score=int </td>
-            <td>ID of the decaying model to select specific model.</td>
-        </tr>
-        <tr>
-            <td>exclude_decayed</td>
-            <td>exclude_decayed=1|y|Y|t|true|True|0|n|N|f|false|False </td>
-            <td>Boolean to exclude decayed attributes.</td>
-        </tr>
-        <tr>
-            <td>decay_score_threshold</td>
-            <td>decay_score_threshold=int </td>
-            <td>Define the minimum sore to override on-the-fly the threshold of the decaying model.</td>
         </tr>
       </table>
     </html>
@@ -467,19 +497,124 @@
   </row>
   <row>
     <panel>
-      <title>Custom command mispgetioc</title>
-      <table>
-        <title>| mispgetioc misp_instance=$misp_instance$ $param_json_request$ $param_eventid$ $param_last$ $param_date$ $param_category$ $param_type$ $param_output$ $param_add_description$ $param_deleted$ $param_expand_object$ $param_geteventtag$ $param_getorg$ $param_getuuid$ $param_tags$ $param_not_tags$ $param_to_ids$ $param_warning_list$ $param_limit$ $param_page$ $param_pipesplit$ $param_include_decay_score$ $param_decaying_model$ $param_exclude_decayed$ $param_decay_score_threshold$</title>
-        <search>
-          <query>| mispgetioc misp_instance=$misp_instance$ $param_json_request$ $param_eventid$ $param_last$ $param_date$ $param_category$ $param_type$ $param_output$ $param_add_description$ $param_deleted$ $param_expand_object$ $param_geteventtag$ $param_getorg$ $param_getuuid$ $param_tags$ $param_not_tags$ $param_to_ids$ $param_warning_list$ $param_limit$ $param_page$ $param_pipesplit$ $param_include_decay_score$ $param_decaying_model$ $param_exclude_decayed$ $param_decay_score_threshold$</query>
-          <earliest>0</earliest>
-          <latest></latest>
-          <sampleRatio>1</sampleRatio>
-        </search>
-        <option name="count">5</option>
-        <option name="drilldown">none</option>
-        <option name="refresh.display">progressbar</option>
+      <title>Parameters to format the results returned to the search</title>
+      <input type="radio" token="output" searchWhenChanged="true">
+        <label>output</label>
+        <choice value="">not set - default to fields</choice>
+        <choice value="fields">fields</choice>
+        <choice value="json">json</choice>
+        <change>
+          <condition match="$value$=&quot;&quot;">
+            <set token="param_output"></set>
+          </condition>
+          <condition match="$value$=&quot;fields&quot;">
+            <set token="param_output">output=fields</set>
+          </condition>
+          <condition match="$value$=&quot;json&quot;">
+            <set token="param_output">output=json</set>
+          </condition>
+        </change>
+        <default></default>
+      </input>
+      <input type="radio" token="add_description" searchWhenChanged="true">
+        <label>add_description</label>
+        <change>
+          <condition>
+            <set token="param_add_description">add_description="$add_description$"</set>
+          </condition>
+        </change>
+        <choice value="true">True</choice>
+        <choice value="false">False</choice>
+      </input>
+      <input type="radio" token="expand_object" searchWhenChanged="true">
+        <label>expand_object</label>
+        <change>
+          <condition match="$value$=&quot;true&quot;">
+            <set token="param_expand_object">expand_object="$expand_object$"</set>
+          </condition>
+          <condition match="$value$=&quot;false&quot;">
+            <set token="param_expand_object">expand_object="$expand_object$"</set>
+          </condition>
+          <condition match="$value$=&quot;not_set&quot;">
+            <set token="param_expand_object"></set>
+          </condition>
+        </change>
+        <choice value="not_set">not set</choice>
+        <choice value="true">True</choice>
+        <choice value="false">False</choice>
+      </input>
+      <input type="radio" token="geteventtag" searchWhenChanged="true">
+        <label>geteventtag</label>
+        <change>
+          <condition>
+            <set token="param_geteventtag">geteventtag="$geteventtag$"</set>
+          </condition>
+        </change>
+        <choice value="true">True</choice>
+        <choice value="false">False</choice>
+      </input>
+      <input type="radio" token="pipesplit" searchWhenChanged="true">
+        <label>pipesplit</label>
+        <change>
+          <condition match="$value$=&quot;true&quot;">
+            <set token="param_pipesplit">pipesplit="$pipesplit$"</set>
+          </condition>
+          <condition match="$value$=&quot;false&quot;">
+            <set token="param_pipesplit">pipesplit="$pipesplit$"</set>
+          </condition>
+          <condition match="$value$=&quot;not_set&quot;">
+            <set token="param_pipesplit"></set>
+          </condition>
+        </change>
+        <choice value="not_set">not set</choice>
+        <choice value="true">True</choice>
+        <choice value="false">False</choice>
+      </input>
+      <html>
+        <table border="1" cedllspacing="10" width="90%" align="center">
+        <tr>
+          <th width="20%">Parameter</th>
+          <th width="30%">Syntax</th>
+          <th width="15%">Default</th>
+          <th width="35%">Description</th>
+        </tr>
+        <tr>
+            <td>
+              <h2>output</h2>
+            </td>
+            <td>output=(fields|json)</td>
+            <td>fields</td>
+            <td>
+              <p>Selection between the default Splunk tabular view <strong>output=fields</strong> or JSON <strong>output=json</strong>.</p>
+              <p>IMPORTANT: If output=json, no other formatting is applied on the results</p>
+            </td>
+        </tr>
+        <tr>
+            <td>add_description</td>
+            <td>add_description=(1|y|Y|t|true|True|0|n|N|f|false|False)</td>
+            <td>False</td>
+            <td>return misp_description='MISP e' + event_id + ' attribute ' + a['uuid'] + ' of type "' + type + '" in category "' + category+ " (to_ids:'+ to_ids + ')'</td>
+        </tr>
+        <tr>
+            <td>expand_object</td>
+            <td>expand_object=(1|y|Y|t|true|True|0|n|N|f|false|False)</td>
+            <td>False</td>
+            <td>Boolean to have object attributes expanded (one per row). By default, attributes of one object are displayed on same row.</td>
+        </tr>
+        <tr>
+            <td>geteventtag</td>
+            <td>geteventtag=(1|y|Y|t|true|True|0|n|N|f|false|False)</td>
+            <td>False</td>
+            <td>include Event Tags.</td>
+        </tr>
+        <tr>
+            <td>pipesplit</td>
+            <td>pipesplit=(1|y|Y|t|true|True|0|n|N|f|false|False)</td>
+            <td>True</td>
+            <td>Boolean to split combined MISP attributes.</td>
+        </tr>
       </table>
+    </html>
     </panel>
   </row>
 </form>

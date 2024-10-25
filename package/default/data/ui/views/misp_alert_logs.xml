@@ -1,5 +1,5 @@
 <form hideEdit="false" version="1.1">
-  <label>MISP Alert logs</label>
+  <label>MISP Alert logs - check https://github.com/remg427/misp42splunk/ for any update</label>
   <fieldset submitButton="false">
     <input type="time" token="GlobalTimePicker" searchWhenChanged="true">
       <label>Time range</label>
