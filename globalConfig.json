@@ -2,15 +2,18 @@
     "meta": {
         "name": "misp42splunk",
         "restRoot": "misp42splunk",
-        "displayName": "misp42",
-        "version": "4.4.0",
-        "schemaVersion": "0.0.7",
-        "_uccVersion": "5.50.1"
+        "displayName": "MISP42",
+        "version": "5.0.0",
+        "schemaVersion": "0.0.9",
+        "supportedThemes": [
+            "light",
+            "dark"
+        ]
     },
     "pages": {
         "configuration": {
             "title": "Configuration",
-            "description": "Set up your add-on",
+            "description": "Set up MISP42 add-on",
             "tabs": [
                 {
                     "name": "instances",
@@ -135,6 +138,63 @@
                                 }
                             ],
                             "help": "Provide full path to client certificate file ",
+                            "type": "text"
+                        },
+                        {
+                            "required": true,
+                            "label": "Prefix for field names",
+                            "field": "prefix",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 2,
+                                    "maxLength": 10,
+                                    "errorMsg": "Length of prefix should be between 2 and 10"
+                                },
+                                {
+                                    "type": "regex",
+                                    "pattern": "^[a-zA-Z]\\w+$",
+                                    "errorMsg": "Prefix string must start with a letter and followed by alphabetic letters, digits or underscores."
+                                }
+                            ],
+                            "defaultValue": "misp_",
+                            "help": "",
+                            "type": "text"
+                        },
+                        {
+                            "required": true,
+                            "label": "Connection timeout (seconds)",
+                            "field": "connection_timeout",
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        1,
+                                        300
+                                    ],
+                                    "isInteger": true
+                                }
+                            ],
+                            "defaultValue": 3,
+                            "help": "Maximum time to establish the connection with the MISP instance.",
+                            "type": "text"
+                        },
+                        {
+                            "required": true,
+                            "label": "Read timeout (seconds)",
+                            "field": "read_timeout",
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        1,
+                                        600
+                                    ],
+                                    "isInteger": true
+                                }
+                            ],
+                            "defaultValue": 200,
+                            "help": "Maximum time to receive the response data from the MISP instance.",
                             "type": "text"
                         }
                     ]
@@ -568,8 +628,8 @@
                 },
                 {
                     "type": "text",
-                    "label": "Unique ID",
-                    "field": "unique",
+                    "label": "Timestamp (EPOCH)",
+                    "field": "timestamp",
                     "defaultValue": "",
                     "required": false,
                     "help": "A field name that contains timestamps ( _time, strptime() etc.). if not defined or not present, default to now()"

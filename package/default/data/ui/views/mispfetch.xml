@@ -1,22 +1,26 @@
 <form hideEdit="false" version="1.1">
   <init>$$ $param_not_tags$ $param_onlyids$ $param_page$ $param_pipesplit$ $param_tags$<set token="param_attribute_limit"></set>
-    <set token="param_restsearch"></set>
-    <set token="param_expand_object"></set>
-    <set token="param_getioc"></set>
+    <set token="param_restsearch">misp_restsearch=events</set>
     <set token="param_misp_http_body"></set>
-    <set token="param_keep_galaxy"></set>
-    <set token="param_limit"></set>
+    <set token="param_misp_output_mode">misp_output_mode=fields</set>
+    <set token="param_attribute_limit">attribute_limit=0</set>
+    <set token="param_expand_object">expand_object=False</set>
+    <set token="param_getioc">getioc=False</set>
+    <set token="param_keep_galaxy">keep_galaxy=False</set>
+    <set token="param_keep_related">keep_related=False</set>
+    <set token="param_limit">limit=1000</set>
     <set token="param_not_tags"></set>
-    <set token="param_onlyids"></set>
-    <set token="param_misp_output_mode"></set>
-    <set token="param_page"></set>
-    <set token="param_pipesplit"></set>
+    <set token="param_output">output=fields</set>
+    <set token="param_page">page=0</set>
+    <set token="param_pipesplit">pipesplit=True</set>
+    <set token="param_prefix"></set>
     <set token="param_tags"></set>
+    <set token="sample_query">| makeresults | eval domain="www.example.com"</set>
   </init>
-  <label>mispfetch</label>
-  <description>MISP custom command mispfetch to retrieve events or attributes or events with attributes (Streaming command) - check https://github.com/remg427/misp42splunk/ for any update</description>
+  <label>mispfetch Clone</label>
+  <description>MISP custom command mispfetch to retrieve events or attributes or events with their attributes (Streaming command) - check https://github.com/remg427/misp42splunk/ for any update</description>
   <fieldset submitButton="true" autoRun="false">
-    <input type="dropdown" token="misp_instance" searchWhenChanged="true">
+    <input type="dropdown" token="misp_instance" searchWhenChanged="false">
       <label>misp_instance*</label>
       <fieldForLabel>misp_instance</fieldForLabel>
       <fieldForValue>misp_instance</fieldForValue>
@@ -30,25 +34,20 @@
     </input>
     <input type="text" token="misp_instance">
       <label>misp_instance*</label>
+      <default>misp</default>
+      <initialValue>misp</initialValue>
     </input>
-    <input type="radio" token="restsearch" searchWhenChanged="true">
+    <input type="radio" token="restsearch" searchWhenChanged="false">
       <label>misp_restsearch</label>
       <change>
-        <condition match="$value$=&quot;events&quot;">
-          <set token="param_restsearch">misp_restsearch=$restsearch$</set>
-        </condition>
-        <condition match="$value$=&quot;attributes&quot;">
-          <set token="param_restsearch">misp_restsearch=$restsearch$</set>
-        </condition>
-        <condition match="$value$=&quot;not_set&quot;">
-          <set token="param_restsearch"></set>
-        </condition>
+        <set token="param_restsearch">misp_restsearch=$restsearch$</set>
       </change>
-      <choice value="not_set">Not set</choice>
       <choice value="events">Events</choice>
       <choice value="attributes">Attributes</choice>
+      <default>events</default>
+      <initialValue>events</initialValue>
     </input>
-    <input type="text" token="misp_http_body" searchWhenChanged="true">
+    <input type="text" token="misp_http_body" searchWhenChanged="false">
       <label>misp_http_body</label>
       <change>
         <condition match="$value$=&quot;&quot;">
@@ -59,97 +58,79 @@
         </condition>
       </change>
     </input>
-    <input type="radio" token="output" searchWhenChanged="true">
-      <label>output</label>
-      <choice value="not_set">not set</choice>
+    <input type="radio" token="output" searchWhenChanged="false">
+      <label>misp_output_mode</label>
       <choice value="fields">fields</choice>
       <choice value="json">json</choice>
       <change>
-        <condition match="$value$=&quot;not_set&quot;">
-          <set token="param_misp_output_mode"></set>
-        </condition>
-        <condition match="$value$=&quot;default&quot;">
-          <set token="param_misp_output_mode">misp_output_mode=fields</set>
-        </condition>
-        <condition match="$value$=&quot;raw&quot;">
-          <set token="param_misp_output_mode">misp_output_mode=json</set>
-        </condition>
+        <set token="param_misp_output_mode">misp_output_mode=$output$</set>
       </change>
+      <default>fields</default>
+      <initialValue>fields</initialValue>
     </input>
-    <input type="radio" token="expand_object" searchWhenChanged="true">
-      <label>expand_object</label>
-      <change>
-        <condition match="$value$=&quot;true&quot;">
-          <set token="param_expand_object">expand_object=$expand_object$</set>
-        </condition>
-        <condition match="$value$=&quot;false&quot;">
-          <set token="param_expand_object">expand_object=$expand_object$</set>
-        </condition>
-        <condition match="$value$=&quot;not_set&quot;">
-          <set token="param_expand_object"></set>
-        </condition>
-      </change>
-      <choice value="not_set">Not set</choice>
-      <choice value="true">True</choice>
-      <choice value="false">False</choice>
-    </input>
-    <input type="radio" token="getioc" searchWhenChanged="true">
-      <label>getioc</label>
-      <change>
-        <condition match="$value$=&quot;true&quot;">
-          <set token="param_getioc">getioc=$getioc$</set>
-        </condition>
-        <condition match="$value$=&quot;false&quot;">
-          <set token="param_getioc">getioc=$getioc$</set>
-        </condition>
-        <condition match="$value$=&quot;not_set&quot;">
-          <set token="param_getioc"></set>
-        </condition>
-      </change>
-      <choice value="not_set">Not set</choice>
-      <choice value="true">True</choice>
-      <choice value="false">False</choice>
-    </input>
-    <input type="radio" token="keep_galaxy" searchWhenChanged="true">
-      <label>keep_galaxy</label>
-      <change>
-        <condition match="$value$=&quot;true&quot;">
-          <set token="param_keep_galaxy">keep_galaxy=$keep_galaxy$</set>
-        </condition>
-        <condition match="$value$=&quot;false&quot;">
-          <set token="param_keep_galaxy">keep_galaxy=$keep_galaxy$</set>
-        </condition>
-        <condition match="$value$=&quot;not_set&quot;">
-          <set token="param_keep_galaxy"></set>
-        </condition>
-      </change>
-      <choice value="not_set">Not set</choice>
-      <choice value="true">True</choice>
-      <choice value="false">False</choice>
-    </input>
-    <input type="text" token="limit" searchWhenChanged="true">
-      <label>limit</label>
-      <change>
-        <condition match="$value$=&quot;&quot;">
-          <set token="param_limit"></set>
-        </condition>
-        <condition>
-          <set token="param_limit">limit=$limit$</set>
-        </condition>
-      </change>
-    </input>
-    <input type="text" token="attribute_limit" searchWhenChanged="true">
+    <input type="text" token="attribute_limit" searchWhenChanged="false">
       <label>attribute_limit</label>
       <change>
-        <condition match="$value$=&quot;&quot;">
-          <set token="param_attribute_limit"></set>
-        </condition>
         <condition>
           <set token="param_attribute_limit">attribute_limit=$attribute_limit$</set>
         </condition>
       </change>
+      <default>0</default>
+      <initialValue>0</initialValue>
     </input>
-    <input type="text" token="not_tags" searchWhenChanged="true">
+    <input type="radio" token="expand_object" searchWhenChanged="false">
+      <label>expand_object</label>
+      <change>
+        <condition>
+          <set token="param_expand_object">expand_object=$expand_object$</set>
+        </condition>
+      </change>
+      <choice value="True">True</choice>
+      <choice value="False">False</choice>
+      <default>False</default>
+      <initialValue>False</initialValue>
+    </input>
+    <input type="radio" token="getioc" searchWhenChanged="false">
+      <label>getioc</label>
+      <change>
+        <set token="param_getioc">getioc=$getioc$</set>
+      </change>
+      <choice value="true">True</choice>
+      <choice value="false">False</choice>
+      <default>False</default>
+      <initialValue>False</initialValue>
+    </input>
+    <input type="radio" token="keep_galaxy" searchWhenChanged="false">
+      <label>keep_galaxy</label>
+      <change>
+        <set token="param_keep_galaxy">keep_galaxy=$keep_galaxy$</set>
+      </change>
+      <choice value="true">True</choice>
+      <choice value="false">False</choice>
+      <default>False</default>
+      <initialValue>False</initialValue>
+    </input>
+    <input type="radio" token="keep_related" searchWhenChanged="false">
+      <label>keep_related</label>
+      <change>
+        <set token="param_keep_related">keep_related=$keep_related$</set>
+      </change>
+      <choice value="true">True</choice>
+      <choice value="false">False</choice>
+      <default>False</default>
+      <initialValue>False</initialValue>
+    </input>
+    <input type="text" token="limit" searchWhenChanged="false">
+      <label>limit</label>
+      <change>
+        <condition>
+          <set token="param_limit">limit=$limit$</set>
+        </condition>
+      </change>
+      <default>1000</default>
+      <initialValue>1000</initialValue>
+    </input>
+    <input type="text" token="not_tags" searchWhenChanged="false">
       <label>not_tags</label>
       <change>
         <condition match="$value$=&quot;&quot;">
@@ -160,52 +141,42 @@
         </condition>
       </change>
     </input>
-    <input type="radio" token="onlyids" searchWhenChanged="true">
-      <label>only_to_ids</label>
-      <change>
-        <condition match="$value$=&quot;true&quot;">
-          <set token="param_onlyids">only_to_ids=$onlyids$</set>
-        </condition>
-        <condition match="$value$=&quot;false&quot;">
-          <set token="param_onlyids">only_to_ids=$onlyids$</set>
-        </condition>
-        <condition match="$value$=&quot;not_set&quot;">
-          <set token="param_onlyids"></set>
-        </condition>
-      </change>
-      <choice value="not_set">Not set</choice>
-      <choice value="true">True</choice>
-      <choice value="false">False</choice>
-    </input>
-    <input type="text" token="page" searchWhenChanged="true">
+    <input type="text" token="page" searchWhenChanged="false">
       <label>page</label>
       <change>
-        <condition match="$value$=&quot;&quot;">
-          <set token="param_page"></set>
-        </condition>
         <condition>
           <set token="param_page">page=$page$</set>
         </condition>
       </change>
+      <default>0</default>
+      <initialValue>0</initialValue>
     </input>
-    <input type="radio" token="pipesplit" searchWhenChanged="true">
+    <input type="radio" token="pipesplit" searchWhenChanged="false">
       <label>pipesplit</label>
       <change>
-        <condition match="$value$=&quot;true&quot;">
+        <condition>
           <set token="param_pipesplit">pipesplit=$pipesplit$</set>
-        </condition>
-        <condition match="$value$=&quot;false&quot;">
-          <set token="param_pipesplit">pipesplit=$pipesplit$</set>
-        </condition>
-        <condition match="$value$=&quot;not_set&quot;">
-          <set token="param_pipesplit"></set>
         </condition>
       </change>
-      <choice value="not_set">Not set</choice>
-      <choice value="true">True</choice>
-      <choice value="false">False</choice>
+      <choice value="True">True</choice>
+      <choice value="False">False</choice>
+      <default>True</default>
+      <initialValue>True</initialValue>
     </input>
-    <input type="text" token="tags" searchWhenChanged="true">
+    <input type="text" token="prefix" searchWhenChanged="false">
+      <label>prefix</label>
+      <change>
+        <condition match="$value$=&quot;&quot;">
+          <set token="param_prefix"></set>
+        </condition>
+        <condition>
+          <set token="param_prefix">prefix=$prefix$</set>
+        </condition>
+      </change>
+      <default></default>
+      <initialValue></initialValue>
+    </input>
+    <input type="text" token="tags" searchWhenChanged="false">
       <label>tags</label>
       <change>
         <condition match="$value$=&quot;&quot;">
@@ -215,6 +186,10 @@
           <set token="param_tags">tags="$tags$"</set>
         </condition>
       </change>
+    </input>
+    <input type="text" token="sample_query" searchWhenChanged="false">
+      <label>Paste your sample query here</label>
+      <initialValue>| makeresults | eval domain="www.example.com"</initialValue>
     </input>
   </fieldset>
   <row>
@@ -303,14 +278,19 @@
           <tr>
             <td>attribute_limit</td>
             <td>attribute_limit=&lt;int&gt;</td>
-            <td>1000</td>
-            <td>Limit the number of attributes per event when fetching events and getioc is True (param limit applies to the number of events). This parameter has no effect when fetching attributes (use limit in that case).</td>
+            <td>0</td>
+            <td>
+            <p>Limit the number of attributes per event when fetching events and getioc is True (param limit applies to the number of events). This parameter has no effect when fetching attributes (use limit in that case).</p>
+            <p>Valid only when fetching attributes.</p>
+            </td>
           </tr>
           <tr>
             <td>expand_object</td>
             <td>expand_object=&lt;1|y|Y|t|true|True|0|n|N|f|false|False&gt;</td>
             <td>False</td>
-            <td>Boolean to have object attributes expanded (one per row). By default, attributes of one object are displayed on same row.</td>
+            <td>Boolean to have object attributes expanded (one per row). By default, attributes of one object are displayed on same row.
+            <p>Valid only when fetching attributes.</p>
+            </td>
           </tr>
           <tr>
             <td>getioc</td>
@@ -318,7 +298,6 @@
             <td>False</td>
             <td>
             <p>Include event attributes in the output. In tabular view there will be one row per object or attribute of events.</p>
-      
             <p>Valid only when fetching events.</p>
             </td>
           </tr>
@@ -328,8 +307,16 @@
             <td>True</td>
             <td>
             <p>Boolean to keep Galaxy information (by default) or remove it.</p>
-      
             <p>It can be usefull for misp_output_mode=json if you plan to use spath that has a default limit of 5000 characters to parse the JSON payload.</p>
+            <p>Valid only when fetching events.</p>
+            </td>
+          </tr>
+          <tr>
+            <td>keep_related</td>
+            <td>keep_related=(1|y|Y|t|true|True|0|n|N|f|false|False)</td>
+            <td>False</td>
+            <td>Boolean to keep Related event info or remove it in ouput=json (full JSON record). This is useful if you plan to use spath that has a limit of 5000 characters to parse the JSON payload.
+            <p>Valid only when fetching events.</p>
             </td>
           </tr>
           <tr>
@@ -347,25 +334,33 @@
           <tr>
             <td>not_tags</td>
             <td>not_tags=""</td>
-            <td>None</td>
+            <td/>
             <td>Comma(,)-separated string of tags to exclude. Wildcard is %.</td>
           </tr>
           <tr>
-            <td>only_to_ids</td>
-            <td>only_to_ids=&lt;1|y|Y|t|true|True|0|n|N|f|false|False&gt;</td>
-            <td>None</td>
-            <td>ctive only with getioc. If set to True, keep only attributes with flag to_ids set (ticked)</td>
+            <td>page</td>
+            <td>page=int</td>
+            <td>0</td>
+            <td>define the page for each MISP search; default 0 = iterate through all pages</td>
           </tr>
           <tr>
             <td>pipesplit</td>
             <td>pipesplit=&lt;1|y|Y|t|true|True|0|n|N|f|false|False&gt;</td>
-            <td>False</td>
-            <td>split combined attribute types such as domain|ip</td>
+            <td>True</td>
+            <td>split combined attribute types such as domain|ip
+            <p>Valid only when fetching attributes.</p>
+            </td>
+          </tr>
+          <tr>
+            <td>prefix</td>
+            <td>prefix=string</td>
+            <td/>
+            <td>prefix set to every MISP key. The value is set by this parameter, then by the value defined for the instznce and finally default to "misp_"</td>
           </tr>
           <tr>
             <td>tags</td>
             <td>tags=""</td>
-            <td>None</td>
+            <td/>
             <td>Comma(,)-separated string of tags to search for. Wildcard is %.</td>
           </tr>
         </tbody>
@@ -375,11 +370,11 @@
   </row>
   <row>
     <panel>
-      <title>Custom command mispgetevent</title>
+      <title>Custom command mispfetch</title>
       <table>
-        <title>| makeresults | mispfetch misp_instance=$misp_instance$ $param_restsearch$ $param_misp_http_body$ $param_misp_output_mode$ $param_expand_object$ $param_getioc$ $param_keep_galaxy$ $param_limit$ $param_attribute_limit$ $param_not_tags$ $param_onlyids$ $param_page$ $param_pipesplit$ $param_tags$</title>
+        <title>$sample_query$ | mispfetch misp_instance=$misp_instance$ $param_restsearch$ $param_misp_http_body$ $param_misp_output_mode$ $param_attribute_limit$ $param_expand_object$ $param_getioc$ $param_keep_galaxy$  $param_keep_related$ $param_limit$ $param_not_tags$ $param_page$ $param_pipesplit$ $param_prefix$ $param_tags$</title>
         <search>
-          <query>| makeresults | mispfetch misp_instance=$misp_instance$ $param_restsearch$ $param_misp_http_body$ $param_misp_output_mode$ $param_expand_object$ $param_getioc$ $param_keep_galaxy$ $param_limit$ $param_attribute_limit$ $param_not_tags$ $param_onlyids$ $param_page$ $param_pipesplit$ $param_tags$ | table *</query>
+          <query>$sample_query$ | mispfetch misp_instance=$misp_instance$ $param_restsearch$ $param_misp_http_body$ $param_misp_output_mode$ $param_attribute_limit$ $param_expand_object$ $param_getioc$ $param_keep_galaxy$  $param_keep_related$ $param_limit$ $param_not_tags$ $param_page$ $param_pipesplit$ $param_prefix$ $param_tags$ | table *</query>
           <earliest>0</earliest>
           <latest></latest>
           <sampleRatio>1</sampleRatio>

@@ -1,11 +1,11 @@
 {
   "schemaVersion": "2.0.0", 
   "info": {
-    "title": "misp42", 
+    "title": "MISP42", 
     "id": {
       "group": null,
       "name": "misp42splunk",
-      "version": "4.4.0"
+      "version": "5.0.0"
     },
     "author": [
       {
@@ -14,11 +14,13 @@
         "company": null
       }
     ],
-    "releaseDate": "2024-10-15",
+    "releaseDate": "2025-01-31",
     "description": "The Splunk TA MISP42 can pull data from MISP (custom commands) or push to MISP (alert actions & misprest).", 
     "classification": {
       "intendedAudience": "Security",
-      "categories": ["Security"],
+      "categories": [
+        "Security, Fraud & Compliance"
+      ],
       "developmentStatus": "Production/Stable"
     }, 
     "commonInformationModels": null, 
@@ -27,15 +29,28 @@
       "text": null,
       "uri": "https://www.gnu.org/licenses/gpl-3.0.en.html"
     }, 
+    "privacyPolicy": {
+      "name": null,
+      "text": null,
+      "uri": null
+    },
     "releaseNotes": {
       "name": "README", 
       "text": "README.txt",
       "uri": "https://github.com/remg427/misp42splunk"
     }
   }, 
-  "dependencies": {
-  },
-  "tasks": [],
-  "supportedDeployments": ["_standalone", "_distributed", "_search_head_clustering"],
-  "targetWorkloads": ["_search_heads"]
+  "dependencies": null,
+  "tasks": null,
+  "inputGroups": null,
+  "incompatibleApps": null,
+  "platformRequirements": null,
+  "supportedDeployments": [
+    "_standalone", 
+    "_distributed", 
+    "_search_head_clustering"
+  ],
+  "targetWorkloads": [
+    "_search_heads"
+  ]
 }

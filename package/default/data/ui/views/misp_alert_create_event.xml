@@ -11,8 +11,8 @@
     <unset token="launch_alert"></unset>
     <set token="sample_query">| makeresults | eval misp_domain="www.example.com"</set>
   </init>
-  <label>misp_alert_create_event - check https://github.com/remg427/misp42splunk/ for any update</label>
-  <description>Adaptative alert action to create or update MISP events</description>
+  <label>misp_alert_create_event</label>
+  <description>Adaptative alert action to create or update MISP events - check https://github.com/remg427/misp42splunk/ for any update</description>
   <fieldset submitButton="true">
     <input type="dropdown" token="misp_instance" searchWhenChanged="true">
       <label>misp_instance*</label>
@@ -97,12 +97,16 @@
     </input>
     <input type="dropdown" token="tlp" searchWhenChanged="true">
       <label>TLP *</label>
-      <choice value="TLP_AMBER">AMBER</choice>
-      <choice value="TLP_WHITE">WHITE</choice>
-      <choice value="TLP_GREEN">GREEN</choice>
-      <choice value="TLP_RED">RED</choice>
-      <default>TLP_AMBER</default>
-      <initialValue>TLP_AMBER</initialValue>
+      <choice value="tlp_white">tlp:white</choice>
+      <choice value="tlp_clear">tlp:clear</choice>
+      <choice value="tlp_green">tlp:green</choice>
+      <choice value="tlp_amber">tlp:amber</choice>
+      <choice value="tlp_amber+strict">tlp:amber+strict</choice>
+      <choice value="tlp_red">tlp:red</choice>
+      <choice value="tlp_unclear">tlp:unclear</choice>
+      <choice value="tlp_ex_chr">tlp:ex:chr</choice>
+      <default>tlp_amber</default>
+      <initialValue>tlp_amber</initialValue>
     </input>
     <input type="dropdown" token="pap" searchWhenChanged="true">
       <label>PAP *</label>

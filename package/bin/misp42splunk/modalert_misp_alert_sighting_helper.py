@@ -27,7 +27,7 @@ import splunklib.client as client
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "4.2.1"
+__version__ = "5.0.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -35,146 +35,101 @@ __email__ = "remg427@gmail.com"
 # encoding = utf-8
 def prepare_alert(helper, app_name):
     instance = helper.get_param("misp_instance")
-    sessionKey = helper.settings['session_key']
-    splunkService = client.connect(token=sessionKey)
-    storage = splunkService.storage_passwords
-    config_args = prepare_config(helper, app_name, instance, storage, sessionKey)
+    session_key = helper.settings['session_key']
+    splunk_service = client.connect(token=session_key)
+    storage = splunk_service.storage_passwords
+
+    config_args = prepare_config(helper, app_name, instance, storage, session_key)
     if config_args is None:
         return None
-    alert_args = dict()
-    # Get string values from alert form
-    alert_args['mode'] = str(helper.get_param("mode"))
-    alert_args['type'] = int(helper.get_param("type"))
-    alert_args['source'] = str(helper.get_param("source"))
-    if not helper.get_param("unique"):
-        alert_args['unique'] = "no_timestamp_field"
-    else:
-        alert_args['unique'] = str(helper.get_param("unique"))
+
+    alert_args = {
+        'mode': str(helper.get_param("mode")),
+        'type': int(helper.get_param("type")),
+        'source': str(helper.get_param("source")),
+        'timestamp': str(helper.get_param("timestamp") or "no_timestamp_field")
+    }
+
     config_args.update(alert_args)
     return config_args
 
 
-def group_values(helper, r, tslabel, ds, source, sighting_type):
-    # mode byvalue:
-    # iterate through each row, cleaning multivalue fields and then
-    # adding the values under same timestamp; this builds the dict sightings
+def group_values(helper, rows, tslabel, default_ts, source, sighting_type):
     data_collection = dict()
     source_collection = dict()
-    for row in r:
 
-        # Splunk makes a bunch of dumb empty multivalue fields
-        # - we filter those out here
-        row = {key: value for key, value in list(row.items()) if not key.startswith("__mv_")}
+    def get_timestamp(row):
+        try:
+            return str(int(row.pop(tslabel, default_ts)))
+        except ValueError:
+            return str(default_ts)
 
-        # Get the timestamp as string to group values and remove from row
-        timestamp = str(ds)
-        if tslabel in row:
-            try:
-                timestamp = str(int(row.pop(tslabel)))
-            except ValueError:
-                pass
-        if source in row:
-            newSource = str(row.pop(source))
-            if newSource not in [None, '']:
-                # grabs that field's value and assigns it to source
-                source = newSource
-        source_collection[timestamp] = source
-        # check if building sighting has been initiated
-        # if yes simply add attribute entry otherwise collect other metadata
-        if timestamp in data_collection:
-            data = data_collection[timestamp]
-        else:
-            data = []
-        # now we take remaining KV pairs on the line to add data to list
-        for key, value in list(row.items()):
-            if value not in [None, '', 0, "0"]:
-                if '\n' in value:  # was a multivalue field
-                    values = value.splitlines()
-                    for val in values:
-                        if val not in [None, '', 0, "0"] and val not in data:
-                            data.append(str(val))
-                else:
-                    if value not in data:
-                        data.append(str(value))
+    def update_source(row, current_source):
+        new_source = str(row.pop(source, current_source))
+        return new_source if new_source else current_source
+
+    for row in rows:
+        row = {key: value for key, value in row.items() if not key.startswith("__mv_")}
+
+        timestamp = get_timestamp(row)
+        source_collection[timestamp] = str(row.pop(source, source))
+        data = data_collection.get(timestamp, [])
+        for key, value in row.items():
+            for single in str(value).split("\n"):
+                if single.strip() and single != '0' and single not in data:
+                    data.append(single)
 
         data_collection[timestamp] = data
 
-    sightings = list()
-    for ts, data in list(data_collection.items()):
-        sighting = dict(
-            timestamp=int(ts),
-            values=data,
-            source=source_collection[ts],
-            type=sighting_type
-        )
-        sightings.append(sighting)
+    sightings = [
+        {
+            'timestamp': int(ts),
+            'values': data,
+            'source': source_collection[ts],
+            'type': sighting_type
+        }
+        for ts, data in data_collection.items()
+    ]
+
     return sightings
 
 
 def create_alert(helper, config):
     # get specific misp url and key if any (from alert configuration)
-    misp_url = config['misp_url'] + '/sightings/add'
-    # Get mode set in alert settings; either byvalue or byuuid
+    misp_url = f"{config['misp_url']}/sightings/add"
     mode = config['mode']
-    # Get type set in alert settings; either 0, 1 or 2
-    sighting_type = config['type']
-    # iterate through each row, cleaning multivalue fields and then
-    #   mode byvalue: adding the values under same timestamp
-    #   mode byuuid:  adding attribute uuid(s) under same timestamp
-    # this builds the dict sightings
-    # Get field name containing timestamps for sighting - defined in alert
+    sighting_type = config['type']  # 0, 1, 2
     default_ts = int(time.time())
-    tslabel = config['unique']
-    source = config['source']
     results = helper.get_events()
-    helper.log_info("[AS302] sighting mode is {}".format(mode))
+    helper.log_info(f"[AS302] sighting mode is {mode}")
+
     if mode == 'byvalue':
-        sightings = group_values(helper, results, tslabel, default_ts, source, sighting_type)
+        sightings = group_values(helper, results, config['timestamp'], default_ts, config['source'], sighting_type)
     else:
-        # Get the timestamp as string to group values and remove from row
-        sightings = list()
+        sightings = []
         for row in results:
-            if tslabel in row:
-                try:
-                    timestamp = int(row.pop(tslabel))
-                except ValueError:
-                    timestamp = default_ts
-            else:
-                timestamp = default_ts
-
-            if config['source'] in row:
-                newSource = str(row.pop(config['source']))
-                if newSource not in [None, '']:
-                    # grabs that field's value and assigns it to source
-                    source = newSource
-
             if 'uuid' in row:
+                timestamp = int(row.pop(config['timestamp'], default_ts))
+                source = str(row.pop(config['source'], config['source']))
                 value = row['uuid']
-                helper.log_info("[AS303] sighting uuid {}".format(value))
-                if value not in [None, '']:
-                    # keep only first uuid in mv field (see #74)
+                helper.log_info(f"[AS303] sighting uuid {value}")
+                if value.strip() and value != '0':
                     value = value.splitlines()[0]
-                    sighting = dict(
-                        id=value,
-                        source=source,
-                        timestamp=timestamp,
-                        type=sighting_type
-                    )
+                    sighting = {
+                        'id': value,
+                        'source': source,
+                        'timestamp': timestamp,
+                        'type': sighting_type
+                    }
                     sightings.append(sighting)
 
-    # iterate in dict events to create events
     connection, connection_status = urllib_init_pool(helper, config)
     for sighting in sightings:
-        response = urllib_request(helper, connection, 'POST', misp_url, sighting, config) 
+        response = urllib_request(helper, connection, 'POST', misp_url, sighting, config) if connection else connection_status
         if '_raw' not in response:
-            helper.log_info(
-                "[AL303] INFO MISP event is successfully edited. "
-            )
+            helper.log_info("[AL303] INFO MISP event is successfully edited.")
         else:
-            helper.log_error(
-                "[AL304] ERROR MISP event edition has failed. url={}, data={}"
-                .format(misp_url, response)
-            )
+            helper.log_error(f"[AL304] ERROR MISP event edition has failed. url={misp_url}, data={response}")
 
 
 def process_event(helper, *args, **kwargs):
@@ -198,8 +153,8 @@ def process_event(helper, *args, **kwargs):
     description = helper.get_param("description")
     helper.log_info("description={}".format(description))
 
-    unique = helper.get_param("unique")
-    helper.log_info("unique={}".format(unique))
+    timestamp = helper.get_param("timestamp")
+    helper.log_info("timestamp={}".format(timestamp))
 
     mode = helper.get_param("mode")
     helper.log_info("mode={}".format(mode))

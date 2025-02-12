@@ -7,25 +7,31 @@
     <set token="param_publish_timestamp"></set>
     <set token="param_timestamp"></set>
     <set token="param_category"></set>
-    <set token="param_expand_object"></set>
-    <set token="param_getioc"></set>
-    <set token="param_keep_galaxy"></set>
-    <set token="param_keep_related"></set>
-    <set token="param_limit"></set>
+    <set token="param_exclude_local_tags">exclude_local_tags=False</set>
+    <set token="param_expand_object">expand_object=False</set>
+    <set token="param_getioc">getioc=False</set>
+    <set token="param_include_sightings">include_sightings=True</set>
+    <set token="param_keep_galaxy">keep_galaxy=True</set>
+    <set token="param_keep_related">keep_related=False</set>
+    <set token="param_limit">limit=1000</set>
     <set token="param_not_tags"></set>
-    <set token="param_only_to_ids"></set>
-    <set token="param_output"></set>
-    <set token="param_pipesplit"></set>
+    <set token="param_output">output=fields</set>
+    <set token="param_page">page=0</set>
+    <set token="param_pipesplit">pipesplit=True</set>
+    <set token="param_prefix"></set>
     <set token="param_published"></set>
+    <set token="param_show_output_table"></set>
+    <unset token="param_show_output_json"></unset>
     <set token="param_tags"></set>
     <set token="param_threat_level_id"></set>
+    <set token="param_to_ids"></set>
     <set token="param_type"></set>
     <set token="param_warning_list"></set>
   </init>
-  <label>mispgetevent</label>
+  <label>mispgetevent Clone</label>
   <description>MISP custom command mispgetevent (Generating command) - check https://github.com/remg427/misp42splunk/ for any update</description>
   <fieldset submitButton="true" autoRun="false">
-    <input type="dropdown" token="misp_instance" searchWhenChanged="true">
+    <input type="dropdown" token="misp_instance" searchWhenChanged="false">
       <label>misp_instance*</label>
       <fieldForLabel>misp_instance</fieldForLabel>
       <fieldForValue>misp_instance</fieldForValue>
@@ -39,24 +45,27 @@
     </input>
     <input type="text" token="misp_instance">
       <label>misp_instance*</label>
+      <default>misp</default>
+      <initialValue>misp</initialValue>
     </input>
-    <input type="radio" token="output" searchWhenChanged="true">
-      <label>output</label>
-      <choice value="">not set - default to fields</choice>
+    <input type="radio" token="output" searchWhenChanged="false">
+      <label>output - default: fields</label>
       <choice value="fields">fields</choice>
       <choice value="json">json</choice>
       <change>
-        <condition match="$value$=&quot;&quot;">
-          <set token="param_output"></set>
-        </condition>
         <condition match="$value$=&quot;fields&quot;">
-          <set token="param_output">output=fields</set>
+          <set token="param_output">output=$output$</set>
+          <set token="param_show_output_table"></set>
+          <unset token="param_show_output_json"></unset>
         </condition>
         <condition match="$value$=&quot;json&quot;">
-          <set token="param_output">output=json</set>
+          <set token="param_output">output=$output$</set>
+          <unset token="param_show_output_table"></unset>
+          <set token="param_show_output_json"></set>
         </condition>
       </change>
-      <default></default>
+      <default>fields</default>
+      <initialValue>fields</initialValue>
     </input>
   </fieldset>
   <row>
@@ -75,13 +84,13 @@
     </panel>
   </row>
   <row>
-    <panel>
-      <title>Custom command mispgetevent</title>
+    <panel depends="$param_show_output_table$">
+      <title>Custom command mispgetevent ($param_output$)</title>
       <table>
-        <title>| mispgetevent misp_instance=$misp_instance$ $param_timestamp$ $param_limit$ $param_json_request$ $param_eventid$ $param_publish_timestamp$ $param_date$ $param_category$ $param_type$ $param_output$ $param_getioc$ $param_expand_object$ $param_keep_galaxy$ $param_keep_related$ $param_tags$ $param_not_tags$ $param_only_to_ids$ $param_pipesplit$ $param_published$ $param_warning_list$</title>
+        <title>| mispgetevent misp_instance=$misp_instance$ $param_output$ $param_json_request$ $param_date$ $param_eventid$ $param_last$ $param_publish_timestamp$ $param_timestamp$ $param_category$ $param_exclude_local_tags$ $param_include_sighting$ $param_limit$ $param_not_tags$ $param_page$ $param_published$ $param_tags$ $param_threat_level_id$ $param_to_ids$ $param_type$ $param_warning_list$ $param_expand_object$ $param_getioc$ $param_keep_galaxy$ $param_keep_related$ $param_pipesplit$ $param_prefix$</title>
         <search>
           <query>
-            | mispgetevent misp_instance=$misp_instance$ $param_timestamp$ $param_limit$ $param_json_request$ $param_eventid$ $param_publish_timestamp$ $param_date$ $param_category$ $param_type$ $param_output$ $param_getioc$ $param_expand_object$ $param_keep_galaxy$ $param_keep_related$ $param_tags$ $param_not_tags$ $param_only_to_ids$ $param_pipesplit$ $param_threat_level_id$ $param_warning_list$ $param_published$
+            | mispgetevent misp_instance=$misp_instance$ $param_output$ $param_json_request$ $param_date$ $param_eventid$ $param_last$ $param_publish_timestamp$ $param_timestamp$ $param_category$ $param_exclude_local_tags$ $param_include_sighting$ $param_limit$ $param_not_tags$ $param_page$ $param_published$ $param_tags$ $param_threat_level_id$ $param_to_ids$ $param_type$ $param_warning_list$ $param_expand_object$ $param_getioc$ $param_keep_galaxy$ $param_keep_related$ $param_pipesplit$ $param_prefix$
             | table *
           </query>
           <earliest>-15m</earliest>
@@ -93,11 +102,27 @@
         <option name="refresh.display">progressbar</option>
       </table>
     </panel>
+    <panel depends="$param_show_output_json$">
+      <title>Custom command mispgetevent ($param_output$)</title>
+      <event>
+        <title>| mispgetevent misp_instance=$misp_instance$ $param_output$ $param_json_request$ $param_date$ $param_eventid$ $param_last$ $param_publish_timestamp$ $param_timestamp$ $param_category$ $param_exclude_local_tags$ $param_include_sighting$ $param_limit$ $param_not_tags$ $param_page$ $param_published$ $param_tags$ $param_threat_level_id$ $param_to_ids$ $param_type$ $param_warning_list$ $param_expand_object$ $param_getioc$ $param_keep_galaxy$ $param_keep_related$ $param_pipesplit$ $param_prefix$</title>
+        <search>
+          <query>
+            | mispgetevent misp_instance=$misp_instance$ $param_output$ $param_json_request$ $param_date$ $param_eventid$ $param_last$ $param_publish_timestamp$ $param_timestamp$ $param_category$ $param_exclude_local_tags$ $param_include_sighting$ $param_limit$ $param_not_tags$ $param_page$ $param_published$ $param_tags$ $param_threat_level_id$ $param_to_ids$ $param_type$ $param_warning_list$ $param_expand_object$ $param_getioc$ $param_keep_galaxy$ $param_keep_related$ $param_pipesplit$ $param_prefix$
+            | table * 
+          </query>
+          <earliest>-15m</earliest>
+          <latest></latest>
+        </search>
+        <option name="count">5</option>
+        <option name="refresh.display">progressbar</option>
+      </event>
+    </panel>
   </row>
   <row>
     <panel>
       <title>Select ONE and only one of the following input fields</title>
-      <input type="text" token="json_request" searchWhenChanged="true">
+      <input type="text" token="json_request" searchWhenChanged="false">
         <label>json_request</label>
         <change>
           <condition match="$value$=&quot;&quot;">
@@ -108,7 +133,7 @@
           </condition>
         </change>
       </input>
-      <input type="text" token="date" searchWhenChanged="true">
+      <input type="text" token="date" searchWhenChanged="false">
         <label>date</label>
         <change>
           <condition match="$value$=&quot;&quot;">
@@ -119,7 +144,7 @@
           </condition>
         </change>
       </input>
-      <input type="text" token="eventid" searchWhenChanged="true">
+      <input type="text" token="eventid" searchWhenChanged="false">
         <label>eventid</label>
         <change>
           <condition match="$value$=&quot;&quot;">
@@ -130,7 +155,18 @@
           </condition>
         </change>
       </input>
-      <input type="text" token="publish_timestamp" searchWhenChanged="true">
+      <input type="text" token="last" searchWhenChanged="false">
+        <label>last</label>
+        <change>
+          <condition match="$value$=&quot;&quot;">
+            <set token="param_last"></set>
+          </condition>
+          <condition>
+            <set token="param_last">last="$last$"</set>
+          </condition>
+        </change>
+      </input>
+      <input type="text" token="publish_timestamp" searchWhenChanged="false">
         <label>publish_timestamp</label>
         <change>
           <condition match="$value$=&quot;&quot;">
@@ -141,7 +177,7 @@
           </condition>
         </change>
       </input>
-      <input type="text" token="timestamp" searchWhenChanged="true">
+      <input type="text" token="timestamp" searchWhenChanged="false">
         <label>timestamp</label>
         <change>
           <condition match="$value$=&quot;&quot;">
@@ -155,15 +191,7 @@
       <html>
         <ul>
           <li>
-            <strong>timestamp:</strong> Restrict the results by the timestamp (last edit). Any event with a timestamp newer than the given timestamp will be returned. The input can be a timestamp or a short-hand time description (7d or 24h for example). You can also pass a list with two values to set a time range (for example "14d,7d").
-          </li>
-          <li>
-            <strong>json_request:</strong> a valid JSON payload equivalent to MISP REST HTTP body.</li>
-          <li>
-            <strong>eventid:</strong> list of event ID(s) or event UUID(s) (the separator is a comma ",")</li>
-          <li>
-            <strong>publish_timestamp:</strong> Restrict the results by the timestamp of the last publishing of the event. The input can be a timsetamp or a short-hand time description (7d or 24h for example). You can also pass a list with two values to set a time range (for example "14d,7d").
-          </li>
+            <strong>json_request:</strong> a valid JSON payload equivalent to MISP REST HTTP body (with escaped ")</li>
           <li>
             <strong>date:</strong> You can use either ISO 8601 date format (YYYY-mm-dd) or any of the valid time related filters (examples: 7d, timestamps,  etc.)
             <ul>
@@ -172,7 +200,18 @@
             </ul>
             Do not use [14d, 7d] as without proper escaping it conflicts with Splunk sub-search.
             That's why notation is kept simple with one or 2 values separated by a comma date
-            </li>
+          </li>
+          <li>
+            <strong>eventid:</strong> list of event ID(s) or event UUID(s) (the separator is a comma ",")</li>
+          <li>
+            <strong>last:</strong> Events <strong>published</strong> within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m), ISO 8601 datetime format or timestam
+          </li>
+          <li>
+            <strong>publish_timestamp:</strong> Events <strong>published</strong> within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m), ISO 8601 datetime format or timestam
+          </li>
+          <li>
+            <strong>timestamp:</strong> Events timestamp: you may use valid timestamp expression including relative timestamp for example 5d or 12h or 30m, ISO 8601 datetime format or timestam
+          </li>        
         </ul>
     </html>
     </panel>
@@ -248,7 +287,27 @@
   <row>
     <panel>
       <title>Additional filters</title>
-      <input type="text" token="category" searchWhenChanged="true">
+      <input type="text" token="limit" searchWhenChanged="false">
+        <label>limit</label>
+        <change>
+          <condition>
+            <set token="param_limit">limit=$limit$</set>
+          </condition>
+        </change>
+        <default>1000</default>
+        <initialValue>1000</initialValue>
+      </input>
+      <input type="text" token="page" searchWhenChanged="false">
+        <label>page</label>
+        <change>
+          <condition>
+            <set token="param_page">page=$page$</set>
+          </condition>
+        </change>
+        <default>0</default>
+        <initialValue>0</initialValue>
+      </input>
+      <input type="text" token="category" searchWhenChanged="false">
         <label>category</label>
         <change>
           <condition match="$value$=&quot;&quot;">
@@ -259,18 +318,31 @@
           </condition>
         </change>
       </input>
-      <input type="text" token="limit" searchWhenChanged="true">
-        <label>limit</label>
+      <input type="radio" token="exclude_local_tags" searchWhenChanged="false">
+        <label>exclude_local_tags</label>
         <change>
-          <condition match="$value$=&quot;&quot;">
-            <set token="param_limit"></set>
-          </condition>
           <condition>
-            <set token="param_limit">limit=$limit$</set>
+            <set token="param_exclude_local_tags">exclude_local_tags=$include_sightings$</set>
           </condition>
         </change>
+        <choice value="True">True</choice>
+        <choice value="False">False</choice>
+        <default>False</default>
+        <initialValue>False</initialValue>
       </input>
-      <input type="text" token="not_tags" searchWhenChanged="true">
+      <input type="radio" token="include_sightings" searchWhenChanged="false">
+        <label>include_sightings</label>
+        <change>
+          <condition>
+            <set token="param_include_sightings">include_sightings=$include_sightings$</set>
+          </condition>
+        </change>
+        <choice value="True">True</choice>
+        <choice value="False">False</choice>
+        <default>True</default>
+        <initialValue>True</initialValue>
+      </input>
+      <input type="text" token="not_tags" searchWhenChanged="false">
         <label>not_tags</label>
         <change>
           <condition match="$value$=&quot;&quot;">
@@ -281,7 +353,7 @@
           </condition>
         </change>
       </input>
-      <input type="radio" token="published" searchWhenChanged="true">
+      <input type="radio" token="published" searchWhenChanged="false">
         <label>published</label>
         <change>
           <condition match="$value$=&quot;true&quot;">
@@ -298,7 +370,7 @@
         <choice value="true">True</choice>
         <choice value="false">False</choice>
       </input>
-      <input type="text" token="tags" searchWhenChanged="true">
+      <input type="text" token="tags" searchWhenChanged="false">
         <label>tags</label>
         <change>
           <condition match="$value$=&quot;&quot;">
@@ -309,18 +381,41 @@
           </condition>
         </change>
       </input>
-      <input type="text" token="threat_level_id" searchWhenChanged="true">
+      <input type="radio" token="threat_level_id" searchWhenChanged="false">
         <label>threat_level_id</label>
         <change>
-          <condition match="$value$=&quot;&quot;">
+          <condition match="$value$=&quot;not_set&quot;">
             <set token="param_threat_level_id"></set>
           </condition>
           <condition>
-            <set token="param_threat_level_id">threat_level_id="$threat_level_id$"</set>
+            <set token="param_threat_level_id">threat_level_id=$threat_level_id$</set>
           </condition>
         </change>
+        <choice value="not_set">not set</choice>
+        <choice value="1">High</choice>
+        <choice value="2">Medium</choice>
+        <choice value="3">Low</choice>
+        <choice value="4">Undefined</choice>
+        <default>not_set</default>
+        <initialValue>not_set</initialValue>
       </input>
-      <input type="text" token="type" searchWhenChanged="true">
+      <input type="radio" token="to_ids" searchWhenChanged="false">
+        <label>to_ids</label>
+        <change>
+          <condition match="$value$=&quot;not_set&quot;">
+            <set token="param_to_ids"></set>
+          </condition>
+          <condition>
+            <set token="param_to_ids">to_ids=$to_ids$</set>
+          </condition>
+        </change>
+        <choice value="not_set">not set</choice>
+        <choice value="True">True</choice>
+        <choice value="False">False</choice>
+        <default>not_set</default>
+        <initialValue>not_set</initialValue>
+      </input>
+      <input type="text" token="type" searchWhenChanged="false">
         <label>type</label>
         <change>
           <condition match="$value$=&quot;&quot;">
@@ -331,7 +426,7 @@
           </condition>
         </change>
       </input>
-      <input type="radio" token="warning_list" searchWhenChanged="true">
+      <input type="radio" token="warning_list" searchWhenChanged="false">
         <label>warning_list</label>
         <change>
           <condition match="$value$=&quot;true&quot;">
@@ -349,50 +444,83 @@
         <choice value="false">False</choice>
       </input>
       <html>
-      <table border="1" cedllspacing="10" width="90%" align="center">
+      <table border="1" cedllspacing="10" width="100%" align="center">
         <tr>
-          <th width="20%">Parameter</th>
+          <th width="12%">Parameter</th>
           <th width="30%">Syntax</th>
-          <th width="50%">Description</th>
+          <th width="5%">Default</th>
+          <th>Description</th>
         </tr>
         <tr>
             <td>category</td>
             <td>category=CSV string </td>
+            <td/>
             <td>Comma(,)-separated string of categories to search for. Wildcard is %.</td>
+        </tr>
+        <tr>
+            <td>exclude_local_tags</td>
+            <td>exclude_local_tags=(1|y|Y|t|true|True|0|n|N|f|false|False)</td>
+            <td>False</td>
+            <td>Exclude local tags from the export</td>
+        </tr>
+        <tr>
+            <td>include_sightings</td>
+            <td>include_sightings=(1|y|Y|t|true|True|0|n|N|f|false|False)</td>
+            <td>True</td>
+            <td>include sightings metrics if available.</td>
         </tr>
         <tr>
             <td>limit</td>
             <td>limit=int </td>
+            <td>1000</td>
             <td>define the limit for each MISP search; default 1000. 0 = no pagination.</td>
         </tr>
         <tr>
             <td>not_tags</td>
             <td>not_tags=CSV string </td>
+            <td/>
             <td>Comma(,)-separated string of tags to exclude. Wildcard is %.</td>
+        </tr>
+        <tr>
+            <td>page</td>
+            <td>page=int</td>
+            <td>0</td>
+            <td>define the page for each MISP search; default 0 = iterate through all pages</td>
         </tr>
         <tr>
             <td>published</td>
             <td>published=(1|y|Y|t|true|True|0|n|N|f|false|False)</td>
+            <td/>
             <td>select only published events.</td>
         </tr>
         <tr>
             <td>tags</td>
             <td>tags=CSV string </td>
+            <td/>
             <td>Comma(,)-separated string of tags to search for. Wildcard is %.</td>
         </tr>
         <tr>
             <td>threat_level_id</td>
-            <td>type=Cint </td>
+            <td>threat_level_id=int </td>
+            <td/>
             <td>Threat level 1-High, 2-Medium, 3-Low, 4-Undefined.</td>
+        </tr>
+        <tr>
+            <td>to_ids</td>
+            <td>to_ids=(1|y|Y|t|true|True|0|n|N|f|false|False)</td>
+            <td/>
+            <td>Boolean to search only attributes with the flag "to_ids" set to true or false</td>
         </tr>
         <tr>
             <td>type</td>
             <td>type=CSV string </td>
+            <td/>
             <td>Comma(,)-separated string of types to search for. Wildcard is %.</td>
         </tr>
         <tr>
             <td>warning_list</td>
             <td>warning_list=(1|y|Y|t|true|True|0|n|N|f|false|False)</td>
+            <td>True</td>
             <td>Boolean to filter out well known values.</td>
         </tr>
       </table>
@@ -402,125 +530,91 @@
   <row>
     <panel>
       <title>Parameters to format the results returned to the search</title>
-      <input type="radio" token="output" searchWhenChanged="true">
-        <label>output</label>
-        <choice value="">not set - default to fields</choice>
+      <input type="radio" token="output" searchWhenChanged="false">
+        <label>output - default: fields</label>
         <choice value="fields">fields</choice>
         <choice value="json">json</choice>
         <change>
-          <condition match="$value$=&quot;&quot;">
-            <set token="param_output"></set>
-          </condition>
           <condition match="$value$=&quot;fields&quot;">
-            <set token="param_output">output=fields</set>
+            <set token="param_output">output=$output$</set>
+            <set token="param_show_output_table"></set>
+            <unset token="param_show_output_json"></unset>
           </condition>
           <condition match="$value$=&quot;json&quot;">
-            <set token="param_output">output=json</set>
+            <set token="param_output">output=$output$</set>
+            <unset token="param_show_output_table"></unset>
+            <set token="param_show_output_json"></set>
+          </condition>
+        </change>
+        <default>fields</default>
+        <initialValue>fields</initialValue>
+      </input>
+      <input type="radio" token="expand_object" searchWhenChanged="false">
+        <label>expand_object</label>
+        <change>
+          <condition>
+            <set token="param_expand_object">expand_object=$expand_object$</set>
+          </condition>
+        </change>
+        <choice value="True">True</choice>
+        <choice value="False">False</choice>
+        <default>False</default>
+        <initialValue>False</initialValue>
+      </input>
+      <input type="radio" token="getioc" searchWhenChanged="false">
+        <label>getioc</label>
+        <change>
+          <set token="param_getioc">getioc=$getioc$</set>
+        </change>
+        <choice value="true">True</choice>
+        <choice value="false">False</choice>
+        <default>False</default>
+        <initialValue>False</initialValue>
+      </input>
+      <input type="radio" token="keep_galaxy" searchWhenChanged="false">
+        <label>keep_galaxy</label>
+        <change>
+          <set token="param_keep_galaxy">keep_galaxy=$keep_galaxy$</set>
+        </change>
+        <choice value="true">True</choice>
+        <choice value="false">False</choice>
+        <default>True</default>
+        <initialValue>True</initialValue>
+      </input>
+      <input type="radio" token="keep_related" searchWhenChanged="false">
+        <label>keep_related</label>
+        <change>
+          <set token="param_keep_related">keep_related=$keep_related$</set>
+        </change>
+        <choice value="true">True</choice>
+        <choice value="false">False</choice>
+        <default>False</default>
+        <initialValue>False</initialValue>
+      </input>
+      <input type="radio" token="pipesplit" searchWhenChanged="false">
+        <label>pipesplit</label>
+        <change>
+          <condition>
+            <set token="param_pipesplit">pipesplit=$pipesplit$</set>
+          </condition>
+        </change>
+        <choice value="True">True</choice>
+        <choice value="False">False</choice>
+        <default>True</default>
+        <initialValue>True</initialValue>
+      </input>
+      <input type="text" token="prefix" searchWhenChanged="false">
+        <label>prefix</label>
+        <change>
+          <condition match="$value$=&quot;&quot;">
+            <set token="param_prefix"></set>
+          </condition>
+          <condition>
+            <set token="param_prefix">prefix=$prefix$</set>
           </condition>
         </change>
         <default></default>
-      </input>
-      <input type="radio" token="expand_object" searchWhenChanged="true">
-        <label>expand_object</label>
-        <change>
-          <condition match="$value$=&quot;true&quot;">
-            <set token="param_expand_object">expand_object="$expand_object$"</set>
-          </condition>
-          <condition match="$value$=&quot;false&quot;">
-            <set token="param_expand_object">expand_object="$expand_object$"</set>
-          </condition>
-          <condition match="$value$=&quot;not_set&quot;">
-            <set token="param_expand_object"></set>
-          </condition>
-        </change>
-        <choice value="not_set">not set</choice>
-        <choice value="true">True</choice>
-        <choice value="false">False</choice>
-      </input>
-      <input type="radio" token="getioc" searchWhenChanged="true">
-        <label>getioc</label>
-        <change>
-          <condition match="$value$=&quot;true&quot;">
-            <set token="param_getioc">getioc=$getioc$</set>
-          </condition>
-          <condition match="$value$=&quot;false&quot;">
-            <set token="param_getioc">getioc=$getioc$</set>
-          </condition>
-          <condition match="$value$=&quot;not_set&quot;">
-            <set token="param_getioc"></set>
-          </condition>
-        </change>
-        <choice value="not_set">not set</choice>
-        <choice value="true">True</choice>
-        <choice value="false">False</choice>
-      </input>
-      <input type="radio" token="keep_galaxy" searchWhenChanged="true">
-        <label>keep_galaxy</label>
-        <change>
-          <condition match="$value$=&quot;true&quot;">
-            <set token="param_keep_galaxy">keep_galaxy=$keep_galaxy$</set>
-          </condition>
-          <condition match="$value$=&quot;false&quot;">
-            <set token="param_keep_galaxy">keep_galaxy=$keep_galaxy$</set>
-          </condition>
-          <condition match="$value$=&quot;not_set&quot;">
-            <set token="param_keep_galaxy"></set>
-          </condition>
-        </change>
-        <choice value="not_set">not set</choice>
-        <choice value="true">True</choice>
-        <choice value="false">False</choice>
-      </input>
-      <input type="radio" token="keep_related" searchWhenChanged="true">
-        <label>keep_related</label>
-        <change>
-          <condition match="$value$=&quot;true&quot;">
-            <set token="param_keep_related">keep_related=$keep_related$</set>
-          </condition>
-          <condition match="$value$=&quot;false&quot;">
-            <set token="param_keep_related">keep_related=$keep_related$</set>
-          </condition>
-          <condition match="$value$=&quot;not_set&quot;">
-            <set token="param_keep_related"></set>
-          </condition>
-        </change>
-        <choice value="not_set">not set</choice>
-        <choice value="true">True</choice>
-        <choice value="false">False</choice>
-      </input>
-      <input type="radio" token="only_to_ids" searchWhenChanged="true">
-        <label>only_to_ids</label>
-        <change>
-          <condition match="$value$=&quot;true&quot;">
-            <set token="param_only_to_ids">only_to_ids=$onlyids$</set>
-          </condition>
-          <condition match="$value$=&quot;false&quot;">
-            <set token="param_only_to_ids">only_to_ids=$onlyids$</set>
-          </condition>
-          <condition match="$value$=&quot;not_set&quot;">
-            <set token="param_only_to_ids"></set>
-          </condition>
-        </change>
-        <choice value="not_set">not set</choice>
-        <choice value="true">True</choice>
-        <choice value="false">False</choice>
-      </input>
-      <input type="radio" token="pipesplit" searchWhenChanged="true">
-        <label>pipesplit</label>
-        <change>
-          <condition match="$value$=&quot;true&quot;">
-            <set token="param_pipesplit">pipesplit="$pipesplit$"</set>
-          </condition>
-          <condition match="$value$=&quot;false&quot;">
-            <set token="param_pipesplit">pipesplit="$pipesplit$"</set>
-          </condition>
-          <condition match="$value$=&quot;not_set&quot;">
-            <set token="param_pipesplit"></set>
-          </condition>
-        </change>
-        <choice value="not_set">not set</choice>
-        <choice value="true">True</choice>
-        <choice value="false">False</choice>
+        <initialValue></initialValue>
       </input>
       <html>
         <table border="1" cedllspacing="10" width="90%" align="center">
@@ -562,20 +656,20 @@
        <tr>
             <td>keep_related</td>
             <td>keep_related=(1|y|Y|t|true|True|0|n|N|f|false|False)</td>
-            <td>True</td>
-            <td>Boolean to keep Related event info (by default) or remove it in ouput=json (full JSON record). This is useful if you plan to use spath that has a limit of 5000 characters to parse the JSON payload.</td>
-        </tr>
-        <tr>
-            <td>only_to_ids</td>
-            <td>only_to_ids=(1|y|Y|t|true|True|0|n|N|f|false|False)</td>
-            <td/>
-            <td>Active only with getioc. If set to True, keep only attributes with flag to_ids set</td>
+            <td>False</td>
+            <td>Boolean to keep Related event info or remove it in ouput=json (full JSON record). This is useful if you plan to use spath that has a limit of 5000 characters to parse the JSON payload.</td>
         </tr>
         <tr>
             <td>pipesplit</td>
             <td>pipesplit=(1|y|Y|t|true|True|0|n|N|f|false|False)</td>
-            <td>False</td>
+            <td>True</td>
             <td>Boolean to split combined MISP attributes.</td>
+        </tr>
+        <tr>
+            <td>prefix</td>
+            <td>prefix=string</td>
+            <td/>
+            <td>prefix set to every MISP key. The value is set by this parameter, then by the value defined for the instznce and finally default to "misp_"</td>
         </tr>
       </table>
     </html>

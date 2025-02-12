@@ -5,8 +5,6 @@
 		<view name="mispgetioc" label="Get MISP attributes"/>
       	<view name="mispgetevent" label="Get MISP events"/>
 		<view name="mispsearch" label="Search MISP for matching attributes"/>
-		<view name="mispsight" label="Search MISP for sightings"/>
-      	<view name="mispcollect" label="Collect as JSON events"/>
       	<view name="misprest" label="MISP REST wrapper"/>
 	</collection>
 	<collection label="MISP alert actions">

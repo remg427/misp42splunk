@@ -38,8 +38,20 @@
     </input>
     <input type="text" token="target" searchWhenChanged="true">
       <label>(API endpoint) target</label>
-      <default>/</default>
-      <initialValue>/</initialValue>
+      <default>/servers/getVersion</default>
+      <initialValue>/servers/getVersion</initialValue>
+    </input>
+    <input type="text" token="json_request" searchWhenChanged="true">
+      <label>json_request</label>
+      <default></default>
+      <change>
+        <condition match="$value$=&quot;&quot;">
+          <set token="misp_json_request"></set>
+        </condition>
+        <condition>
+          <set token="misp_json_request">json_request="$json_request$"</set>
+        </condition>
+      </change>
     </input>
     <input type="text" token="json_request" searchWhenChanged="true">
       <label>json_request</label>
