@@ -108,20 +108,21 @@ def create_alert(helper, config):
     else:
         sightings = []
         for row in results:
-            if 'uuid' in row:
+            if 'misp_attribute_uuid' in row:
                 timestamp = int(row.pop(config['timestamp'], default_ts))
                 source = str(row.pop(config['source'], config['source']))
-                value = row['uuid']
-                helper.log_info(f"[AS303] sighting uuid {value}")
+                value = row['misp_attribute_uuid']
+                helper.log_info(f"[AS303] sighting misp attribute uuid {value}")
                 if value.strip() and value != '0':
-                    value = value.splitlines()[0]
-                    sighting = {
-                        'id': value,
-                        'source': source,
-                        'timestamp': timestamp,
-                        'type': sighting_type
-                    }
-                    sightings.append(sighting)
+                    value = value.splitlines()
+                    for uuid in list(value):
+                        sighting = {
+                            'id': uuid,
+                            'source': source,
+                            'timestamp': timestamp,
+                            'type': sighting_type
+                        }
+                        sightings.append(sighting)
 
     connection, connection_status = urllib_init_pool(helper, config)
     for sighting in sightings:

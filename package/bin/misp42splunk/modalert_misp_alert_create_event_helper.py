@@ -15,6 +15,7 @@ import datetime
 import gzip
 import json
 import os
+import re
 import time
 import splunklib.client as client
 from io import open
@@ -27,6 +28,12 @@ __email__ = "remg427@gmail.com"
 
 # encoding = utf-8
 
+def is_uuid_v4(field):
+    uuid_v4_pattern = re.compile(
+        r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
+        re.IGNORECASE
+    )
+    return bool(uuid_v4_pattern.match(field))
 
 def get_datatype_dict(helper, config, app_name):
     datatype_dict = dict()
@@ -73,7 +80,7 @@ def prepare_alert(helper, app_name):
         'tlp': str(helper.get_param("tlp").replace('_', ':')),
         'pap': str(helper.get_param("pap").replace('_', ':')),
         'eventid': str(helper.get_param("eventid") or "0"),
-        'eventkey': str(helper.get_param("unique") or "oneEvent"),
+        'eventkey': str(helper.get_param("unique") or "singleEvent"),
         'info': str(helper.get_param("info") or "notable event"),
         'published': helper.get_param("publish_on_creation") == "1",
         'tags': str(helper.get_param("tags")) if helper.get_param("tags") else None,
@@ -132,15 +139,13 @@ def prepare_misp_events(helper, config, event_list):
     for row in results:
         row = {key: value for key, value in row.items() if not key.startswith("__mv_")}
         # Get the specific eventkey if defined in Splunk search.
-        # Defaults to alert form value
         eventkey = str(row.get(config['eventkey'], config['eventkey']))
         # Get the specific eventid if defined in Splunk search.
-        # Defaults to alert form value
-        # Value == 0: means create new event
-        # Value <> 0: edit existing event
         eventid = str(row.pop(config['eventid'], config['eventid']))
-        helper.log_info(f"[AL-PPE-I01] eventkey is {eventkey}")
-        helper.log_info(f"[AL-PPE-I02] eventid is {eventid}")
+        # Check if eventid contains only digits or a uuid v4
+        if not (re.match(r'^\d+$', eventid) or is_uuid_v4(eventid)):
+            eventid = "0"
+        helper.log_info(f"[AL-PPE-I01] eventkey is {eventkey} and eventid is {eventid}")
 
         if eventkey in events:
             event = events[eventkey]

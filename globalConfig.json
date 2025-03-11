@@ -236,7 +236,7 @@
                         {
                             "validators": [
                                 {
-                                    "minLength": 0,
+                                    "minLength": 1,
                                     "errorMsg": "Max host length is 4096",
                                     "maxLength": 4096,
                                     "type": "string"
@@ -347,7 +347,7 @@
                     "type": "text",
                     "label": "Title",
                     "field": "title",
-                    "defaultValue": "*",
+                    "defaultValue": "Create MISP event",
                     "required": true,
                     "help": "The title of this alert."
                 },
@@ -355,7 +355,7 @@
                     "type": "text",
                     "label": "Description",
                     "field": "description",
-                    "defaultValue": "*",
+                    "defaultValue": "Alert action to create MISP event",
                     "required": true,
                     "help": "The description to send with the alert."
                 },
@@ -365,15 +365,15 @@
                     "field": "eventid",
                     "defaultValue": "",
                     "required": false,
-                    "help": "To update an existing MISP event, provide a valid event UUID or ID or a field name containing it."
+                    "help": "To update existing MISP events, provide valid event UUID or ID or a field name containing them (this allows to update several events in one run)."
                 },
                 {
                     "type": "text",
-                    "label": "Unique ID",
+                    "label": "Unique identifier",
                     "field": "unique",
                     "defaultValue": "",
                     "required": false,
-                    "help": "A field name that contains a unique identifier per MISP event to be created. All row sharing same identifier value will be merged into the same MISP event."
+                    "help": "Provide a field name to group into distinct MISP event(s) all lines sharing the same value of this field. If not provided, all results will be added to a single MISP event."
                 },
                 {
                     "type": "text",
@@ -614,7 +614,7 @@
                     "type": "text",
                     "label": "Title",
                     "field": "title",
-                    "defaultValue": "*",
+                    "defaultValue": "Sighting MISP attributes",
                     "required": true,
                     "help": "The title of this alert."
                 },
@@ -622,7 +622,7 @@
                     "type": "text",
                     "label": "Description",
                     "field": "description",
-                    "defaultValue": "*",
+                    "defaultValue": "Alert action for MISP sighting",
                     "required": false,
                     "help": "The description to send with the alert."
                 },
@@ -654,13 +654,13 @@
                             },
                             {
                                 "value": "byuuid",
-                                "label": "Sighting for matching attributes UUID"
+                                "label": "Sighting for matching attributes UUID misp_attribute_uuid"
                             }
                         ]
                     },
-                    "help": "Set mode for sighting. Default to \"matching values\"",
+                    "help": "Set mode for sighting. Default to \"matching attribute UUID\"",
                     "required": false,
-                    "defaultValue": "byvalue"
+                    "defaultValue": "byuuid"
                 },
                 {
                     "type": "radio",

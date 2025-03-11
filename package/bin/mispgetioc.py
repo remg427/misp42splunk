@@ -311,7 +311,7 @@ class MispGetIocCommand(GeneratingCommand):
     # Other params to process the attributes and prepare the results
     expand_object = Option(
         doc='''
-        **Syntax:** **gexpand_object=** *<1|y|Y|t|true|True|0|n|N|f|false|False>*
+        **Syntax:** **expand_object=** *<1|y|Y|t|true|True|0|n|N|f|false|False>*
         **Description:** boolean to have object attributes expanded (one per line).
         **Default:** False, attributes of an object are displayed on same line.
         ''',

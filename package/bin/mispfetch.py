@@ -234,7 +234,7 @@ class MispFetchCommand(StreamingCommand):
     )
     keep_related = Option(
         doc='''
-        **Syntax:** **keep_galaxy=** *<1|y|Y|t|true|True|0|n|N|f|false|False>*
+        **Syntax:** **keep_related=** *<1|y|Y|t|true|True|0|n|N|f|false|False>*
         **Description:**Boolean to remove related events per attribute (useful with output=json)
         **Default:** False
         ''',
