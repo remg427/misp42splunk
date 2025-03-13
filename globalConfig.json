@@ -2,15 +2,18 @@
     "meta": {
         "name": "misp42splunk",
         "restRoot": "misp42splunk",
-        "displayName": "misp42",
-        "version": "4.4.0",
-        "schemaVersion": "0.0.7",
-        "_uccVersion": "5.50.1"
+        "displayName": "MISP42",
+        "version": "5.0.0",
+        "schemaVersion": "0.0.9",
+        "supportedThemes": [
+            "light",
+            "dark"
+        ]
     },
     "pages": {
         "configuration": {
             "title": "Configuration",
-            "description": "Set up your add-on",
+            "description": "Set up MISP42 add-on",
             "tabs": [
                 {
                     "name": "instances",
@@ -136,6 +139,63 @@
                             ],
                             "help": "Provide full path to client certificate file ",
                             "type": "text"
+                        },
+                        {
+                            "required": true,
+                            "label": "Prefix for field names",
+                            "field": "prefix",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 2,
+                                    "maxLength": 10,
+                                    "errorMsg": "Length of prefix should be between 2 and 10"
+                                },
+                                {
+                                    "type": "regex",
+                                    "pattern": "^[a-zA-Z]\\w+$",
+                                    "errorMsg": "Prefix string must start with a letter and followed by alphabetic letters, digits or underscores."
+                                }
+                            ],
+                            "defaultValue": "misp_",
+                            "help": "",
+                            "type": "text"
+                        },
+                        {
+                            "required": true,
+                            "label": "Connection timeout (seconds)",
+                            "field": "connection_timeout",
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        1,
+                                        300
+                                    ],
+                                    "isInteger": true
+                                }
+                            ],
+                            "defaultValue": 3,
+                            "help": "Maximum time to establish the connection with the MISP instance.",
+                            "type": "text"
+                        },
+                        {
+                            "required": true,
+                            "label": "Read timeout (seconds)",
+                            "field": "read_timeout",
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        1,
+                                        600
+                                    ],
+                                    "isInteger": true
+                                }
+                            ],
+                            "defaultValue": 200,
+                            "help": "Maximum time to receive the response data from the MISP instance.",
+                            "type": "text"
                         }
                     ]
                 },
@@ -176,7 +236,7 @@
                         {
                             "validators": [
                                 {
-                                    "minLength": 0,
+                                    "minLength": 1,
                                     "errorMsg": "Max host length is 4096",
                                     "maxLength": 4096,
                                     "type": "string"
@@ -287,7 +347,7 @@
                     "type": "text",
                     "label": "Title",
                     "field": "title",
-                    "defaultValue": "*",
+                    "defaultValue": "Create MISP event",
                     "required": true,
                     "help": "The title of this alert."
                 },
@@ -295,7 +355,7 @@
                     "type": "text",
                     "label": "Description",
                     "field": "description",
-                    "defaultValue": "*",
+                    "defaultValue": "Alert action to create MISP event",
                     "required": true,
                     "help": "The description to send with the alert."
                 },
@@ -305,15 +365,15 @@
                     "field": "eventid",
                     "defaultValue": "",
                     "required": false,
-                    "help": "To update an existing MISP event, provide a valid event UUID or ID or a field name containing it."
+                    "help": "To update existing MISP events, provide valid event UUID or ID or a field name containing them (this allows to update several events in one run)."
                 },
                 {
                     "type": "text",
-                    "label": "Unique ID",
+                    "label": "Unique identifier",
                     "field": "unique",
                     "defaultValue": "",
                     "required": false,
-                    "help": "A field name that contains a unique identifier per MISP event to be created. All row sharing same identifier value will be merged into the same MISP event."
+                    "help": "Provide a field name to group into distinct MISP event(s) all lines sharing the same value of this field. If not provided, all results will be added to a single MISP event."
                 },
                 {
                     "type": "text",
@@ -554,7 +614,7 @@
                     "type": "text",
                     "label": "Title",
                     "field": "title",
-                    "defaultValue": "*",
+                    "defaultValue": "Sighting MISP attributes",
                     "required": true,
                     "help": "The title of this alert."
                 },
@@ -562,14 +622,14 @@
                     "type": "text",
                     "label": "Description",
                     "field": "description",
-                    "defaultValue": "*",
+                    "defaultValue": "Alert action for MISP sighting",
                     "required": false,
                     "help": "The description to send with the alert."
                 },
                 {
                     "type": "text",
-                    "label": "Unique ID",
-                    "field": "unique",
+                    "label": "Timestamp (EPOCH)",
+                    "field": "timestamp",
                     "defaultValue": "",
                     "required": false,
                     "help": "A field name that contains timestamps ( _time, strptime() etc.). if not defined or not present, default to now()"
@@ -594,13 +654,13 @@
                             },
                             {
                                 "value": "byuuid",
-                                "label": "Sighting for matching attributes UUID"
+                                "label": "Sighting for matching attributes UUID misp_attribute_uuid"
                             }
                         ]
                     },
-                    "help": "Set mode for sighting. Default to \"matching values\"",
+                    "help": "Set mode for sighting. Default to \"matching attribute UUID\"",
                     "required": false,
-                    "defaultValue": "byvalue"
+                    "defaultValue": "byuuid"
                 },
                 {
                     "type": "radio",

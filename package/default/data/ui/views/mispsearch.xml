@@ -1,18 +1,20 @@
 <form hideEdit="false" version="1.1">
   <init>
-    <set token="param_includeEventTags"></set>
-    <set token="param_includeEventUuid"></set>
-    <set token="param_json_request"></set>
-    <set token="param_last"></set>
-    <set token="param_to_ids"></set>
-    <set token="param_limit"></set>
-    <set token="param_page"></set>
+    <set token="misp_instance">misp</set>
+    <set tokern="field"></set>
+    <set token="param_misp_http_body"></set>
+    <set token="param_limit">limit=10</set>
+    <set token="param_not_tags"></set>
+    <set token="param_page">page=1</set>
+    <set token="param_pipesplit">pipesplit=true</set>
+    <set token="param_prefix">prefix=misp_</set>
+    <set token="param_tags"></set>
     <set token="sample_query">| makeresults | eval domain="www.example.com"</set>
   </init>
   <label>mispsearch</label>
   <description>MISP custom command mispsearch search matching attributes in MISP (Streaming command) - check https://github.com/remg427/misp42splunk/ for any update</description>
-  <fieldset submitButton="false" autoRun="false">
-    <input type="dropdown" token="misp_instance" searchWhenChanged="true">
+  <fieldset submitButton="true" autoRun="false">
+    <input type="dropdown" token="misp_instance" searchWhenChanged="false">
       <label>misp_instance*</label>
       <fieldForLabel>misp_instance</fieldForLabel>
       <fieldForValue>misp_instance</fieldForValue>
@@ -27,84 +29,91 @@
     <input type="text" token="misp_instance">
       <label>misp_instance*</label>
     </input>
-    <input type="text" token="field" searchWhenChanged="true">
+    <input type="text" token="field" searchWhenChanged="false">
       <label>field*</label>
     </input>
-    <input type="radio" token="includeEventTags" searchWhenChanged="true">
-      <label>includeEventTags</label>
-      <change>
-        <condition>
-          <set token="param_includeEventTags">includeEventTags="$includeEventTags$"</set>
-        </condition>
-      </change>
-      <choice value="true">True</choice>
-      <choice value="false">False</choice>
-    </input>
-    <input type="radio" token="includeEventUuid" searchWhenChanged="true">
-      <label>includeEventUuid</label>
-      <change>
-        <condition>
-          <set token="param_includeEventUuid">includeEventUuid="$includeEventUuid$"</set>
-        </condition>
-      </change>
-      <choice value="true">True</choice>
-      <choice value="false">False</choice>
-    </input>
-    <input type="text" token="json_request" searchWhenChanged="true">
-      <label>json_request</label>
+    <input type="text" token="misp_http_body" searchWhenChanged="false">
+      <label>misp_http_body</label>
       <change>
         <condition match="$value$=&quot;&quot;">
-          <set token="param_json_request"></set>
+          <set token="param_misp_http_body"></set>
         </condition>
         <condition>
-          <set token="param_json_request">json_request="$json_request$"</set>
+          <set token="param_misp_http_body">misp_http_body="$value$"</set>
         </condition>
       </change>
     </input>
-    <input type="text" token="last" searchWhenChanged="true">
-      <label>last</label>
-      <change>
-        <condition match="$value$=&quot;&quot;">
-          <set token="param_last"></set>
-        </condition>
-        <condition>
-          <set token="param_last">last="$last$"</set>
-        </condition>
-      </change>
-    </input>
-    <input type="radio" token="to_ids" searchWhenChanged="true">
-      <label>to_ids</label>
-      <change>
-        <condition>
-          <set token="param_to_ids">to_ids="$to_ids$"</set>
-        </condition>
-      </change>
-      <choice value="true">True</choice>
-      <choice value="false">False</choice>
-    </input>
-    <input type="text" token="limit" searchWhenChanged="true">
+    <input type="text" token="limit" searchWhenChanged="false">
       <label>limit</label>
       <change>
         <condition match="$value$=&quot;&quot;">
           <set token="param_limit"></set>
         </condition>
         <condition>
-          <set token="param_limit">limit=$limit$</set>
+          <set token="param_limit">limit=$value$</set>
         </condition>
       </change>
+      <default>10</default>
+      <initialValue>10</initialValue>
     </input>
-    <input type="text" token="page" searchWhenChanged="true">
-      <label>page</label>
+    <input type="text" token="not_tags" searchWhenChanged="false">
+      <label>not_tags</label>
       <change>
         <condition match="$value$=&quot;&quot;">
-          <set token="param_page"></set>
+          <set token="param_not_tags"></set>
         </condition>
         <condition>
-          <set token="param_page">page=$page$</set>
+          <set token="param_not_tags">not_tags="$value$"</set>
         </condition>
       </change>
     </input>
-    <input type="text" token="sample_query" searchWhenChanged="true">
+    <input type="text" token="page" searchWhenChanged="false">
+      <label>page</label>
+      <change>
+        <condition>
+          <set token="param_page">page=$value$</set>
+        </condition>
+      </change>
+      <default>1</default>
+      <initialValue>1</initialValue>
+    </input>
+    <input type="radio" token="pipesplit" searchWhenChanged="false">
+      <label>pipesplit</label>
+      <change>
+        <condition>
+          <set token="param_pipesplit">pipesplit=$value$</set>
+        </condition>
+      </change>
+      <choice value="True">True</choice>
+      <choice value="False">False</choice>
+      <default>True</default>
+      <initialValue>True</initialValue>
+    </input>
+    <input type="text" token="prefix" searchWhenChanged="false">
+      <label>prefix</label>
+      <change>
+        <condition match="$value$=&quot;&quot;">
+          <set token="param_prefix"></set>
+        </condition>
+        <condition>
+          <set token="param_prefix">prefix=$value$</set>
+        </condition>
+      </change>
+      <default>misp_</default>
+      <initialValue>misp_</initialValue>
+    </input>
+    <input type="text" token="tags" searchWhenChanged="false">
+      <label>tags</label>
+      <change>
+        <condition match="$value$=&quot;&quot;">
+          <set token="param_tags"></set>
+        </condition>
+        <condition>
+          <set token="param_tags">tags="$value$"</set>
+        </condition>
+      </change>
+    </input>
+    <input type="text" token="sample_query" searchWhenChanged="false">
       <label>Paste your sample query here</label>
       <initialValue>| makeresults | eval domain="www.example.com"</initialValue>
     </input>
@@ -114,47 +123,79 @@
       <html>
         <h3>Select a misp_instance and a field name to search for.</h3>
         <h3>Additional arguments:</h3>
-      <table border="1" cedllspacing="10" width="90%" align="center">
-        <tr>
-          <th width="20%">Param</th>
-          <th width="30%">Syntax</th>
-          <th width="50%">Description</th>
-        </tr>
-        <tr>
-            <td>includeEventTags</td>
-            <td>includeEventTags=1|y|Y|t|true|True|0|n|N|f|false|False </td>
-            <td>Boolean to include Event Tags to results.</td>
-        </tr>
-        <tr>
-            <td>includeEventUuid</td>
-            <td>includeEventUuid=1|y|Y|t|true|True|0|n|N|f|false|False </td>
-            <td>Boolean to include event UUID(s) to results.</td>
-        </tr>
-        <tr>
-            <td>json_request</td>
-            <td>json_request=string </td>
-            <td>Valid JSON request.</td>
-        </tr>
-        <tr>
-            <td>last</td>
-            <td>last=int </td>
-            <td>Publication duration in day(s), hour(s) or minute(s) to limit search scope only to published events in last X timerange.</td>
-        </tr>
-        <tr>
+      <table border="1" cedllspacing="20" width="100%" align="center">
+        <thead>
+          <tr>
+            <th scope="col" style="width: 20%">Param</th>
+            <th scope="col" style="width: 20%">Syntax</th>
+            <th scope="col" style="width: 20%">Default</th>
+            <th scope="col">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>misp_http_body</td>
+            <td>misp_http_body=JSON</td>
+            <td>
+              <pre>
+                <code>{
+                    "returnFormat": "json",
+                    "last": "1h",
+                    "published": True,
+                    "withAttachments": False
+                }</code>
+              </pre>
+            </td>
+            <td>
+              <p>Provide an HTTP body in JSON format.</p>   
+              <p>You can test it using the MISP RESP graphical client on MISP.</p>
+              <p>you can also use a SPL to prepare it.</p>     
+              <p>⚠️ 2 keys are enforced on any HTTP body</p>     
+              <ul>
+                <li>returnFormat: JSON</li>
+                <li>withAttachments: False</li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
             <td>limit</td>
-            <td>limit=int </td>
-            <td>define the limit for each MISP search; default 1000. 0 = no pagination.</td>
-        </tr>
-        <tr>
+            <td>limit=&lt;1|y|Y|t|true|True|0|n|N|f|false|False&gt;</td>
+            <td>10</td>
+            <td>Define the limit for each MISP search; default 10. 0 = no pagination</td>
+          </tr>
+          <tr>
+            <td>not_tags</td>
+            <td>not_tags=""</td>
+            <td/>
+            <td>Comma(,)-separated string of tags to exclude. Wildcard is %.</td>
+          </tr>
+          <tr>
             <td>page</td>
-            <td>page=int </td>
-            <td>define the page for each MISP search; default 1.</td>
-        </tr>
-        <tr>
-            <td>to_ids</td>
-            <td>to_ids=1|y|Y|t|true|True|0|n|N|f|false|False </td>
-            <td>Boolean to search only attributes with the flag "to_ids" set to true.</td>
-        </tr>
+            <td>page=int</td>
+            <td>1</td>
+            <td>define the page for each MISP search; default 1</td>
+          </tr>
+          <tr>
+            <td>pipesplit</td>
+            <td>pipesplit=&lt;1|y|Y|t|true|True|0|n|N|f|false|False&gt;</td>
+            <td>True</td>
+            <td>split combined attribute types such as domain|ip
+              <p>Valid only when fetching attributes.</p>
+            </td>
+          </tr>
+          <tr>
+            <td>prefix</td>
+            <td>prefix=string</td>
+            <td/>
+            <td>prefix set to every MISP key. The value is set by this parameter, then by the value defined for the instznce and finally default to "misp_"</td>
+          </tr>
+          <tr>
+            <td>tags</td>
+            <td>tags=""</td>
+            <td/>
+            <td>Comma(,)-separated string of tags to search for. Wildcard is %.</td>
+          </tr>
+      </tbody>
       </table>
     </html>
     </panel>
@@ -163,8 +204,9 @@
     <panel>
       <title>Custom command mispsearch</title>
       <table>
+        <title>$sample_query$ | mispsearch misp_instance=$misp_instance$ field=$field$ $param_misp_http_body$ $param_limit$ $param_page$ $param_pipesplit$ $param_prefix$ $param_tags$ $param_not_tags$</title>
         <search>
-          <query>$sample_query$ | mispsearch misp_instance=$misp_instance$ field=$field$ $param_json_request$ $param_last$ $param_includeEventTags$ $param_includeEventUuid$ $param_to_ids$ $param_limit$ $param_page$</query>
+          <query>$sample_query$ | mispsearch misp_instance=$misp_instance$ field=$field$ $param_misp_http_body$ $param_limit$ $param_page$ $param_pipesplit$ $param_prefix$ $param_tags$ $param_not_tags$</query>
           <earliest>0</earliest>
           <latest></latest>
           <sampleRatio>1</sampleRatio>

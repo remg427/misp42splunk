@@ -12,140 +12,55 @@ import misp42splunk_declare
 import json
 import logging
 from misp_common import prepare_config, logging_level, urllib_init_pool, urllib_request
-import os
 from splunklib.searchcommands import dispatch, GeneratingCommand, Configuration, Option, validators
 import time
 import sys
 
-splunkhome = os.environ['SPLUNK_HOME']
-
-# set logging
-filehandler = logging.FileHandler(splunkhome
-                                  + "/var/log/splunk/misp42splunk.log", 'a')
-formatter = logging.Formatter('%(asctime)s %(levelname)s %(filename)s \
-                              %(funcName)s %(lineno)d %(message)s')
-filehandler.setFormatter(formatter)
-log = logging.getLogger()  # root logger - Good to get it only once.
-for hdlr in log.handlers[:]:  # remove the existing file handlers
-    if isinstance(hdlr,logging.FileHandler):
-        log.removeHandler(hdlr)
-log.addHandler(filehandler)      # set the new handler
-# set the log level to INFO, DEBUG as the default is ERROR
-log.setLevel(logging.INFO)
-
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "4.3.0"
+__version__ = "5.0.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
 
 @Configuration(distributed=False)
 class MispRestCommand(GeneratingCommand):
-    """ get the attributes from a MISP instance.
-    ##Syntax
-    .. code-block::
-        | mispgetioc misp_instance=<input> last=<int>(d|h|m)
-        | mispgetioc misp_instance=<input> event=<id1>(,<id2>,...)
-        | mispgetioc misp_instance=<input> date=<<YYYY-MM-DD>
-                                           (date_to=<YYYY-MM-DD>)
-    ##Description
-    {
-        "returnFormat": "mandatory",
-        "page": "optional",
-        "limit": "optional",
-        "value": "optional",
-        "type": "optional",
-        "category": "optional",
-        "org": "optional",
-        "tags": "optional",
-        "date": "optional",
-        "last": "optional",
-        "eventid": "optional",
-        "withAttachments": "optional",
-        "uuid": "optional",
-        "publish_timestamp": "optional",
-        "timestamp": "optional",
-        "enforceWarninglist": "optional",
-        "to_ids": "optional",
-        "deleted": "optional",
-        "includeEventUuid": "optional",
-        "includeEventTags": "optional",
-        "event_timestamp": "optional",
-        "threat_level_id": "optional",
-        "eventinfo": "optional",
-        "includeProposals": "optional",
-        "includeDecayScore": "optional",
-        "includeFullModel": "optional",
-        "decayingModel": "optional",
-        "excludeDecayed": "optional",
-        "score": "optional"
-    }
-    # status
-        "returnFormat": forced to json,
-        "page": param,
-        "limit": param,
-        "value": not managed,
-        "type": param, CSV string,
-        "category": param, CSV string,
-        "org": not managed,
-        "tags": param, see also not_tags
-        "date": param,
-        "last": param,
-        "eventid": param,
-        "withAttachments": forced to false,
-        "uuid": not managed,
-        "publish_timestamp": managed via param last
-        "timestamp": not managed,
-        "enforceWarninglist": param,
-        "to_ids": param,
-        "deleted": forced to False,
-        "includeEventUuid": set to True,
-        "includeEventTags": param,
-        "event_timestamp":  not managed,
-        "threat_level_id":  not managed,
-        "eventinfo": not managed,
-        "includeProposals": not managed
-        "includeDecayScore": not managed,
-        "includeFullModel": not managed,
-        "decayingModel": not managed,
-        "excludeDecayed": not managed,
-        "score": not managed
-    }
-    """
-    # MANDATORY MISP instance for this search
+    # MANDATORY MISP instance
     misp_instance = Option(
         doc='''
-        **Syntax:** **misp_instance=instance_name*
-        **Description:** MISP instance parameters
-        as described in local/misp42splunk_instances.conf.''',
-        require=True)
+        **Syntax:** **misp_instance=** *instance_name*
+        **Description:** MISP instance parameters as described in local/misp42splunk_instances.conf.
+        ''',
+        require=True
+    )
     method = Option(
         doc='''
         **Syntax:** **method=****
-        **Description:** method to use for API target DELETE GET PATCH POST.''',
-        require=True, validate=validators.Match("method", r"^(DELETE|GET|POST|PUT)$"))
+        **Description:** method to use for API target DELETE GET POST PUT.
+        **Default:** GET.
+        ''',
+        require=False,
+        default="GET",
+        validate=validators.Match("method", r"^(DELETE|GET|POST|PUT)$")
+    )
     json_request = Option(
         doc='''
         **Syntax:** **json_request=***JSON request*
-        **Description:** JSON-formatted json_request.''',
-        require=False, validate=validators.Match("json_request", r"^{.+}$"))
-    limit = Option(
-        doc='''
-        **Syntax:** **limit=***<int>*
-        **Description:**define the limit for each MISP search;
-         default 1000. 0 = no pagination.''',
-        require=False, validate=validators.Match("limit", r"^[0-9]+$"))
-    page = Option(
-        doc='''
-        **Syntax:** **page=***<int>*
-        **Description:**define the page for each MISP search; default 1.''',
-        require=False, validate=validators.Match("page", r"^[0-9]+$"))
+        **Description:** JSON-formatted json_request.
+        ''',
+        require=False, 
+        validate=validators.Match("json_request", r"^{.+}$")
+    )
     target = Option(
         doc='''
         **Syntax:** **target=api_target****
-        **Description:**target of MISP API.''',
-        require=True, validate=validators.Match("target", r"^/(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+$"))
+        **Description:** target of MISP API.
+        **Default:** /servers/serverSettings
+        ''',
+        require=False, 
+        default="/servers/serverSettings",
+        validate=validators.Match("target", r"^/(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+$")
+    )
 
     def log_error(self, msg):
         logging.error(msg)
@@ -160,21 +75,11 @@ class MispRestCommand(GeneratingCommand):
         logging.warning(msg)
 
     def set_log_level(self):
-        # global configuration
-        conf_file = "misp42splunk_settings"
-        confs = self.service.confs[str(conf_file)]
-
-        # set loglevel
-        loglevel = 'INFO'
-        for stanza in confs:
-            if stanza.name == 'logging':
-                for stanzakey, stanzavalue in stanza.content.items():
-                    if stanzakey == "loglevel":
-                        loglevel = stanzavalue
-        logginglevel = logging.getLevelName(loglevel)
-        log.setLevel(logginglevel)
-        logging.error('[MR-101] logging level is set to %s', loglevel)
-        logging.error('[MR-102] PYTHON VERSION: ' + sys.version)
+        logging.root
+        loglevel = logging_level('misp42splunk')
+        logging.root.setLevel(loglevel)
+        logging.error('[MR-201] logging level is set to %s', loglevel)
+        logging.error('[MR-202] PYTHON VERSION: ' + sys.version)
 
     def generate(self):
         # loggging
@@ -182,30 +87,27 @@ class MispRestCommand(GeneratingCommand):
         # Phase 1: Preparation
         misp_instance = self.misp_instance
         storage = self.service.storage_passwords
-        my_args = prepare_config(self, 'misp42splunk', misp_instance, storage)
-        if my_args is None:
-            raise Exception("Sorry, no configuration for misp_instance={}".format(misp_instance))
-        my_args['host'] = my_args['misp_url'].replace('https://', '')
-        if self.target not in [None, '']:
-            my_args['misp_url'] = my_args['misp_url'] + self.target
-        if self.json_request not in [None, '']:
+        config = prepare_config(self, 'misp42splunk', misp_instance, storage)
+        if config is None:
+            raise Exception("[MR-101] Sorry, no configuration for misp_instance={}".format(misp_instance))
+
+        try:
             body_dict = json.loads(self.json_request)
-        else:
+        except Exception:
             body_dict = {}
-        if self.method is not None:
-            my_args['method'] = self.method
-        else:
-            my_args['method'] = "POST"
+        config['method'] = self.method
+        config['misp_url'] = config['misp_url'] + self.target
 
-        connection, connection_status = urllib_init_pool(self, my_args)
-        if connection:
-            response = urllib_request(self, connection, my_args['method'], my_args['misp_url'], body_dict, my_args) 
-        else:
+        connection, connection_status = urllib_init_pool(self, config)
+        if connection is None:
             response = connection_status
-
-        # response is 200 by this point or we would have thrown an exception
-        data = {'_time': time.time(), '_raw': json.dumps(response)}
-        yield data
+            self.log_info('[MR-102] connection for {} failed'.format(config['misp_url']))
+            yield response
+        else:
+            response = urllib_request(self, connection, config['method'], config['misp_url'], body_dict, config)
+            # response is 200 by this point or we would have thrown an exception
+            data = {'_time': time.time(), '_raw': json.dumps(response)}
+            yield data
 
 
 if __name__ == "__main__":

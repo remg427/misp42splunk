@@ -1,1 +1,3 @@
-splunktaucclib>=5.0.4
+splunktaucclib
+splunk-sdk
+solnlib

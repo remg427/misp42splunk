@@ -15,23 +15,25 @@ import datetime
 import gzip
 import json
 import os
+import re
 import time
 import splunklib.client as client
 from io import open
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "4.3.1"
+__version__ = "5.0.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
-#
-# most of the code here was based on the following
-# example on splunk custom alert event_list
-# http://docs.splunk.com/Documentation/Splunk/6.5.3/AdvancedDev/ModAlertsAdvancedExample
-
-
 # encoding = utf-8
+
+def is_uuid_v4(field):
+    uuid_v4_pattern = re.compile(
+        r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
+        re.IGNORECASE
+    )
+    return bool(uuid_v4_pattern.match(field))
 
 def get_datatype_dict(helper, config, app_name):
     datatype_dict = dict()
@@ -73,37 +75,21 @@ def prepare_alert(helper, app_name):
     config_args = prepare_config(helper, app_name, instance, storage, sessionKey)
     if config_args is None:
         return None
-    alert_args = dict()
-    # Get string values from alert form
-    alert_args['tlp'] = str(helper.get_param("tlp").replace('_', ':'))
-    alert_args['pap'] = str(helper.get_param("pap").replace('_', ':'))
-    if not helper.get_param("eventid"):
-        alert_args['eventid'] = "0"
-    else:
-        alert_args['eventid'] = str(helper.get_param("eventid"))
-    if not helper.get_param("unique"):
-        alert_args['eventkey'] = "oneEvent"
-    else:
-        alert_args['eventkey'] = str(helper.get_param("unique"))
-    if not helper.get_param("info"):
-        alert_args['info'] = "notable event"
-    else:
-        alert_args['info'] = str(helper.get_param("info"))
-    published = helper.get_param("publish_on_creation")
-    if published == "1":
-        alert_args['published'] = True
-    else:
-        alert_args['published'] = False
-    if not helper.get_param("tags"):
-        alert_args['tags'] = None
-    else:
-        alert_args['tags'] = str(helper.get_param("tags"))
-    # Get numeric values from alert form
-    alert_args['analysis'] = int(helper.get_param("analysis"))
-    alert_args['threatlevel'] = int(helper.get_param("threatlevel"))
-    alert_args['distribution'] = int(helper.get_param("distribution"))
 
+    alert_args = {
+        'tlp': str(helper.get_param("tlp").replace('_', ':')),
+        'pap': str(helper.get_param("pap").replace('_', ':')),
+        'eventid': str(helper.get_param("eventid") or "0"),
+        'eventkey': str(helper.get_param("unique") or "singleEvent"),
+        'info': str(helper.get_param("info") or "notable event"),
+        'published': helper.get_param("publish_on_creation") == "1",
+        'tags': str(helper.get_param("tags")) if helper.get_param("tags") else None,
+        'analysis': int(helper.get_param("analysis")),
+        'threatlevel': int(helper.get_param("threatlevel")),
+        'distribution': int(helper.get_param("distribution"))
+    }
     config_args.update(alert_args)
+
     return config_args
 
 
@@ -133,10 +119,6 @@ def store_object_attribute(object_attributes, t, v, metadata=None):
 
 
 def prepare_misp_events(helper, config, event_list):
-    # print(config)
-    # iterate through each row, cleaning multivalue fields and then adding
-    # the attributes under same event key
-    # this builds the dict events
     events = {}
     event_baseline = {
         'threat_level_id': config['threatlevel'],
@@ -148,107 +130,54 @@ def prepare_misp_events(helper, config, event_list):
     }
 
     data_type = get_datatype_dict(helper, config, 'misp42splunk')
-    # tag the event with TLP level
     tags = [{'name': config['tlp']}, {'name': config['pap']}]
-    # Add tags set in alert definition
-    if config['tags'] is not None:
-        tag_list = config['tags'].split(',')
-        for tag in tag_list:
-            if tag not in tags:
-                new_tag = {'name': tag}
-                tags.append(new_tag)
+    if config['tags']:
+        tags.extend({'name': tag} for tag in config['tags'].split(',') if tag not in tags)
     event_baseline['Tag'] = tags
 
     results = helper.get_events()
     for row in results:
-        # Splunk makes a bunch of dumb empty multivalue fields
-        # - we filter those out here
-        row = {key: value for key, value in list(row.items())
-               if not key.startswith("__mv_")}
-
+        row = {key: value for key, value in row.items() if not key.startswith("__mv_")}
         # Get the specific eventkey if defined in Splunk search.
-        # Defaults to alert form value
-        eventkey = config['eventkey']
-        if eventkey in row:
-            eventkey = str(row[eventkey])
-        helper.log_info("[AL-PPE-I01] eventkey is {}".format(eventkey))
-
-        # Get the specific eventid if define in Splunk search.
-        # Defaults to alert form value
-        # Value == 0: means create new event
-        # Value <> 0: edit existing event
-        eventid = config['eventid']  # from the alert conf
-        if eventid in row:         # overwrites from the result row
-            eventid = str(row.pop(eventid))
-        helper.log_info("[AL-PPE-I02] eventid is {}".format(eventid))
-
-        # check if building event has been initiated
-        # if yes simply add attribute entry otherwise collect other metadata
-        # remove fields misp_time and info from row
-        # if this is a new event: 
-        # keep info from first row for the first row of that eventkey
-        # keep misp_time as event date for the first row of that eventkey
-        attribute_baseline = dict()
+        eventkey = str(row.get(config['eventkey'], config['eventkey']))
+        # Get the specific eventid if defined in Splunk search.
+        eventid = str(row.pop(config['eventid'], config['eventid']))
+        # Check if eventid contains only digits or a uuid v4
+        if not (re.match(r'^\d+$', eventid) or is_uuid_v4(eventid)):
+            eventid = "0"
+        helper.log_info(f"[AL-PPE-I01] eventkey is {eventkey} and eventid is {eventid}")
 
         if eventkey in events:
             event = events[eventkey]
-            if 'misp_time' in row: # drop any misp_time in row 2 to n
-                row.pop('misp_time')
-            if 'misp_info' in row:  # drop any misp_info in row 2 to n
-                row.pop('misp_info')
+            row.pop('misp_date', None)
+            row.pop('misp_info', None)
         else:
             event_list[eventkey] = eventid
             event = event_baseline.copy()
-            if 'misp_time' in row:
-                event['date'] = datetime.datetime.fromtimestamp(
-                    int(row.pop('misp_time'))).strftime('%Y-%m-%d')
-            else:
-                event['date'] = datetime.datetime.fromtimestamp(
-                    int(time.time())).strftime('%Y-%m-%d')
-
-            if 'misp_info' in row: 
-                event['info'] = row.pop('misp_info')
-            else:
-                event['info'] = config['info']
+            event['date'] = datetime.datetime.fromtimestamp(
+                int(row.pop('misp_date', time.time()))).strftime('%Y-%m-%d')
+            event['info'] = row.pop('misp_info', config['info'])
 
         if config['distribution'] == 4:
             if 'misp_sg_id' in row:
-                event['sharing_group_id'] = int(
-                    row.pop('misp_sg_id'))  # "sharing_group_id"
+                event['sharing_group_id'] = int(row.pop('misp_sg_id', 0))
             else:
-                helper.log_error("Distribution is set to Sharing Group but no field misp_sg_id is provided")
+                helper.log_error("[AL-PPE-E01] Distribution is set to Sharing Group but no field misp_sg_id is provided")
+            
         attributes = list(event['Attribute'])
         objects = list(event['Object'])
+
         tags = list(event['Tag'])
-
-        # Update event metadata
-        # append event tags provided in the row
         if 'misp_tag' in row:
-            tag_list = row.pop('misp_tag').split(',')
-            for tag in tag_list:
-                if tag not in tags:
-                    new_tag = {'name': tag}
-                    tags.append(new_tag)
-        # update event tag list
-        event['Tag'] = list(tags)
+            tags.extend({'name': tag} for tag in row.pop('misp_tag').split(',') if tag not in tags)
+        event['Tag'] = tags
 
-        if 'misp_publish_on_creation' in row:
-            publish_on_creation = str(row.pop('misp_publish_on_creation'))
-            if publish_on_creation == "1":
-                event['published'] = True
-            elif publish_on_creation == "0":
-                event['published'] = False
+        event['published'] = row.pop('misp_publish_on_creation', "0") == "1"
 
+        attribute_baseline = dict()
         # collect attribute value and build type=value entry
         if 'misp_attribute_tag' in row:
-            att_tags = []
-            att_tag_list = str(row.pop('misp_attribute_tag')).split(',')
-            for atag in att_tag_list:
-                if atag not in att_tags:
-                    new_tag = {'name': atag}
-                    att_tags.append(new_tag)
-            # update event tag list
-            attribute_baseline['Tag'] = att_tags 
+            attribute_baseline['Tag'] = [{'name': tag} for tag in row.pop('misp_attribute_tag', '').split(',') if tag]
 
         if 'misp_category' in row:
             attribute_baseline['category'] = str(row.pop('misp_category'))
@@ -257,10 +186,7 @@ def prepare_misp_events(helper, config, event_list):
             attribute_baseline['comment'] = str(row.pop('misp_comment'))
 
         if 'misp_to_ids' in row:
-            if str(row.pop('misp_to_ids')) == 'True':
-                attribute_baseline['to_ids'] = True
-            else:
-                attribute_baseline['to_ids'] = False
+            attribute_baseline['to_ids'] = row.pop('misp_to_ids', 'False') == 'True',
 
         if 'misp_first_seen' in row:  # must be EPOCH UNIX
             attribute_baseline['first_seen'] = datetime.datetime.fromtimestamp(
@@ -274,141 +200,104 @@ def prepare_misp_events(helper, config, event_list):
         # to add to event as attributes(s) of an object
         # or as single attribute(s)
         # 
+
         fo_template = init_object_template(helper, 'file')
-        fo_attribute = []
         eo_template = init_object_template(helper, 'email')
-        eo_attribute = []
         no_template = init_object_template(helper, 'domain-ip')
-        no_attribute = []
-        for key, value in list(row.items()):
+        fo_attribute, eo_attribute, no_attribute = [], [], []
+
+        for key, value in row.items():
             for single in str(value).split("\n"):
-                attribute_metadata = attribute_baseline.copy()
-                if key.startswith("misp_") and single not in [None, '']:
-                    misp_key = str(key).replace('misp_', '').replace('_', '-')
-                    attribute_metadata['type'] = misp_key
-                    attribute_metadata['value'] = str(single)
-                    attributes.append(attribute_metadata)
-                elif key.startswith("fo_") and single not in [None, '']:
-                    fo_key = str(key).replace('fo_', '').replace('_', '-')
-                    object_attribute = store_object_attribute(
-                        fo_template['attributes'], fo_key, str(single),
-                        metadata=attribute_metadata)
-                    if object_attribute:
-                        fo_attribute.append(object_attribute)
-                elif key.startswith("eo_") and single not in [None, '']:
-                    eo_key = str(key).replace('eo_', '').replace('_', '-')
-                    object_attribute = store_object_attribute(
-                        eo_template['attributes'], eo_key, str(single),
-                        metadata=attribute_metadata)
-                    if object_attribute:
-                        eo_attribute.append(object_attribute)
-                elif key.startswith("no_") and single not in [None, '']:
-                    no_key = str(key).replace('no_', '').replace('_', '-')
-                    object_attribute = store_object_attribute(
-                        no_template['attributes'], no_key, str(single),
-                        metadata=attribute_metadata)
-                    if object_attribute:
-                        no_attribute.append(object_attribute)
-                elif key in data_type:
-                    misp_key = data_type[key]
-                    attribute_metadata['type'] = misp_key
-                    attribute_metadata['value'] = str(single)
-                    attributes.append(attribute_metadata)
+                if single.strip() and single != '0':
+                    attribute_metadata = attribute_baseline.copy()
+                    if key.startswith("misp_"):
+                        attribute_metadata['type'] = key.replace('misp_', '').replace('_', '-')
+                        attribute_metadata['value'] = single
+                        attributes.append(attribute_metadata)
+                    elif key.startswith("fo_"):
+                        object_attribute = store_object_attribute(
+                            fo_template['attributes'], key.replace('fo_', '').replace('_', '-'), single, metadata=attribute_metadata)
+                        if object_attribute:
+                            fo_attribute.append(object_attribute)
+                    elif key.startswith("eo_"):
+                        object_attribute = store_object_attribute(
+                            eo_template['attributes'], key.replace('eo_', '').replace('_', '-'), single, metadata=attribute_metadata)
+                        if object_attribute:
+                            eo_attribute.append(object_attribute)
+                    elif key.startswith("no_"):
+                        object_attribute = store_object_attribute(
+                            no_template['attributes'], key.replace('no_', '').replace('_', '-'), single, metadata=attribute_metadata)
+                        if object_attribute:
+                            no_attribute.append(object_attribute)
+                    elif key in data_type:
+                        attribute_metadata['type'] = data_type[key]
+                        attribute_metadata['value'] = single
+                        attributes.append(attribute_metadata)
 
-        # update event attribute list
-        event['Attribute'] = list(attributes)
+        event['Attribute'] = attributes
 
-        # now we look for attribute belonging to anobject i.e.
-        # on the same row, field(s) start(s) with no_, eo_ or no_
-        if fo_attribute:
-            new_object = {
-                'template_version': fo_template['version'],
-                'description': fo_template['description'],
-                'meta-category': fo_template['meta-category'],
-                'template_uuid': fo_template['uuid'],
-                'name': fo_template['name'],
-                'distribution': 5,
-                'Attribute': fo_attribute
-            }
-            objects.append(new_object)
-        if eo_attribute:
-            new_object = {
-                'template_version': eo_template['version'],
-                'description': eo_template['description'],
-                'meta-category': eo_template['meta-category'],
-                'template_uuid': eo_template['uuid'],
-                'name': eo_template['name'],
-                'distribution': 5,
-                'Attribute': eo_attribute
-            }
-            objects.append(new_object)
-        if no_attribute:
-            new_object = {
-                'template_version': no_template['version'],
-                'description': no_template['description'],
-                'meta-category': no_template['meta-category'],
-                'template_uuid': no_template['uuid'],
-                'name': no_template['name'],
-                'distribution': 5,
-                'Attribute': no_attribute
-            }
-            objects.append(new_object)
-        # update event object list
-        event['Object'] = list(objects)
+        def add_misp_object(object_template, object_attributes):
+            if object_attributes:
+                objects.append({
+                    'template_version': object_template['version'],
+                    'description': object_template['description'],
+                    'meta-category': object_template['meta-category'],
+                    'template_uuid': object_template['uuid'],
+                    'name': object_template['name'],
+                    'distribution': 5,
+                    'Attribute': object_attributes
+                })
 
-        # update event defintion
+        add_misp_object(fo_template, fo_attribute)
+        add_misp_object(eo_template, eo_attribute)
+        add_misp_object(no_template, no_attribute)
+
+        event['Object'] = objects
         events[eventkey] = event
-    # events are prepared; now return them
+
     return events
 
 
 def process_misp_events(helper, config, results, event_list):
-    # get parameters for requests
-    misp_url_create = config['misp_url'] + '/events/add'
-
-    status = 200
     connection, connection_status = urllib_init_pool(helper, config)
-    for eventkey in results:
-        helper.log_debug("[AL-PME-D01] payload is {}".format(results[eventkey]))
+
+    def handle_response(response, success_msg, error_msg):
+        if '_raw' not in response:
+            helper.log_info(success_msg)
+        else:
+            helper.log_error(error_msg.format(response))
+
+    for eventkey, event in results.items():
+        helper.log_debug(f"[AL-PME-D01] payload is {event}")
         if event_list[eventkey] == "0":  # create new event
-
-            if connection:
-                response = urllib_request(helper, connection, 'POST', misp_url_create, results[eventkey], config) 
-            else:
-                response = connection_status
-
-            if '_raw' not in response:
-                helper.log_info(
-                    "[AL-PME-I02] INFO MISP event is successfully created. url={}".format(misp_url_create)
-                )
-            else:
-                helper.log_error(
-                    "[AL-PME-E01] ERROR MISP event creation has failed. "
-                    "url={}, response={}"
-                    .format(misp_url_create, response)
+            misp_url_create = f"{config['misp_url']}/events/add"
+            response = urllib_request(
+                helper, 
+                connection, 
+                'POST', 
+                misp_url_create, 
+                event, 
+                config
+                ) if connection else connection_status
+            handle_response(response, 
+                f"[AL-PME-I02] INFO MISP event is successfully created. url={misp_url_create}",
+                f"[AL-PME-E01] ERROR MISP event creation has failed. url={misp_url_create}, response={{}}"
                 )
         else:  # edit existing eventid with Attribute and Object
-            misp_url_edit = config['misp_url'] + '/events/edit/' + \
-                event_list[eventkey]
-            edit_body = {}
-            edit_body['Attribute'] = results[eventkey]['Attribute']
-            edit_body['Object'] = results[eventkey]['Object']
-            if connection:
-                response = urllib_request(helper, connection, 'POST', misp_url_edit, edit_body, config)
-            else:
-                response = connection_status 
-            if '_raw' not in response:
-                helper.log_info(
-                    "[AL-PME-I04] INFO MISP event is successfully edited. url={}".format(misp_url_edit)
+            misp_url_edit = f"{config['misp_url']}/events/edit/{event_list[eventkey]}"
+            edit_body = {'Attribute': event['Attribute'], 'Object': event['Object']}
+            response = urllib_request(
+                helper, 
+                connection, 
+                'POST', 
+                misp_url_edit, 
+                edit_body, 
+                config
+                ) if connection else connection_status
+            handle_response(response, 
+                f"[AL-PME-I04] INFO MISP event is successfully edited. url={misp_url_edit}",
+                f"[AL-PME-E02] ERROR MISP event edition has failed. url={misp_url_edit}, response={{}}"
                 )
-            else:
-                helper.log_error(
-                    "[AL-PME-E02] ERROR MISP event edition has failed. "
-                    "url={}, response={}"
-                    .format(misp_url_edit, response)
-                )
-            
-    return status
 
 
 def process_event(helper, *args, **kwargs):

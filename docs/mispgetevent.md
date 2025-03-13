@@ -1,157 +1,162 @@
 # mispgetevent
-## custom command mispgetevent version 3.1
-This custom command must be the first of a search (or a sub-search).
 
-The results are displayed
- - in JSON (output=raw): each event is returned as a row
- - or a table (output=default or nothing) that contains:  
+## Description
+The `mispgetevent` command retrieves event data from a MISP instance based on various parameters and filters. It supports 2 output formats for easy integration and analysis in Splunk searches.
 
-- always following fields = ['misp_event_id', 'misp_orgc_id', 'misp_event_date', 'threat_level_id', 'misp_event_info', 'misp_event_published', 'misp_event_uuid', 'misp_attribute_count', 'misp_analysis', 'misp_timestamp', 'misp_distribution', 'misp_publish_timestamp', 'misp_sharing_group_id', 'misp_extends_uuid', 'misp_orgc_name', 'misp_orgc_uuid', 'misp_tag', 'misp_attribute_count' ]
-- if object_id is not equal 0, object attributes are displayed on the same row and field type is set to object, value to object_id
-- with **getioc**, attributes are also displayed like for mispgetioc
+## Syntax
+```
+| mispgetevent misp_instance=<string>  
+[json_request=<JSON>] [date=<YYYY-MM-DD[,YYYY-MM-DD]>] [eventid=<id1,id2,...>]  
+[last=<int>d|h|m] [publish_timestamp=<int>d|h|m] [timestamp=<int>d|h|m] 
+[category=<CSV string>] [exclude_local_tags=<bool>] [expand_object=<bool>] [getioc=<bool>] 
+[include_sightings=<bool>] [keep_galaxy=<bool>] [keep_related=<bool>] 
+[limit=<int>] [not_tags=<CSV string>] [output=<fields|json>] [page=<int>] 
+[pipesplit=<bool>] [prefix=<string>] [published=<bool>] [tags=<CSV string>] 
+[threat_level_id=<int>] [to_ids=<bool>] [type=<CSV string>] [warning_list=<bool>]
+```
 
-So the output can be immediately reused in a search without complex transforms
+## Parameters
+### Required Parameters
+- **misp_instance**
+  - **Syntax:** `misp_instance=<string>`
+  - **Description:** Specifies the MISP instance to use. The configuration must be defined in `local/misp42splunk_instances.conf`.
 
-The command syntax is as follow:
+### Optional Parameters
+- **json_request**
+  - **Syntax:** `json_request=<JSON>`
+  - **Description:** A valid JSON request payload as defined by the MISP REST API.
 
-    |mispgetevent **[misp_instance=instance_name] ( [json_request=@JSON] [eventid=(uu)id] | [last=interval]  | [date="YYYY-mm-dd"] )**
-           category = string (comma-separated)
-           getioc = boolean
-           limit = string (comma-separated)
-           not_tags = string (comma-separated)
-           output = (default|raw)")
-           page = string (comma-separated)
-           pipesplit = boolean
-           published = boolean
-           tags = string (comma-separated)
-           type = string (comma-separated)
-           warning_list = boolean
+- **date**
+  - **Syntax:** `date=<YYYY-MM-DD[,YYYY-MM-DD]>`
+  - **Description:** Filters events by a specific date or a range of dates.
 
-- You must set either parameter 'json_request' 'eventid', 'last' or 'date'
-    + eventid is either a single value (event_id on the instance, uuid) or a comma-separated list of values. You can mix event_ids and event uuids.
-    + last interval is a number followed by a letter d(ays), h(ours) or m(inutes)
-    + date is any valid time filter
+- **eventid**
+  - **Syntax:** `eventid=<id1,id2,...>`
+  - **Description:** A list of event IDs or UUIDs. Multiple values can be comma-separated.
 
-## examples
-one example:
+- **last**
+  - **Syntax:** `last=<int>d|h|m`
+  - **Description:** Retrieves events published within the last specified time interval (e.g., `5d`, `12h`, or `30m`).
 
-    | mispgetevent misp_instance=default_misp eventid=477 category="Payload delivery,Network activity,External analysis" type="sha256,domain,ip-dst,text"
+- **publish_timestamp**
+  -  **Syntax:** `publish_timestamp=<int>d|h|m`
+  - **Description:** relative publication duration in day(s), hour(s) or minute(s).
 
-will return the following columns
+- **timestamp**
+  - **Syntax:** `timestamp=<int>d|h|m`
+  - **Description:** event timestamp (last change).
 
-    | _time | misp_category | misp_event_id | misp_ip_dst | misp_domain | misp_sha256 | misp_orgc | misp_text | misp_to_ids | misp_type | misp_attribute_uuid | misp_value
+- **category**
+  - **Syntax:** `category=<CSV string>`
+  - **Description:** Comma-separated list of categories to filter events. Wildcard is `%`.
 
-another example:
+- **exclude_local_tags**
+  - **Syntax:** `exclude_local_tags=<bool>`
+  - **Description:** excludeLocalTags. Default is `false`.
 
-    | mispgetevent misp_instance=test output=raw published=f [| makeresults | eval yesterday=strftime(relative_time(now(),"-10d@d"),"%Y-%m-%d") | return date=yesterday]
+- **expand_object**
+  - **Syntax:** `expand_object=<bool>`
+  - **Description:** Expands object attributes to one attribute per line. Default is `false`.
 
-will return events with all top level fields (minimum breakdown)
+- **getioc**
+  - **Syntax:** `getioc=<bool>`
+  - **Description:** Retrieves the list of attributes along with the event. Default is `false`.
 
-- The other parameters are optional
-    + you may filter the results using
-        - [type](https://www.circl.lu/doc/misp/categories-and-types/#types). Use a CSV string to list the types; for example type="domain" or type="domain,hostname,ip-dst"
-        - [category](https://www.circl.lu/doc/misp/categories-and-types/#categories) Use a CSV string to list the categories; for example category="Payload delivery" or category="Payload delivery,Network activity,External analysis"
-        - tags. Use a CSV string to search for events with these tags
-        - not_tags. Use a CSV string to search for events which have not these tags
+- **include_sightings**
+  - **Syntax:** `include_sightings=<bool>`
+  - **Description:** Extends the response with Sightings DB results if enabled. Default is `true`.
 
-    + **if you want to split multivalue attributes set pipesplit to "True" **  
+- **keep_galaxy**
+  - **Syntax:** `keep_galaxy=<bool>`
+  - **Description:** Retains galaxy information in the output. Default is `false`.
 
+- **keep_related**
+  - **Syntax:** `keep_related=<bool>`
+  - **Description:** Includes related events per attribute in the output. Default is `false`.
 
-## logging
-in the app, you can set the logging level. logs are written to search.log (access via inspect jobs).
+- **limit**
+  - **Syntax:** `limit=<int>`
+  - **Description:** Limits the number of events retrieved. Default is `1000`.
 
-# All parameters
+- **not_tags**
+  - **Syntax:** `not_tags=<CSV string>`
+  - **Description:** Comma-separated list of tags to exclude from the search. Wildcard is `%`.
 
-   # MANDATORY MISP instance for this search
-    misp_instance = Option(
-        doc='''
-        **Syntax:** **misp_instance=instance_name*
-        **Description:**MISP instance parameters as described
-         in local/misp42splunk_instances.conf.''',
-        require=True)
-    # MANDATORY: json_request XOR eventid XOR last XOR date
-    json_request = Option(
-        doc='''
-        **Syntax:** **json_request=***valid JSON request*
-        **Description:**Valid JSON request''',
-        require=False)
-    eventid = Option(
-        doc='''
-        **Syntax:** **eventid=***id1(,id2,...)*
-        **Description:**list of event ID(s) or event UUID(s).''',
-        require=False, validate=validators.Match("eventid", r"^[0-9a-f,\-]+$"))
-    last = Option(
-        doc='''
-        **Syntax:** **last=***<int>d|h|m*
-        **Description:** publication duration in day(s), hour(s) or minute(s).
-        **nota bene:** last is an alias of published_timestamp''',
-        require=False, validate=validators.Match("last", r"^[0-9]+[hdm]$"))
-    date = Option(
-        doc='''
-        **Syntax:** **date=***The user set event date field
-         - any of valid time related filters"*
-        **Description:**starting date. **eventid**, **last**
-         and **date** are mutually exclusive''',
-        require=False)
-    # Other params
-    category = Option(
-        doc='''
-        **Syntax:** **category=***CSV string*
-        **Description:**Comma(,)-separated string of categories to search for.
-         Wildcard is %.''',
-        require=False)
-    getioc = Option(
-        doc='''
-        **Syntax:** **getioc=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
-        **Description:**Boolean to return the list of attributes
-         together with the event.''',
-        require=False, validate=validators.Boolean())
-    limit = Option(
-        doc='''
-        **Syntax:** **limit=***<int>*
-        **Description:**define the limit for each MISP search; default 1000.
-         0 = no pagination.''',
-        require=False, validate=validators.Match("limit", r"^[0-9]+$"))
-    not_tags = Option(
-        doc='''
-        **Syntax:** **not_tags=***CSV string*
-        **Description:**Comma(,)-separated string of tags to exclude.
-         Wildcard is %.''',
-        require=False)
-    output = Option(
-        doc='''
-        **Syntax:** **output=***<default|rawy>*
-        **Description:**selection between a tabular or JSON output.''',
-        require=False, validate=validators.Match("output", r"(default|raw)"))
-    page = Option(
-        doc='''
-        **Syntax:** **page=***<int>*
-        **Description:**define the page for each MISP search; default 1.''',
-        require=False, validate=validators.Match("limit", r"^[0-9]+$"))
-    pipesplit = Option(
-        doc='''
-        **Syntax:** **pipesplit=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
-        **Description:**Boolean to split multivalue attributes.''',
-        require=False, validate=validators.Boolean())
-    published = Option(
-        doc='''
-        **Syntax:** **published=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
-        **Description:**select only published events (for option from to) .''',
-        require=False, validate=validators.Boolean())
-    tags = Option(
-        doc='''
-        **Syntax:** **tags=***CSV string*
-        **Description:**Comma(,)-separated string of tags to search for.
-         Wildcard is %.''',
-        require=False)
-    type = Option(
-        doc='''
-        **Syntax:** **type=***CSV string*
-        **Description:**Comma(,)-separated string of types to search for.
-         Wildcard is %.''',
-        require=False)
-    warning_list = Option(
-        doc='''
-        **Syntax:** **warning_list=***<1|y|Y|t|true|True|0|n|N|f|false|False>*
-        **Description:**Boolean to filter out well known values.''',
-        require=False, validate=validators.Boolean())
+- **output**
+  - **Syntax:** `output=<fields|json>`
+  - **Description:** Determines the output format: `fields` (default tabular view) or `json`.
+
+- **page**
+  - **Syntax:** `page=<int>`
+  - **Description:** Specifies the page number for paginated results. Default is `0` (fetches all pages).
+
+- **pipesplit**
+  - **Syntax:** `pipesplit=<bool>`
+  - **Description:** Splits multivalue attributes into separate rows. Default is `true`.
+
+- **prefix**
+  - **Syntax:** `prefix=<string>`
+  - **Description:** A string prefix for MISP keys.
+
+- **published**
+  - **Syntax:** `published=<bool>`
+  - **Description:** Filters only published events.
+
+- **tags**
+  - **Syntax:** `tags=<CSV string>`
+  - **Description:** Comma-separated list of tags to include in the search. Wildcard is `%`.
+
+- **threat\_level\_id**
+  - **Syntax:** `threat_level_id=<int>`
+  - **Description:** Filters events by threat level (1-High, 2-Medium, 3-Low, 4-Undefined).
+
+- **to_ids**
+  - **Syntax:** `to_ids=<bool>`
+  - **Description:** Filters attributes with the `to_ids` flag set to true.
+
+- **type**
+  - **Syntax:** `type=<CSV string>`
+  - **Description:** Comma-separated list of types to include in the search. Wildcard is `%`.
+
+- **warning_list**
+  - **Syntax:** `warning_list=<bool>`
+  - **Description:** Filters out known values. Default is `true`.
+
+## Usage
+The `mispgetevent` command must be the first in a search or sub-search. It retrieves event data and optionally the attributes in the MISP events and transforms for further processing.
+
+## Examples
+
+### Retrieve events by event ID
+```
+| mispgetevent misp_instance=default_misp eventid=477 category="Payload delivery,Network activity" type="sha256,ip-dst"
+```
+
+### Retrieve events published in the last 10 days
+```
+| mispgetevent misp_instance=test output=json last=10d
+```
+
+### Retrieve events using a custom date filter
+```
+| mispgetevent misp_instance=default_misp date="2023-12-01" tags="malware"
+```
+
+### Retrieve events with expanded object attributes
+```
+| mispgetevent misp_instance=default_misp expand_object=true
+```
+
+## Notes
+- Boolean parameters accept values like `1`, `y`, `Y`, `t`, `true`, `0`, `n`, `N`, `f`, or `false`.
+- One and only one of the following parameters must be set: `json_request`, `date`, `eventid`, `last`, `publish_timestamp` or `timestamp`.
+- Parameters like `tags` and `not_tags` support wildcards using `%`.
+
+## Logging
+Logs are written to `misp42splunk.log` and can be accessed via the Splunk job inspector. You can configure the logging level for detailed debugging information.
+
+## Version
+- **Current Version:** 5.0.0
+- **Authors:** Remi Seguy
+- **License:** LGPLv3
+

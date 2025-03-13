@@ -11,8 +11,8 @@
     <unset token="launch_alert"></unset>
     <set token="sample_query">| makeresults | eval misp_domain="www.example.com"</set>
   </init>
-  <label>misp_alert_create_event - check https://github.com/remg427/misp42splunk/ for any update</label>
-  <description>Adaptative alert action to create or update MISP events</description>
+  <label>misp_alert_create_event</label>
+  <description>Adaptative alert action to create or update MISP events - check https://github.com/remg427/misp42splunk/ for any update</description>
   <fieldset submitButton="true">
     <input type="dropdown" token="misp_instance" searchWhenChanged="true">
       <label>misp_instance*</label>
@@ -36,7 +36,7 @@
       <label>description*</label>
     </input>
     <input type="text" token="eventid" searchWhenChanged="true">
-      <label>EventID</label>
+      <label>eventid</label>
       <change>
         <condition match="$value$=&quot;&quot;">
           <set token="misp_eventid"></set>
@@ -47,7 +47,7 @@
       </change>
     </input>
     <input type="text" token="unique" searchWhenChanged="true">
-      <label>unique</label>
+      <label>event unique key</label>
       <change>
         <condition match="$value$=&quot;&quot;">
           <set token="misp_unique"></set>
@@ -97,12 +97,16 @@
     </input>
     <input type="dropdown" token="tlp" searchWhenChanged="true">
       <label>TLP *</label>
-      <choice value="TLP_AMBER">AMBER</choice>
-      <choice value="TLP_WHITE">WHITE</choice>
-      <choice value="TLP_GREEN">GREEN</choice>
-      <choice value="TLP_RED">RED</choice>
-      <default>TLP_AMBER</default>
-      <initialValue>TLP_AMBER</initialValue>
+      <choice value="tlp_white">tlp:white</choice>
+      <choice value="tlp_clear">tlp:clear</choice>
+      <choice value="tlp_green">tlp:green</choice>
+      <choice value="tlp_amber">tlp:amber</choice>
+      <choice value="tlp_amber+strict">tlp:amber+strict</choice>
+      <choice value="tlp_red">tlp:red</choice>
+      <choice value="tlp_unclear">tlp:unclear</choice>
+      <choice value="tlp_ex_chr">tlp:ex:chr</choice>
+      <default>tlp_amber</default>
+      <initialValue>tlp_amber</initialValue>
     </input>
     <input type="dropdown" token="pap" searchWhenChanged="true">
       <label>PAP *</label>
@@ -176,8 +180,20 @@
             <td>Inline comment string for attributes on the same row.</td>
         </tr>
         <tr>
+            <td>misp_date</td>
+            <td>Inline misp_date EPOCH value to set the date of the MISP event.</td>
+        </tr>
+        <tr>
+            <td>misp_first_seen</td>
+            <td>Inline EPOCH value to set the MISP event first seen.</td>
+        </tr>
+        <tr>
             <td>misp_info</td>
-            <td>If provided on the row, it replaces the string provided in alert configuration form for a given event. To work, misp_info must be provided at least on the last row of an event (see eventkey) otherwise the value will be set to the test set in alert form.</td>
+            <td>If provided on the row, it replaces the string provided in alert configuration form for a given event. To work, misp_info must be provided at least on the last row of an event (see unique) otherwise the value will be set to the test set in alert form.</td>
+        </tr>
+        <tr>
+            <td>misp_last_seen</td>
+            <td>Inline EPOCH value to set the MISP event last seen.</td>
         </tr>
         <tr>
             <td>misp_publish_on_creation</td>
@@ -193,9 +209,9 @@
         </tr>
         <tr>
             <td>misp_time</td>
-            <td>It must contain a timestamp. The first value found for a given event is taken into account to define MISP event data %Y-%m-%d. 
-          (misp_time on additional rows belonging to the same MISP events are discarded). 
-          If not provided MISP event date is set to today().</td>
+            <td>It must contain a timestamp. The first value found for a given event is taken into account to define MISP event date %Y-%m-%d. 
+          (misp_time on additional rows belonging to the same MISP event are discarded). 
+          If not provided, MISP event date is set to today().</td>
         </tr>
         <tr>
             <td>misp_to_ids</td>

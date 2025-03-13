@@ -1,5 +1,10 @@
 {
   "attributes": {
+    "access-time": {
+      "description": "The last time the file was accessed",
+      "misp-attribute": "datetime",
+      "ui-priority": 0
+    },
     "attachment": {
       "description": "A non-malicious file.",
       "misp-attribute": "attachment",
@@ -19,6 +24,16 @@
     "compilation-timestamp": {
       "description": "Compilation timestamp",
       "misp-attribute": "datetime",
+      "ui-priority": 0
+    },
+    "creation-time": {
+      "description": "Creation time of the file",
+      "misp-attribute": "datetime",
+      "ui-priority": 0
+    },
+    "dom-hash": {
+      "description": "Dom-hash of the file",
+      "misp-attribute": "dom-hash",
       "ui-priority": 0
     },
     "entropy": {
@@ -334,6 +349,11 @@
       "misp-attribute": "mime-type",
       "ui-priority": 0
     },
+    "modification-time": {
+      "description": "Last time the file was modified",
+      "misp-attribute": "datetime",
+      "ui-priority": 0
+    },
     "path": {
       "description": "Path of the filename complete or partial",
       "disable_correlation": true,
@@ -497,5 +517,5 @@
     "fullpath"
   ],
   "uuid": "688c46fb-5edb-40a3-8273-1af7923e2215",
-  "version": 24
+  "version": 25
 }
