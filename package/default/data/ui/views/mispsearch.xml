@@ -1,7 +1,8 @@
 <form hideEdit="false" version="1.1">
   <init>
     <set token="misp_instance">misp</set>
-    <set token="field"></set>
+    <set token="field"></set> 
+    
     <set token="param_misp_http_body"></set>
     <set token="param_limit">limit=10</set>
     <set token="param_not_tags"></set>
