@@ -1,6 +1,5 @@
-
 ## Introduction
-This TA allows interaction between your [Splunk](www.splunk.com) search head (cluster) and one or several [MISP](http://www.misp-project.org/) instance(s). It is a versatile TA that acts as a wrapper of MISP API to either collect MISP information into Splunk (custom commands) or push information from Splunk to MISP (alert actions).
+This TA allows interaction between your [Splunk](https://www.splunk.com) search head (cluster) and one or several [MISP](https://www.misp-project.org/) instance(s). It is a versatile TA that acts as a wrapper of MISP API to either collect MISP information into Splunk (custom commands) or push information from Splunk to MISP (alert actions).
 The TA is designed to be easy to install, set up and maintain using the Splunk GUI.
 
 ## Quick Start
@@ -18,7 +17,7 @@ This app is designed to run on **Splunk Search Head(s)** on Linux plateforms (no
     - check (or not) the certificate of the MISP server,
     - use (or not) the proxy for this instance,
     - provide client certificate if required (and check the box to use it)
-![inputs](images/misp42_add_misp_instance.png)
+![inputs](https://github.com/remg427/misp42splunk/blob/master/images/misp42_add_misp_instance.png)
 6. If you need **several instances**, create additional entries.
 7. Important: Role(s)/user(s) using this app must have the capability to "list_storage_passwords" (as API KEYs and proxy password(s) are safely stored encrypted).
 
@@ -80,21 +79,21 @@ you can also use this example (thanks @xg-simon for sharing):
 
 ## Usage
 - custom commands
-    * [mispgetioc](docs/mispgetioc.md) Generating command leveraging /attributes/restSearch endpoint
-    * [mispgetevent](docs/mispgetevent.md) Generating command leveraging /events/restSearch endpoint
+    * [mispgetioc](https://github.com/remg427/misp42splunk/blob/master/docs/mispgetioc.md) Generating command leveraging /attributes/restSearch endpoint
+    * [mispgetevent](https://github.com/remg427/misp42splunk/blob/master/docs/mispgetevent.md) Generating command leveraging /events/restSearch endpoint
     * [mispcollect](docs/mispcollect.md) Generating command for events leveraging /attributes/restSearch or /events/restSearch endpoints
-    * [misprest](docs/misprest.md) Generating command as a wrapper for MISP REST API.
-    * [mispsearch](docs/mispsearch.md) streaming command
+    * [misprest](https://github.com/remg427/misp42splunk/blob/master/docs/misprest.md) Generating command as a wrapper for MISP REST API.
+    * [mispsearch](https://github.com/remg427/misp42splunk/blob/master/docs/mispsearch.md) streaming command
     * [mispsight](docs/mispsight.md) streaming command
-- Splunk alert actions to [update MISP](docs/mispalerts.md)
+- Splunk alert actions to [update MISP](https://github.com/remg427/misp42splunk/blob/master/docs/mispalerts.md)
     *  Alert to create MISP event(s) with an option to publish them at same time.
     *  Alert for attribute sighting in MISP.  
    
 - Each custome command and alert action comes with a dashboard to demonstrate how to use them.
-    * mispgetioc for example for a generating command (first line of SPL) ![mispgetioc](images/misp42_custom_command_mispgetioc_dashboard.png) 
-    * mispsearch for example for a streaming command to enrich events ![mispsearch](images/misp42_custom_command_mispsearch_dashboard.png) 
-    * misprest for example for the more versdatile wrapper of MISP API ![misprest](images/misp42_custom_command_misprest_dashboard.png) 
-    * Create event for example for an alert action ![misp_alert_create_evennt](images/misp42_alert_action_create_event_dashboard.png) 
+    * mispgetioc for example for a generating command (first line of SPL) ![mispgetioc](https://github.com/remg427/misp42splunk/blob/master/images/misp42_custom_command_mispgetioc_dashboard.png) 
+    * mispsearch for example for a streaming command to enrich events ![mispsearch](https://github.com/remg427/misp42splunk/blob/master/images/misp42_custom_command_mispsearch_dashboard.png) 
+    * misprest for example for the more versdatile wrapper of MISP API ![misprest](https://github.com/remg427/misp42splunk/blob/master/images/misp42_custom_command_misprest_dashboard.png) 
+    * Create event for example for an alert action ![misp_alert_create_evennt](https://github.com/remg427/misp42splunk/blob/master/images/misp42_alert_action_create_event_dashboard.png) 
 
 ## Credits
 The creation of this app started from work done by https://github.com/xme/splunk/tree/master/getmispioc and the associated blog https://blog.rootshell.be/2017/10/31/splunk-custom-search-command-searching-misp-iocs/ for MISP interactions.
