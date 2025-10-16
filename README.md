@@ -84,6 +84,7 @@ you can also use this example (thanks @xg-simon for sharing):
     * [mispcollect](docs/mispcollect.md) Generating command for events leveraging /attributes/restSearch or /events/restSearch endpoints
     * [misprest](https://github.com/remg427/misp42splunk/blob/master/docs/misprest.md) Generating command as a wrapper for MISP REST API.
     * [mispsearch](https://github.com/remg427/misp42splunk/blob/master/docs/mispsearch.md) streaming command
+    * [mispgetattribute](https://github.com/remg427/misp42splunk/blob/master/docs/mispgetattribute.md) Streaming command for getting a single attribute
     * [mispsight](docs/mispsight.md) streaming command
 - Splunk alert actions to [update MISP](https://github.com/remg427/misp42splunk/blob/master/docs/mispalerts.md)
     *  Alert to create MISP event(s) with an option to publish them at same time.
