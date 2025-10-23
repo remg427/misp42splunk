@@ -1,0 +1,68 @@
+<form hideEdit="false" version="1.1">
+  <init>
+    <set token="misp_json_request"></set>
+  </init>
+  <label>mispgetattribute</label>
+  <description>MISP custom command misprest - Generic wrapper (Generating command) - check https://github.com/remg427/misp42splunk/ for any update</description>
+  <fieldset submitButton="false">
+    <input type="dropdown" token="misp_instance" searchWhenChanged="true">
+      <label>misp_instance*</label>
+      <fieldForLabel>misp_instance</fieldForLabel>
+      <fieldForValue>misp_instance</fieldForValue>
+      <search>
+        <query>| rest /services/configs/conf-misp42splunk_instances
+| rename eai:acl.app as app, title as misp_instance
+| fields misp_instance</query>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </search>
+    </input>
+    <input type="text" token="misp_instance">
+      <label>misp_instance*</label>
+    </input>
+    <input type="text" token="attributeid" searchWhenChanged="true">
+      <label>attributeid</label>
+      <default></default>
+    </input>
+    <input type="text" token="fields" searchWhenChanged="true">
+      <label>fields</label>
+      <default></default>
+    </input>
+    <input type="text" token="prefix" searchWhenChanged="true">
+      <label>prefix</label>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <html>
+        <h3>Select a misp_instance and provide a valid attributeid.</h3>
+        <p>attributeid can also be a field in the row.</p>
+        <p>Specify which fields should be returned, else all are returned.</p>
+    </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Custom command mispgetattribute</title>
+      <event>
+        <search>
+          <query>| makeresults | mispgetattribute misp_instance=$misp_instance$ attributeid=$attributeid$ fields=$fields$ prefix=$prefix$</query>
+          <earliest>0</earliest>
+          <latest></latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">5</option>
+        <option name="list.drilldown">none</option>
+        <option name="list.wrap">1</option>
+        <option name="maxLines">5</option>
+        <option name="raw.drilldown">full</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">0</option>
+        <option name="table.drilldown">all</option>
+        <option name="table.sortDirection">asc</option>
+        <option name="table.wrap">1</option>
+        <option name="type">list</option>
+      </event>
+    </panel>
+  </row>
+</form>
