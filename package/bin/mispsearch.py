@@ -167,7 +167,6 @@ class MispSearchCommand(StreamingCommand):
         **Default:** misp_
         ''',
         require=False, 
-        default="misp_", 
         validate=validators.Match("prefix", r"^[a-zA-Z][a-zA-Z0-9_]+$")
     )
     tags = Option(
@@ -249,7 +248,7 @@ class MispSearchCommand(StreamingCommand):
             self.log_info('[SE-201] ms_params {}'.format(se_params))
         except Exception as e:
             raise Exception("[SE-202] Sorry, ms_params failed {}".format(e))
-        
+
         misp_instance = self.misp_instance
         storage = self.service.storage_passwords
         config = prepare_config(self, 'misp42splunk', misp_instance, storage)
@@ -263,7 +262,6 @@ class MispSearchCommand(StreamingCommand):
         config['fieldname'] = str(self.field)
         if self.prefix:
             config['prefix'] = self.prefix
-        prefix = config['prefix']
         for record in records:
             if config['fieldname'] in record:
                 try:
@@ -298,7 +296,7 @@ class MispSearchCommand(StreamingCommand):
                 config['limit'] = body_dict.get('limit', config['limit'])
                 config['page'] = body_dict.get('page', config['page'])
                 config['include_sightings'] = body_dict.get('includeSightings', True)  # default true whithout additional param
- 
+
                 self.log_info('[SE-204] actual http body: {} '.format(json.dumps(body_dict)))
 
                 value = record.get(config['fieldname'], None)

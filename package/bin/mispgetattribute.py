@@ -16,9 +16,9 @@ import sys
 import logging
 from misp_common import prepare_config, urllib_request, logging_level, urllib_init_pool
 
-__author__ = "Remi Seguy"
+__author__ = "timothebot"
 __license__ = "LGPLv3"
-__version__ = "5.0.0"
+__version__ = "5.1.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -28,21 +28,23 @@ class MispGetAttributeCommand(StreamingCommand):
     misp_instance = Option(
         doc='''
         **Syntax:** **misp_instance=** *instance_name*
-        **Description:** MISP instance parameters as described in local/misp42splunk_instances.conf.
+        **Description:** MISP instance parameters as described in 
+        local/misp42splunk_instances.conf.
         ''',
         require=True
     )
     attributeid = Option(
         doc='''
-        **Syntax:** **attributeid=** *id*
-        **Description:** ID of attribute to check
+        **Syntax:** **attributeid=** *<fieldname>*
+        **Description:** Fieldname containing the ID of attribute to check
         ''',
-        require=False
-    )
-    fields = Option(
+        require=True,
+        validate=validators.Fieldname())
+    output_filter = Option(
         doc='''
-        **Syntax:** **fields=** *CSV string*
-        **Description:** comma(,)-separated string of fields to use. Default is all fields.
+        **Syntax:** **output_filter=** *CSV string*
+        **Description:** comma(,)-separated string of MISP JSON keys to use. 
+        Default is all keys.
         ''',
         require=False
     )
@@ -51,7 +53,7 @@ class MispGetAttributeCommand(StreamingCommand):
         **Syntax:** **prefix=** *<string>*
         **Description:** string to use as prefix for misp keys
         ''',
-        require=False, 
+        require=False,
         validate=validators.Match("prefix", r"^[a-zA-Z][a-zA-Z0-9_]+$")
     )
 
@@ -68,11 +70,11 @@ class MispGetAttributeCommand(StreamingCommand):
         logging.warning(msg)
 
     def set_log_level(self):
-        logging.root
+        # logging.root
         loglevel = logging_level('misp42splunk')
         logging.root.setLevel(loglevel)
-        logging.error('[EV-101] logging level is set to %s', loglevel)
-        logging.error('[EV-102] PYTHON VERSION: ' + sys.version)
+        logging.error('[AT-101] logging level is set to %s', loglevel)
+        logging.debug('[AT-102] PYTHON VERSION: ' + sys.version)
 
     def stream(self, records):
         self.set_log_level()
@@ -81,41 +83,47 @@ class MispGetAttributeCommand(StreamingCommand):
         config = prepare_config(self, 'misp42splunk', misp_instance, storage)
         if config is None:
             raise Exception(
-                "[EV-101] Sorry, no configuration for misp_instance={}".format(misp_instance))
+                "[AT-201] Sorry, no configuration for misp_instance={}".format(misp_instance))
         base_url = config['misp_url'] + "/attributes/view/"
-        
+
         shown_fields = []
-        if self.fields:
-            shown_fields = self.fields.replace(" ", "").split(",")
+        if self.output_filter:
+            shown_fields = self.output_filter.replace(" ", "").split(",")
         filter_fields = len(shown_fields) > 0
+        if self.prefix:
+            config['prefix'] = self.prefix
 
         for record in records:
-            if self.attributeid:
-                attribute_id = self.attributeid
-            elif "attributeid" in record:
-                attribute_id = record["attributeid"]
-            else:
-                raise Exception("[AT-101] No attributeid found!")
-            
-            config['misp_url'] = base_url + str(attribute_id)
+            if self.attributeid in record:
+                attribute_id = record[self.attributeid]
+                if not str(attribute_id).isdigit():
+                    self.log_warn(f"[AT-202]Invalid attribute ID: {attribute_id}")
+                    yield record
+                    continue
 
-            connection, connection_status = urllib_init_pool(self, config)
-            if connection is None:
-                response = connection_status
-                self.log_info('[AT-102] connection for {} failed'.format(config['misp_url']))
-                yield record
-                continue
-            
-            response = urllib_request(self, connection, "GET", config['misp_url'], {}, config)
-            if "Attribute" in response:
-                attribute_fields = response["Attribute"]
-                for field_key in attribute_fields:
-                    if filter_fields and field_key not in shown_fields:
+                config['misp_url'] = base_url + str(attribute_id)
+
+                connection, connection_status = urllib_init_pool(self, config)
+                if connection is None:
+                    response = connection_status
+                    self.log_info('[AT-202] connection for {} failed'.format(config['misp_url']))
+                    record[f'{prefix}error_message'] = connection_status
+                else:
+                    response = urllib_request(self, connection, "GET",
+                                              config['misp_url'], {}, config)
+                    if not isinstance(response, dict):
+                        self.log_warn("[AT-203] Unexpected response format")
+                        yield record
                         continue
-                    prefix = self.prefix if self.prefix else ""
-                    record[prefix + field_key] = response["Attribute"][field_key]
+
+                    if "Attribute" in response:
+                        attribute_fields = response["Attribute"]
+                        for key, value in attribute_fields.items():
+                            if not filter_fields or key in shown_fields:
+                                record[f"{prefix}{key}"] = value
 
             yield record
+
 
 if __name__ == "__main__":
     dispatch(MispGetAttributeCommand, sys.argv, sys.stdin, sys.stdout, __name__)

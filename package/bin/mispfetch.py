@@ -286,7 +286,6 @@ class MispFetchCommand(StreamingCommand):
         **Default:** misp_
         ''',
         require=False, 
-        default="misp_", 
         validate=validators.Match("prefix", r"^[a-zA-Z][a-zA-Z0-9_]+$")
     )
     tags = Option(
@@ -492,9 +491,11 @@ class MispFetchCommand(StreamingCommand):
                 config.update(mf_params)
 
                 if mf_params['misp_restsearch'] == "events":
-                    config['misp_url'] = config['misp_url'] + '/events/restSearch'
+                    config['misp_url'] = config['misp_url'] \
+                        + '/events/restSearch'
                 elif mf_params['misp_restsearch'] == "attributes":
-                    config['misp_url'] = config['misp_url'] + '/attributes/restSearch'
+                    config['misp_url'] = config['misp_url'] \
+                        + '/attributes/restSearch'
                 self.log_info(
                     '[MF-030] misp_instance {} restSearch {} url {}'
                     .format(config['misp_instance'],
@@ -524,6 +525,8 @@ class MispFetchCommand(StreamingCommand):
 
                 config['limit'] = body_dict.get('limit', config['limit'])
                 config['page'] = body_dict.get('page', config['page'])
+                if self.prefix:
+                    config['prefix'] = self.prefix
 
                 if 'includeSightings' in body_dict:
                     config['include_sightings'] = body_dict['includeSightings']

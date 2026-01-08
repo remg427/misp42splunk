@@ -1,9 +1,6 @@
 <form hideEdit="false" version="1.1">
-  <init>
-    <set token="misp_json_request"></set>
-  </init>
   <label>mispgetattribute</label>
-  <description>MISP custom command misprest - Generic wrapper (Generating command) - check https://github.com/remg427/misp42splunk/ for any update</description>
+  <description>MISP custom command mispgetattribute - Streaming command to search attribute by (uu)id</description>
   <fieldset submitButton="false">
     <input type="dropdown" token="misp_instance" searchWhenChanged="true">
       <label>misp_instance*</label>
@@ -35,18 +32,19 @@
   <row>
     <panel>
       <html>
-        <h3>Select a misp_instance and provide a valid attributeid.</h3>
-        <p>attributeid can also be a field in the row.</p>
-        <p>Specify which fields should be returned, else all are returned.</p>
+        <h3>Select a misp_instance and provide a valid fieldname for attributeid.</h3>
+        <p>Specify which MISP fields should be returned, else all are returned.</p>
     </html>
     </panel>
   </row>
   <row>
     <panel>
-      <title>Custom command mispgetattribute</title>
+      <title>| makeresults
+          | eval attr_id=$attributeid$ | mispgetattribute misp_instance=$misp_instance$ attributeid=attrib_id fields=$fields$ prefix=$prefix$</title>
       <event>
         <search>
-          <query>| makeresults | mispgetattribute misp_instance=$misp_instance$ attributeid=$attributeid$ fields=$fields$ prefix=$prefix$</query>
+          <query>| makeresults
+          | eval attr_id=$attributeid$ | mispgetattribute misp_instance=$misp_instance$ attributeid=attrib_id fields=$fields$ prefix=$prefix$</query>
           <earliest>0</earliest>
           <latest></latest>
           <sampleRatio>1</sampleRatio>
