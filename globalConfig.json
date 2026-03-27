@@ -3,7 +3,7 @@
         "name": "misp42splunk",
         "restRoot": "misp42splunk",
         "displayName": "MISP42",
-        "version": "5.0.0",
+        "version": "5.1.0",
         "schemaVersion": "0.0.9",
         "supportedThemes": [
             "light",
@@ -47,7 +47,7 @@
                                     "type": "string",
                                     "minLength": 1,
                                     "maxLength": 50,
-                                    "errorMsg": "Length of MISP instance name should be between 1 and 50"
+                                    "errorMsg": "Length of MISP instance name must be between 1 and 50 characters."
                                 },
                                 {
                                     "type": "regex",
@@ -63,8 +63,8 @@
                             "field": "misp_url",
                             "validators": [
                                 {
-                                    "pattern": "^https://[0-9a-zA-Z\\-\\.]+(?:\\:\\d+)?",
-                                    "errorMsg": "Invalid URL; it must start with https.",
+                                    "pattern": "^https://[0-9a-zA-Z_\\-\\.]+(?:\\:\\d+)?$",
+                                    "errorMsg": "Invalid URL; it must start with https://.",
                                     "type": "regex"
                                 }
                             ],
@@ -79,8 +79,8 @@
                             "encrypted": true,
                             "validators": [
                                 {
-                                    "minLength": 0,
-                                    "errorMsg": "Max length of password is 8192",
+                                    "minLength": 1,
+                                    "errorMsg": "Length must be between 1 and 8192 characters.",
                                     "maxLength": 8192,
                                     "type": "string"
                                 }
@@ -98,47 +98,10 @@
                         },
                         {
                             "required": false,
-                            "label": "MISP CA path",
-                            "field": "misp_ca_full_path",
-                            "validators": [
-                                {
-                                    "minLength": 0,
-                                    "errorMsg": "Max length of text input is 8192",
-                                    "maxLength": 8192,
-                                    "type": "string"
-                                }
-                            ],
-                            "help": "Provide full path to CA file (pem, crt)",
-                            "type": "text"
-                        },
-                        {
-                            "required": false,
                             "field": "misp_use_proxy",
                             "help": "Use proxy settings for this instance",
                             "label": "Use proxy settings",
                             "type": "checkbox"
-                        },
-                        {
-                            "required": false,
-                            "field": "client_use_cert",
-                            "help": "Use a client certificate to authenticate on this instance",
-                            "label": "Use a client certificate",
-                            "type": "checkbox"
-                        },
-                        {
-                            "required": false,
-                            "label": "Client certificate file ",
-                            "field": "client_cert_full_path",
-                            "validators": [
-                                {
-                                    "minLength": 0,
-                                    "errorMsg": "Max length of text input is 8192",
-                                    "maxLength": 8192,
-                                    "type": "string"
-                                }
-                            ],
-                            "help": "Provide full path to client certificate file ",
-                            "type": "text"
                         },
                         {
                             "required": true,
@@ -149,7 +112,7 @@
                                     "type": "string",
                                     "minLength": 2,
                                     "maxLength": 10,
-                                    "errorMsg": "Length of prefix should be between 2 and 10"
+                                    "errorMsg": "Length must be between 2 and 10 characters."
                                 },
                                 {
                                     "type": "regex",
@@ -170,12 +133,13 @@
                                     "type": "number",
                                     "range": [
                                         1,
-                                        300
+                                        60
                                     ],
-                                    "isInteger": true
+                                    "isInteger": true,
+                                    "errorMsg": "Value must be between 1 and 60 seconds."
                                 }
                             ],
-                            "defaultValue": 3,
+                            "defaultValue": 5,
                             "help": "Maximum time to establish the connection with the MISP instance.",
                             "type": "text"
                         },
@@ -188,12 +152,13 @@
                                     "type": "number",
                                     "range": [
                                         1,
-                                        600
+                                        300
                                     ],
-                                    "isInteger": true
+                                    "isInteger": true,
+                                    "errorMsg": "Value must be between 1 and 300 seconds"
                                 }
                             ],
-                            "defaultValue": 200,
+                            "defaultValue": 60,
                             "help": "Maximum time to receive the response data from the MISP instance.",
                             "type": "text"
                         }
@@ -211,35 +176,17 @@
                             "type": "checkbox"
                         },
                         {
-                            "options": {
-                                "disableSearch": true,
-                                "autoCompleteFields": [
-                                    {
-                                        "label": "http",
-                                        "value": "http"
-                                    },
-                                    {
-                                        "label": "socks4",
-                                        "value": "socks4"
-                                    },
-                                    {
-                                        "label": "socks5",
-                                        "value": "socks5"
-                                    }
-                                ]
-                            },
-                            "field": "proxy_type",
-                            "defaultValue": "http",
-                            "label": "Proxy Type",
-                            "type": "singleSelect"
-                        },
-                        {
                             "validators": [
                                 {
-                                    "minLength": 1,
-                                    "errorMsg": "Max host length is 4096",
+                                    "minLength": 0,
+                                    "errorMsg": "Value must be between 0 and 4096 characters.",
                                     "maxLength": 4096,
                                     "type": "string"
+                                },
+                                {
+                                  "type": "regex",
+                                  "pattern": "^[a-zA-Z0-9.-_]+$",
+                                  "errorMsg": "Proxy host must contain only letters, digits, dots, hyphens or underscores."
                                 }
                             ],
                             "field": "proxy_hostname",
@@ -253,7 +200,8 @@
                                         1,
                                         65535
                                     ],
-                                    "type": "number"
+                                    "type": "number",
+                                    "isInteger": true
                                 }
                             ],
                             "field": "proxy_port",
@@ -264,8 +212,8 @@
                             "validators": [
                                 {
                                     "minLength": 0,
-                                    "errorMsg": "Max length of username is 50",
-                                    "maxLength": 50,
+                                    "errorMsg": "Value must be between 0 and 100 characters.",
+                                    "maxLength": 100,
                                     "type": "string"
                                 }
                             ],
@@ -278,7 +226,7 @@
                             "validators": [
                                 {
                                     "minLength": 0,
-                                    "errorMsg": "Max length of password is 8192",
+                                    "errorMsg": "Value must be between 0 and 8192 characters.",
                                     "maxLength": 8192,
                                     "type": "string"
                                 }
@@ -286,14 +234,76 @@
                             "field": "proxy_password",
                             "label": "Password",
                             "type": "text"
-                        },
-                        {
-                            "field": "proxy_rdns",
-                            "label": "Remote DNS resolution",
-                            "type": "checkbox"
                         }
                     ],
                     "title": "Proxy"
+                },
+                {
+                    "name": "global_settings",
+                    "entity": [
+                        {
+                            "type": "text",
+                            "label": "Max Response Size (MB)",
+                            "field": "max_response_size_mb",
+                            "help": "Maximum cumulative size of MISP responses in megabytes. Set to 0 to disable this limit. Default: 100 MB",
+                            "defaultValue": 100,
+                            "required": false,
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        0,
+                                        10000
+                                    ],
+                                    "errorMsg": "Value must be between 0 and 10000"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "text",
+                            "label": "Max Execution Time (seconds)",
+                            "field": "max_execution_time_sec",
+                            "help": "Maximum execution time for MISP commands in seconds. Set to 0 to disable this limit. Default: 300 seconds (5 minutes)",
+                            "defaultValue": 300,
+                            "required": false,
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        0,
+                                        7200
+                                    ],
+                                    "errorMsg": "Value must be between 0 and 7200 (2 hours)"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "checkbox",
+                            "label": "Enable Limit Logging",
+                            "field": "enable_limit_logging",
+                            "help": "Enable detailed logging of pagination progress and limit checks. Logs are written to misp42splunk.log",
+                            "defaultValue": true
+                        },
+                        {
+                            "type": "text",
+                            "label": "Progress Log Interval (seconds)",
+                            "field": "progress_log_interval",
+                            "help": "Interval in seconds for logging pagination progress. Default: 10 seconds",
+                            "defaultValue": 10,
+                            "required": false,
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        1,
+                                        300
+                                    ],
+                                    "errorMsg": "Value must be between 1 and 300"
+                                }
+                            ]
+                        }
+                    ],
+                    "title": "Global Settings"
                 },
                 {
                     "type": "loggingTab"

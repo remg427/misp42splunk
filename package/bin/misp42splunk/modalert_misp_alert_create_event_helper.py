@@ -28,12 +28,14 @@ __email__ = "remg427@gmail.com"
 
 # encoding = utf-8
 
+
 def is_uuid_v4(field):
     uuid_v4_pattern = re.compile(
         r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
         re.IGNORECASE
     )
     return bool(uuid_v4_pattern.match(field))
+
 
 def get_datatype_dict(helper, config, app_name):
     datatype_dict = dict()
@@ -271,7 +273,7 @@ def process_misp_events(helper, config, results, event_list):
         helper.log_debug(f"[AL-PME-D01] payload is {event}")
         if event_list[eventkey] == "0":  # create new event
             misp_url_create = f"{config['misp_url']}/events/add"
-            response = urllib_request(
+            response, response_size = urllib_request(
                 helper, 
                 connection, 
                 'POST', 
@@ -286,7 +288,7 @@ def process_misp_events(helper, config, results, event_list):
         else:  # edit existing eventid with Attribute and Object
             misp_url_edit = f"{config['misp_url']}/events/edit/{event_list[eventkey]}"
             edit_body = {'Attribute': event['Attribute'], 'Object': event['Object']}
-            response = urllib_request(
+            response, response_size = urllib_request(
                 helper, 
                 connection, 
                 'POST', 

@@ -18,7 +18,7 @@ import sys
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "5.0.0"
+__version__ = "6.0.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -104,7 +104,8 @@ class MispRestCommand(GeneratingCommand):
             self.log_info('[MR-102] connection for {} failed'.format(config['misp_url']))
             yield response
         else:
-            response = urllib_request(self, connection, config['method'], config['misp_url'], body_dict, config)
+            response, response_size = urllib_request(
+                self, connection, config['method'], config['misp_url'], body_dict, config)
             # response is 200 by this point or we would have thrown an exception
             data = {'_time': time.time(), '_raw': json.dumps(response)}
             yield data

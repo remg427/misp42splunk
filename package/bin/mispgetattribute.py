@@ -18,7 +18,7 @@ from misp_common import prepare_config, urllib_request, logging_level, urllib_in
 
 __author__ = "timothebot"
 __license__ = "LGPLv3"
-__version__ = "5.1.0"
+__version__ = "6.0.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -93,6 +93,8 @@ class MispGetAttributeCommand(StreamingCommand):
         if self.prefix:
             config['prefix'] = self.prefix
 
+        prefix = config.get('prefix', "misp_")
+
         for record in records:
             if self.attributeid in record:
                 attribute_id = record[self.attributeid]
@@ -106,11 +108,10 @@ class MispGetAttributeCommand(StreamingCommand):
                 connection, connection_status = urllib_init_pool(self, config)
                 if connection is None:
                     response = connection_status
-                    self.log_info('[AT-202] connection for {} failed'.format(config['misp_url']))
-                    record[f'{prefix}error_message'] = connection_status
+                    self.log_error('[AT-202] connection failed')
+                    record[f"{prefix}error_message"] = connection_status
                 else:
-                    response = urllib_request(self, connection, "GET",
-                                              config['misp_url'], {}, config)
+                    response, response_size = urllib_request(self, connection, "GET", config['misp_url'], {}, config)
                     if not isinstance(response, dict):
                         self.log_warn("[AT-203] Unexpected response format")
                         yield record

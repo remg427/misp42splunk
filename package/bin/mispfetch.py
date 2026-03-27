@@ -13,7 +13,7 @@ import misp42splunk_declare
 from itertools import chain
 import json
 import logging
-from misp_common import prepare_config, logging_level, urllib_init_pool, generate_record, get_attributes, map_attribute_table, get_events, map_event_table, splunk_timestamp
+from misp_common import LimitChecker, create_limit_checker, prepare_config, logging_level, urllib_init_pool, generate_record, get_attributes, map_attribute_table, get_events, map_event_table, splunk_timestamp
 from splunklib.searchcommands import dispatch, StreamingCommand, Configuration, Option, validators
 from splunklib.six.moves import map
 import sys
@@ -39,7 +39,7 @@ log.setLevel(logging.INFO)
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "5.0.0"
+__version__ = "5.1.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -159,7 +159,8 @@ class MispFetchCommand(StreamingCommand):
     misp_instance = Option(
         doc='''
         **Syntax:** misp_instance=<string>
-        **Description:**MISP instance parameters as described in local/misp42splunk_instances.conf.
+        **Description:**MISP instance parameters as described in \
+        local/misp42splunk_instances.conf.
          ''',
         require=False
     )
