@@ -362,7 +362,7 @@ class MispGetIocCommand(GeneratingCommand):
 
     def set_log_level(self):
         logging.root
-        loglevel = logging_level('misp42splunk')
+        loglevel = logging_level(self.service, 'misp42splunk')
         logging.root.setLevel(loglevel)
         logging.error('[IO-201] logging level is set to %s', loglevel)
         logging.error('[IO-202] PYTHON VERSION: ' + sys.version)
@@ -531,7 +531,7 @@ class MispGetIocCommand(GeneratingCommand):
                     splunk_ts = splunk_timestamp(a.get('timestamp'))
                     yield generate_record(
                         a,
-                        time=splunk_ts,
+                        event_time=splunk_ts,
                         generator=self
                     )
             # default output=fields: extract some values from JSON attributes
@@ -541,7 +541,7 @@ class MispGetIocCommand(GeneratingCommand):
                     splunk_ts = splunk_timestamp(result.get('misp_timestamp'))
                     yield generate_record(
                         result,
-                        time=splunk_ts,
+                        event_time=splunk_ts,
                         generator=self
                     )
 

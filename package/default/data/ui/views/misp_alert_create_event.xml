@@ -117,8 +117,8 @@
       <default>PAP_AMBER</default>
       <initialValue>PAP_AMBER</initialValue>
     </input>
-    <input type="dropdown" token="publish_on_creation" searchWhenChanged="true">
-      <label>Publish event on creation*</label>
+    <input type="dropdown" token="publish_event" searchWhenChanged="true">
+      <label>Publish event after creation/update*</label>
       <choice value="0">No (0)</choice>
       <choice value="1">Yes (1)</choice>
       <default>0</default>
@@ -196,8 +196,8 @@
             <td>Inline EPOCH value to set the MISP event last seen.</td>
         </tr>
         <tr>
-            <td>misp_publish_on_creation</td>
-            <td>String '1' or '0' to dynamically publish or not MISP events on creation. This field overwrites for the current MISP event the staic value defined in alert form.</td>
+            <td>misp_publish_event</td>
+            <td>String '1' or '0' to dynamically publish or not MISP events after creation or update. This field overwrites for the current MISP event the static value defined in alert form.</td>
         </tr>
         <tr>
             <td>misp_sg_id</td>
@@ -227,7 +227,7 @@
         <search>
           <query>$sample_query$
 | eval param_eventid="$eventid$", param_unique="$unique$", param_info="$info$", param_tags="$tags$"
-| eval sendalert_cmd="sendalert misp_alert_create_event param.misp_instance=$misp_instance$ param.title=\"$title$\" param.description=\"$description$\" param.distribution=$distribution$ param.threatlevel=$threatlevel$ param.analysis=$analysis$ param.tlp=$tlp$ param.pap=$pap$ param.publish_on_creation=$publish_on_creation$ "
+| eval sendalert_cmd="sendalert misp_alert_create_event param.misp_instance=$misp_instance$ param.title=\"$title$\" param.description=\"$description$\" param.distribution=$distribution$ param.threatlevel=$threatlevel$ param.analysis=$analysis$ param.tlp=$tlp$ param.pap=$pap$ param.publish_event=$publish_event$ "
 | eval sendalert_cmd=if(param_eventid!="", sendalert_cmd+" param.eventid=\""+param_eventid+"\"",sendalert_cmd)
 | eval sendalert_cmd=if(param_unique!="", sendalert_cmd+" param.unique=\""+param_unique+"\"", sendalert_cmd)
 | eval sendalert_cmd=if(param_info!="", sendalert_cmd+" param.info=\""+param_info+"\"",sendalert_cmd)
@@ -257,7 +257,7 @@
 | eval switch="$launch_alert$"
 | where switch=="True"
 | fields - switch
-| sendalert misp_alert_create_event param.misp_instance=$misp_instance$ param.title="$title$" param.description="$description$" $misp_eventid$ $misp_unique$ $misp_info$ param.distribution=$distribution$ param.threatlevel=$threatlevel$ param.analysis=$analysis$ param.tlp="$tlp$" param.pap="$pap$" param.publish_on_creation="$publish_on_creation$" $misp_tags$</query>
+| sendalert misp_alert_create_event param.misp_instance=$misp_instance$ param.title="$title$" param.description="$description$" $misp_eventid$ $misp_unique$ $misp_info$ param.distribution=$distribution$ param.threatlevel=$threatlevel$ param.analysis=$analysis$ param.tlp="$tlp$" param.pap="$pap$" param.publish_event="$publish_event$" $misp_tags$</query>
           <earliest>-24h@h</earliest>
           <latest>now</latest>
           <sampleRatio>1</sampleRatio>

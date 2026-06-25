@@ -15,7 +15,6 @@ import json
 import logging
 from misp_common import LimitChecker, create_limit_checker, prepare_config, logging_level, urllib_init_pool, generate_record, get_attributes, map_attribute_table, get_events, map_event_table, splunk_timestamp
 from splunklib.searchcommands import dispatch, StreamingCommand, Configuration, Option, validators
-from splunklib.six.moves import map
 import sys
 import copy
 
@@ -311,7 +310,7 @@ class MispFetchCommand(StreamingCommand):
 
     def set_log_level(self):
         logging.root
-        loglevel = logging_level('misp42splunk')
+        loglevel = logging_level(self.service, 'misp42splunk')
         logging.root.setLevel(loglevel)
         logging.error('[EV-101] logging level is set to %s', loglevel)
         logging.error('[EV-102] PYTHON VERSION: ' + sys.version)
@@ -574,7 +573,7 @@ class MispFetchCommand(StreamingCommand):
                             splunk_ts = splunk_timestamp(result.get('misp_timestamp'))
                             yield generate_record(
                                 result,
-                                time=splunk_ts,
+                                event_time=splunk_ts,
                                 generator=self
                             )
 

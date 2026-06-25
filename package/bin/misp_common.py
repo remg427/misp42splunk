@@ -420,8 +420,9 @@ def prepare_config(
     # Retrieve stored credentials (secure)
     # ------------------------------------------------------------------
 
+    # Splunk UCC stores credentials with double backticks as separator
     misp_instance_index = (
-        f"{misp_instance}`splunk_cred_sep"
+        f"{misp_instance}``splunk_cred_sep``"
     )
 
     for credential in storage_passwords:
@@ -910,6 +911,7 @@ def map_attribute_table(helper, attributes, config):
         if 'Event' in a:
             e = a['Event']
             event_mapping = {
+                # Existing (legacy) mappings
                 'distribution': 'event_distribution',
                 'id': 'event_id',
                 'info': 'event_info',
@@ -917,10 +919,48 @@ def map_attribute_table(helper, attributes, config):
                 'orgc_id': 'orgc_id',
                 'publish_timestamp': 'publish_timestamp',
                 'uuid': 'event_uuid',
+                # New MISP 2.5 scalar fields
+                'user_id': 'user_id',
+                'threat_level_id': 'threat_level_id',
+                'analysis': 'analysis',
+                'date': 'event_date',
+                'timestamp': 'event_timestamp',
+                'first_publication': 'first_publication',
             }
             for key, value in event_mapping.items():
                 if key in e:
                     attribute[f'{prefix}{value}'] = e[key]
+
+            # Org nested object flattening (Requirements 2.1, 2.2, 2.3, 7.1, 7.5)
+            # Overrides flat org_id from event_mapping when Org dict is present
+            if isinstance(e.get('Org'), dict) and e['Org']:
+                org = e['Org']
+                if 'id' in org:
+                    attribute[f'{prefix}org_id'] = org['id']
+                if 'name' in org:
+                    attribute[f'{prefix}org_name'] = org['name']
+                if 'uuid' in org:
+                    attribute[f'{prefix}org_uuid'] = org['uuid']
+
+            # Orgc nested object flattening (Requirements 3.1, 3.2, 3.3, 7.2, 7.5)
+            # Overrides flat orgc_id from event_mapping when Orgc dict is present
+            if isinstance(e.get('Orgc'), dict) and e['Orgc']:
+                orgc = e['Orgc']
+                if 'id' in orgc:
+                    attribute[f'{prefix}orgc_id'] = orgc['id']
+                if 'name' in orgc:
+                    attribute[f'{prefix}orgc_name'] = orgc['name']
+                if 'uuid' in orgc:
+                    attribute[f'{prefix}orgc_uuid'] = orgc['uuid']
+
+            # ThreatLevel nested object flattening (Requirements 4.1, 4.2, 4.3, 4.4, 7.3, 7.5)
+            # Overrides flat threat_level_id from event_mapping when ThreatLevel dict is present
+            if isinstance(e.get('ThreatLevel'), dict) and e['ThreatLevel']:
+                threat_level = e['ThreatLevel']
+                if 'id' in threat_level:
+                    attribute[f'{prefix}threat_level_id'] = threat_level['id']
+                if threat_level.get('name'):
+                    attribute[f'{prefix}threat_level_name'] = threat_level['name']
 
         if include_sightings and 'Sighting' in a:
             attribute.update(
@@ -930,6 +970,10 @@ def map_attribute_table(helper, attributes, config):
             )
 
         attribute[f'{prefix}host'] = host
+        # Tag extraction (Requirements 6.1–6.5):
+        # - Handles list of dicts, single dict, None/missing Tag
+        # - Strips whitespace, preserves galaxy-style names unchanged
+        # - Skips entries with missing/null/non-string name values
         attribute[f'{prefix}tag'] = []
         tag_value = a.pop('Tag', None)
         if isinstance(tag_value, list):
@@ -944,6 +988,22 @@ def map_attribute_table(helper, attributes, config):
         ts_key = f'{prefix}timestamp'
         if ts_key in attribute:
             attribute[ts_key] = int(attribute[ts_key])
+
+        # Convert event_timestamp to int (Requirements 1.5, 5.4)
+        event_ts_key = f'{prefix}event_timestamp'
+        if event_ts_key in attribute:
+            try:
+                attribute[event_ts_key] = int(attribute[event_ts_key])
+            except (ValueError, TypeError):
+                pass  # Keep as string if conversion fails
+
+        # Convert publish_timestamp to int (existing behavior, Requirement 5.4)
+        pub_ts_key = f'{prefix}publish_timestamp'
+        if pub_ts_key in attribute:
+            try:
+                attribute[pub_ts_key] = int(attribute[pub_ts_key])
+            except (ValueError, TypeError):
+                pass  # Keep as string if conversion fails
 
         # Combined: not part of an object
         # AND multivalue attribute AND to be split

@@ -341,7 +341,7 @@ class MispGetEventCommand(GeneratingCommand):
 
     def set_log_level(self):
         logging.root
-        loglevel = logging_level('misp42splunk')
+        loglevel = logging_level(self.service, 'misp42splunk')
         logging.root.setLevel(loglevel)
         logging.error('[EV-101] logging level is set to %s', loglevel)
         logging.error('[EV-102] PYTHON VERSION: ' + sys.version)
@@ -499,7 +499,7 @@ class MispGetEventCommand(GeneratingCommand):
                     splunk_ts = splunk_timestamp(e.get('timestamp'))
                     yield generate_record(
                         e,
-                        time=splunk_ts,
+                        event_time=splunk_ts,
                         generator=self
                     )
             else:
@@ -508,7 +508,7 @@ class MispGetEventCommand(GeneratingCommand):
                     splunk_ts = splunk_timestamp(result.get('misp_timestamp'))
                     yield generate_record(
                         result,
-                        time=splunk_ts,
+                        event_time=splunk_ts,
                         generator=self
                     )
 

@@ -22,7 +22,7 @@ from io import open
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "5.0.0"
+__version__ = "6.0.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -84,7 +84,7 @@ def prepare_alert(helper, app_name):
         'eventid': str(helper.get_param("eventid") or "0"),
         'eventkey': str(helper.get_param("unique") or "singleEvent"),
         'info': str(helper.get_param("info") or "notable event"),
-        'published': helper.get_param("publish_on_creation") == "1",
+        'published': helper.get_param("publish_event") == "1",
         'tags': str(helper.get_param("tags")) if helper.get_param("tags") else None,
         'analysis': int(helper.get_param("analysis")),
         'threatlevel': int(helper.get_param("threatlevel")),
@@ -174,7 +174,9 @@ def prepare_misp_events(helper, config, event_list):
             tags.extend({'name': tag} for tag in row.pop('misp_tag').split(',') if tag not in tags)
         event['Tag'] = tags
 
-        event['published'] = row.pop('misp_publish_on_creation', "0") == "1"
+        # Use inline field misp_publish_event if present, otherwise keep the alert config default
+        if 'misp_publish_event' in row:
+            event['published'] = row.pop('misp_publish_event') == "1"
 
         attribute_baseline = dict()
         # collect attribute value and build type=value entry
@@ -266,25 +268,57 @@ def process_misp_events(helper, config, results, event_list):
     def handle_response(response, success_msg, error_msg):
         if '_raw' not in response:
             helper.log_info(success_msg)
+            return True
         else:
             helper.log_error(error_msg.format(response))
+            return False
+
+    def publish_event(event_id, should_publish):
+        """Publish an event if the published flag is True."""
+        if not should_publish:
+            return
+        misp_url_publish = f"{config['misp_url']}/events/publish/{event_id}"
+        response, response_size = urllib_request(
+            helper,
+            connection,
+            'POST',
+            misp_url_publish,
+            {},
+            config
+        ) if connection else connection_status
+        handle_response(
+            response,
+            f"[AL-PME-I06] INFO MISP event {event_id} is successfully published. url={misp_url_publish}",
+            f"[AL-PME-E03] ERROR MISP event {event_id} publication has failed. url={misp_url_publish}, response={{}}"
+        )
 
     for eventkey, event in results.items():
         helper.log_debug(f"[AL-PME-D01] payload is {event}")
+        should_publish = event.get('published', False)
+        
         if event_list[eventkey] == "0":  # create new event
             misp_url_create = f"{config['misp_url']}/events/add"
+            # Don't include 'published' in payload - we'll publish separately via API
+            event_payload = {k: v for k, v in event.items() if k != 'published'}
             response, response_size = urllib_request(
                 helper, 
                 connection, 
                 'POST', 
                 misp_url_create, 
-                event, 
+                event_payload, 
                 config
                 ) if connection else connection_status
-            handle_response(response, 
+            success = handle_response(response, 
                 f"[AL-PME-I02] INFO MISP event is successfully created. url={misp_url_create}",
                 f"[AL-PME-E01] ERROR MISP event creation has failed. url={misp_url_create}, response={{}}"
                 )
+            # Publish the event if creation succeeded and published flag is True
+            if success and should_publish and isinstance(response, dict):
+                created_event_id = response.get('Event', {}).get('uuid')
+                if created_event_id:
+                    publish_event(created_event_id, should_publish)
+                else:
+                    helper.log_error("[AL-PME-E04] Cannot publish event: event ID not found in response")
         else:  # edit existing eventid with Attribute and Object
             misp_url_edit = f"{config['misp_url']}/events/edit/{event_list[eventkey]}"
             edit_body = {'Attribute': event['Attribute'], 'Object': event['Object']}
@@ -296,10 +330,13 @@ def process_misp_events(helper, config, results, event_list):
                 edit_body, 
                 config
                 ) if connection else connection_status
-            handle_response(response, 
+            success = handle_response(response, 
                 f"[AL-PME-I04] INFO MISP event is successfully edited. url={misp_url_edit}",
                 f"[AL-PME-E02] ERROR MISP event edition has failed. url={misp_url_edit}, response={{}}"
                 )
+            # Publish the event if edit succeeded and published flag is True
+            if success and should_publish:
+                publish_event(event_list[eventkey], should_publish)
 
 
 def process_event(helper, *args, **kwargs):

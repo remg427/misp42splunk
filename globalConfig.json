@@ -3,12 +3,9 @@
         "name": "misp42splunk",
         "restRoot": "misp42splunk",
         "displayName": "MISP42",
-        "version": "5.1.0",
+        "version": "5.9.9",
         "schemaVersion": "0.0.9",
-        "supportedThemes": [
-            "light",
-            "dark"
-        ]
+        "_uccVersion": "5.52.0"
     },
     "pages": {
         "configuration": {
@@ -184,9 +181,9 @@
                                     "type": "string"
                                 },
                                 {
-                                  "type": "regex",
-                                  "pattern": "^[a-zA-Z0-9.-_]+$",
-                                  "errorMsg": "Proxy host must contain only letters, digits, dots, hyphens or underscores."
+                                    "type": "regex",
+                                    "pattern": "^[a-zA-Z0-9.-_]+$",
+                                    "errorMsg": "Proxy host must contain only letters, digits, dots, hyphens or underscores."
                                 }
                             ],
                             "field": "proxy_hostname",
@@ -551,8 +548,8 @@
                 },
                 {
                     "type": "singleSelect",
-                    "label": "Publish event on creation? ",
-                    "field": "publish_on_creation",
+                    "label": "Publish event after creation/modification?",
+                    "field": "publish_event",
                     "options": {
                         "items": [
                             {
@@ -565,7 +562,7 @@
                             }
                         ]
                     },
-                    "help": "By default events are not published at time of creation (No).",
+                    "help": "If set to YES, the event will be published after creation or modification. Default is NO.",
                     "required": true,
                     "defaultValue": "0"
                 },

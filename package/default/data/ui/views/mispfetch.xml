@@ -1,5 +1,5 @@
 <form hideEdit="false" version="1.1">
-  <init>$$ $param_not_tags$ $param_onlyids$ $param_page$ $param_pipesplit$ $param_tags$<set token="param_attribute_limit"></set>
+  <init>
     <set token="param_restsearch">misp_restsearch=events</set>
     <set token="param_misp_http_body"></set>
     <set token="param_misp_output_mode">misp_output_mode=fields</set>
@@ -10,18 +10,18 @@
     <set token="param_keep_related">keep_related=False</set>
     <set token="param_limit">limit=1000</set>
     <set token="param_not_tags"></set>
-    <set token="param_output">output=fields</set>
     <set token="param_page">page=0</set>
     <set token="param_pipesplit">pipesplit=True</set>
     <set token="param_prefix"></set>
     <set token="param_tags"></set>
-    <set token="sample_query">| makeresults | eval domain="www.example.com"</set>
+    <set token="sample_query">| makeresults</set>
+    <unset token="base_mispfetch"></unset>
   </init>
-  <label>mispfetch Clone</label>
+  <label>mispfetch</label>
   <description>MISP custom command mispfetch to retrieve events or attributes or events with their attributes (Streaming command) - check https://github.com/remg427/misp42splunk/ for any update</description>
   <fieldset submitButton="true" autoRun="false">
     <input type="dropdown" token="misp_instance" searchWhenChanged="false">
-      <label>misp_instance*</label>
+      <label>misp_instance* (dropdown)</label>
       <fieldForLabel>misp_instance</fieldForLabel>
       <fieldForValue>misp_instance</fieldForValue>
       <search>
@@ -33,7 +33,7 @@
       </search>
     </input>
     <input type="text" token="misp_instance">
-      <label>misp_instance*</label>
+      <label>misp_instance* (or type here)</label>
       <default>misp</default>
       <initialValue>misp</initialValue>
     </input>
@@ -48,7 +48,7 @@
       <initialValue>events</initialValue>
     </input>
     <input type="text" token="misp_http_body" searchWhenChanged="false">
-      <label>misp_http_body</label>
+      <label>misp_http_body (JSON)</label>
       <change>
         <condition match="$value$=&quot;&quot;">
           <set token="param_misp_http_body"></set>
@@ -57,6 +57,8 @@
           <set token="param_misp_http_body">misp_http_body="$misp_http_body$"</set>
         </condition>
       </change>
+      <default></default>
+      <initialValue></initialValue>
     </input>
     <input type="radio" token="output" searchWhenChanged="false">
       <label>misp_output_mode</label>
@@ -95,8 +97,8 @@
       <change>
         <set token="param_getioc">getioc=$getioc$</set>
       </change>
-      <choice value="true">True</choice>
-      <choice value="false">False</choice>
+      <choice value="True">True</choice>
+      <choice value="False">False</choice>
       <default>False</default>
       <initialValue>False</initialValue>
     </input>
@@ -105,8 +107,8 @@
       <change>
         <set token="param_keep_galaxy">keep_galaxy=$keep_galaxy$</set>
       </change>
-      <choice value="true">True</choice>
-      <choice value="false">False</choice>
+      <choice value="True">True</choice>
+      <choice value="False">False</choice>
       <default>False</default>
       <initialValue>False</initialValue>
     </input>
@@ -115,8 +117,8 @@
       <change>
         <set token="param_keep_related">keep_related=$keep_related$</set>
       </change>
-      <choice value="true">True</choice>
-      <choice value="false">False</choice>
+      <choice value="True">True</choice>
+      <choice value="False">False</choice>
       <default>False</default>
       <initialValue>False</initialValue>
     </input>
@@ -187,10 +189,6 @@
         </condition>
       </change>
     </input>
-    <input type="text" token="sample_query" searchWhenChanged="false">
-      <label>Paste your sample query here</label>
-      <initialValue>| makeresults | eval domain="www.example.com"</initialValue>
-    </input>
   </fieldset>
   <row>
     <panel>
@@ -202,7 +200,7 @@
    </style>
       <h3>Quick start</h3>
       
-      <p>The command <strong>mispfetch</strong> is a streaming command. It cannot be on a first line of a SPL (key difference with <strong>mispgetioc</strong> and <strong>mispgetevent</strong>).</p>
+      <p>The command <code>mispfetch</code> is a streaming command. It cannot be on a first line of a SPL (this is a key difference with <code>mispgetioc</code> and <code>mispgetevent</code>).</p>
       
       <p>It can take parameters from the command line or from the result set before. The values coming from the result set have priority over the values passed on the command line.</p>
       
@@ -210,16 +208,9 @@
       
       <p>It has only one <strong>mandatory</strong> parameter "<strong>misp_instance:"</strong> that has to be set when the command is invoked. The following SPL are equivalent:</p>
       
-      <pre>
-      <code class="language-python">| makeresults 
-      | mispfetch misp_instance="misp"</code>
-              </pre>
+      <pre><code class="language-python">| makeresults | mispfetch misp_instance="misp"</code></pre>
       
-      <pre>
-      <code class="language-python">| makeresults 
-      | eval misp_instance="misp"
-      | mispfetch</code>
-              </pre>
+      <pre><code class="language-python">| makeresults | eval misp_instance="misp" | mispfetch</code></pre>
       
       <h3>List of supported parameters</h3>
       
@@ -234,12 +225,12 @@
         </thead>
         <tbody>
           <tr>
-            <td>
-                      <strong>misp_instance</strong>
-                    </td>
+            <td><strong>misp_instance</strong></td>
             <td>misp_instance=&lt;misp_account&gt;</td>
             <td>None</td>
-            <td>One of the accounts defined in tab configuration (the list is also displayed on the drop-down box)</td>
+            <td>One of the accounts defined in tab configuration (the list is also displayed on the drop-down list 
+if your account has the permissions to use the command <code>rest</code> - if not, simmly type the name of the 
+account in the input field next to the drop-down list)</td>
           </tr>
           <tr>
             <td>misp_restsearch</td>
@@ -251,14 +242,8 @@
             <td>misp_http_body</td>
             <td>misp_http_body=JSON</td>
             <td>
-            <pre>
-      <code>{
-          "returnFormat": "json",
-          "last": "1h",
-          "published": True,
-          "withAttachments": False
-      }</code>
-                      </pre>
+              <p>if misp_http_body is not provided, it is set to</p>
+              <p><code>{"last": "1h", "published": "true"}</code></p>
             </td>
             <td>
             <p>Provide an HTTP body in JSON format.</p>
@@ -280,16 +265,19 @@
             <td>attribute_limit=&lt;int&gt;</td>
             <td>0</td>
             <td>
-            <p>Limit the number of attributes per event when fetching events and getioc is True (param limit applies to the number of events). This parameter has no effect when fetching attributes (use limit in that case).</p>
-            <p>Valid only when fetching attributes.</p>
+            <p>Limit the number of attributes per event when fetching events and getioc is True 
+            (in that case, the param <code>limit</code> applies to the number of events). 
+            This parameter has no effect when fetching attributes (use limit in that case).</p>
+            <p>Effective only when using <code>/events/restSearch</code>.</p>
             </td>
           </tr>
           <tr>
             <td>expand_object</td>
             <td>expand_object=&lt;1|y|Y|t|true|True|0|n|N|f|false|False&gt;</td>
             <td>False</td>
-            <td>Boolean to have object attributes expanded (one per row). By default, attributes of one object are displayed on same row.
-            <p>Valid only when fetching attributes.</p>
+            <td>
+            <p>Boolean to have object attributes expanded (one per row). By default, attributes of one object are displayed on the same row.</p>
+            <p>Effective when fetching attributes.</p>
             </td>
           </tr>
           <tr>
@@ -298,7 +286,7 @@
             <td>False</td>
             <td>
             <p>Include event attributes in the output. In tabular view there will be one row per object or attribute of events.</p>
-            <p>Valid only when fetching events.</p>
+            <p>Effective only when using <code>/events/restSearch</code>.</p>
             </td>
           </tr>
           <tr>
@@ -308,7 +296,7 @@
             <td>
             <p>Boolean to keep Galaxy information (by default) or remove it.</p>
             <p>It can be usefull for misp_output_mode=json if you plan to use spath that has a default limit of 5000 characters to parse the JSON payload.</p>
-            <p>Valid only when fetching events.</p>
+            <p>Effective only when using <code>/events/restSearch</code>.</p>
             </td>
           </tr>
           <tr>
@@ -316,7 +304,7 @@
             <td>keep_related=(1|y|Y|t|true|True|0|n|N|f|false|False)</td>
             <td>False</td>
             <td>Boolean to keep Related event info or remove it in ouput=json (full JSON record). This is useful if you plan to use spath that has a limit of 5000 characters to parse the JSON payload.
-            <p>Valid only when fetching events.</p>
+            <p>Effective only when using <code>/events/restSearch</code>.</p>
             </td>
           </tr>
           <tr>
@@ -329,7 +317,7 @@
             <td>misp_output_mode</td>
             <td>misp_output_mode=(fields|json)</td>
             <td>fields</td>
-            <td>native Splunk tabular view or JSON</td>
+            <td>Results are displayed using the native Splunk tabular view or JSON events</td>
           </tr>
           <tr>
             <td>not_tags</td>
@@ -348,14 +336,22 @@
             <td>pipesplit=&lt;1|y|Y|t|true|True|0|n|N|f|false|False&gt;</td>
             <td>True</td>
             <td>split combined attribute types such as domain|ip
-            <p>Valid only when fetching attributes.</p>
+            <p>Effective when fetching attributes.</p>
             </td>
           </tr>
           <tr>
             <td>prefix</td>
             <td>prefix=string</td>
             <td/>
-            <td>prefix set to every MISP key. The value is set by this parameter, then by the value defined for the instznce and finally default to "misp_"</td>
+            <td>
+              <p>prefix set to every MISP key.</p>
+              The value is set in order by 
+              <ol>
+                <il>this parameter,</il>
+                <il>then by the value defined for the instance in the configuration pane</il>
+                <il>and finally default to "misp_"</il>
+                </ol>
+            </td>
           </tr>
           <tr>
             <td>tags</td>
@@ -370,11 +366,86 @@
   </row>
   <row>
     <panel>
+      <title></title>
+      <html>
+        <style>
+          pre { background-color: #f4f4f4; padding: 10px; border-radius: 5px; overflow-x: auto; }
+          code { font-family: monospace; }
+          .example-title { font-weight: bold; margin-top: 15px; }
+        </style>
+        
+        <h3>Working examples for misp_http_bod</h3>
+        <p>The <code>misp_http_body</code> parameter accepts a JSON string that is sent as the HTTP body to the MISP REST API.</p>
+        <p>The easiest is with the command <code>| tojson &lt;list_of_fields&gt; output_field=misp_http_body</code></p>
+        <p>Below are working examples you can copy and paste. Adjust to the misp instances you have defined</p>
+        
+        <p class="example-title">Example 1: Fetch events published in the last 7 days</p>
+        <pre><code>| makeresults 
+| eval last="7d", published="true"
+| tojson last, published output_field=misp_http_body
+| mispfetch misp_instance=misp</code></pre>
+        
+        <p class="example-title">Example 2: Fetch attributes with event metadata and tags</p>
+        <pre><code>| makeresults 
+| eval last="30d", includeEventUuid=1, includeEventTags="true"
+| tojson last, includeEventUuid, includeEventTags output_field=misp_http_body 
+| mispfetch misp_instance=misp</code></pre>
+        
+        <p class="example-title">Example 3: Fetch events by specific event IDs and change the prefix</p>
+        <pre><code>| makeresults 
+| eval eventid=mvappend("12345", "12346", "916b86b0-2e1e-452e-8691-1fddf970e2ba")
+| tojson eventid output_field=misp_http_body 
+| mispfetch misp_instance=mispdev prefix=mispdev_</code></pre>
+        
+        <p class="example-title">Example 4: Fetch attributes filtered by type and category</p>
+        <pre><code>| makeresults 
+| eval last="14d", type=mvappend("ip-dst", "domain", "hostname"), category="Network activity"
+| tojson category last type output_field=misp_http_body       
+| mispfetch misp_instance=misp misp_restsearch=attributes</code></pre>
+        
+        <p class="example-title">Example 5: use inline parameters</p>
+        <pre><code>| makeresults 
+| eval misp_instance="mispdev", misp_prefix="mispdev_", misp_restsearch="attributes"
+| eval last="14d", type=mvappend("ip-dst", "domain"), category="Network activity", enforceWarninglist=1
+| tojson category last type enforceWarninglist output_field=misp_http_body  
+| mispfetch</code></pre>
+        
+        <h4>Notes:</h4>
+        <ul>
+          <li>Boolean values in JSON should be lowercase (or use 0 &amp; 1): <code>true</code> or <code>false</code></li>
+          <li>The following keys are enforced/overridden: <code>returnFormat=json</code>, <code>withAttachments=false</code></li>
+          <li>You can use the <code>tags</code> and <code>not_tags</code> command parameters instead of including them in misp_http_body</li>
+        </ul>
+      </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
       <title>Custom command mispfetch</title>
-      <table>
-        <title>$sample_query$ | mispfetch misp_instance=$misp_instance$ $param_restsearch$ $param_misp_http_body$ $param_misp_output_mode$ $param_attribute_limit$ $param_expand_object$ $param_getioc$ $param_keep_galaxy$  $param_keep_related$ $param_limit$ $param_not_tags$ $param_page$ $param_pipesplit$ $param_prefix$ $param_tags$</title>
+      <input type="text" token="sample_query" searchWhenChanged="true">
+        <label>Paste your sample query here</label>
+        <initialValue>| makeresults </initialValue>
+      </input>
+      <input type="checkbox" token="base_mispfetch" searchWhenChanged="true">
+        <label>Append base mispfetch</label>
+        <choice value="append base mispfetch">base_mispfetch</choice>
+      </input>
+      <table depends="$base_mispfetch$">
+        <title>$sample_query$ |  mispfetch misp_instance=$misp_instance$ $param_restsearch$ $param_misp_http_body$ $param_misp_output_mode$ $param_attribute_limit$ $param_expand_object$ $param_getioc$ $param_keep_galaxy$  $param_keep_related$ $param_limit$ $param_not_tags$ $param_page$ $param_pipesplit$ $param_prefix$ $param_tags$</title>
         <search>
-          <query>$sample_query$ | mispfetch misp_instance=$misp_instance$ $param_restsearch$ $param_misp_http_body$ $param_misp_output_mode$ $param_attribute_limit$ $param_expand_object$ $param_getioc$ $param_keep_galaxy$  $param_keep_related$ $param_limit$ $param_not_tags$ $param_page$ $param_pipesplit$ $param_prefix$ $param_tags$ | table *</query>
+          <query>$sample_query$ |  mispfetch misp_instance=$misp_instance$ $param_restsearch$ $param_misp_http_body$ $param_misp_output_mode$ $param_attribute_limit$ $param_expand_object$ $param_getioc$ $param_keep_galaxy$  $param_keep_related$ $param_limit$ $param_not_tags$ $param_page$ $param_pipesplit$ $param_prefix$ $param_tags$ | table *</query>
+          <earliest>0</earliest>
+          <latest></latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">5</option>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+      <table rejects="$base_mispfetch$">
+        <title>$sample_query$</title>
+        <search>
+          <query>$sample_query$</query>
           <earliest>0</earliest>
           <latest></latest>
           <sampleRatio>1</sampleRatio>

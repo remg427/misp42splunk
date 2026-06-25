@@ -76,7 +76,7 @@ class MispRestCommand(GeneratingCommand):
 
     def set_log_level(self):
         logging.root
-        loglevel = logging_level('misp42splunk')
+        loglevel = logging_level(self.service, 'misp42splunk')
         logging.root.setLevel(loglevel)
         logging.error('[MR-201] logging level is set to %s', loglevel)
         logging.error('[MR-202] PYTHON VERSION: ' + sys.version)

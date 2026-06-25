@@ -6,7 +6,7 @@
     <set token="param_limit">limit=10</set>
     <set token="param_not_tags"></set>
     <set token="param_page">page=1</set>
-    <set token="param_pipesplit">pipesplit=true</set>
+    <set token="param_pipesplit">pipesplit=True</set>
     <set token="param_prefix">prefix=misp_</set>
     <set token="param_tags"></set>
     <set token="sample_query">| makeresults | eval domain="www.example.com"</set>

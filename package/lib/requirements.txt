@@ -1,3 +1,5 @@
-splunktaucclib
-splunk-sdk
-solnlib
+# UCC Framework dependencies - pinned versions for security
+# Update these periodically to get security fixes
+splunktaucclib>=6.5.0
+splunk-sdk>=2.0.2
+solnlib>=5.2.0

@@ -1,0 +1,1646 @@
+{
+    "response": {
+        "Attribute": [
+            {
+                "id": "19450219",
+                "event_id": "214502",
+                "object_id": "0",
+                "object_relation": null,
+                "category": "Network activity",
+                "type": "AS",
+                "to_ids": false,
+                "uuid": "25f6c7c5-47dd-4e42-9a98-d5c5c06aaa2a",
+                "timestamp": "1781178068",
+                "distribution": "5",
+                "sharing_group_id": "0",
+                "comment": "Cloudflare, Inc., cloudflare.com Related to https://szrcgj.com/order/JZv5NSwX, https://reigartkistlerdds.com/order/5E8kw6Nv, https://reigartkistlerdds.com/order/AbJZZpJC, https://wfmcsy.com/714d6d0dba, ncsecub.gr.com, centierb.gr.com, syriovns.gr.com, katahdintrustcu.co.com, wescomb.co.com, https://wfmcsy.com/79fbbc2aaf, https://datingoffersmedia.com/olx-order/q55C0zhWTWH3MUP",
+                "deleted": false,
+                "disable_correlation": false,
+                "first_seen": null,
+                "last_seen": null,
+                "value": "13335",
+                "event_uuid": "0366aa69-9660-4104-91b2-6ea93e7d6e80",
+                "Event": {
+                    "org_id": "4",
+                    "distribution": "3",
+                    "publish_timestamp": "1781316075",
+                    "id": "214502",
+                    "info": "APVA phishing/scam indicators 2026-06-11 11:40 (42 indicators)",
+                    "orgc_id": "1473",
+                    "uuid": "0366aa69-9660-4104-91b2-6ea93e7d6e80"
+                },
+                "Tag": [
+                    {
+                        "id": "3666",
+                        "name": "tlp:clear",
+                        "colour": "#ffffff",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "222",
+                        "name": "ecsirt:fraud=\"phishing\"",
+                        "colour": "#00e2e2",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "375",
+                        "name": "enisa:nefarious-activity-abuse=\"phishing-attacks\"",
+                        "colour": "#3ab700",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "1644",
+                        "name": "veris:action:social:variety=\"Phishing\"",
+                        "colour": "#007f9b",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "99",
+                        "name": "osint:source-type=\"technical-report\"",
+                        "colour": "#002b4a",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "37",
+                        "name": "admiralty-scale:source-reliability=\"b\"",
+                        "colour": "#075200",
+                        "numerical_value": "75",
+                        "inherited": 1
+                    },
+                    {
+                        "id": "17686",
+                        "name": "misp:automation-level=\"reviewed\"",
+                        "colour": "#009645",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "27",
+                        "name": "admiralty-scale:information-credibility=\"2\"",
+                        "colour": "#0fc000",
+                        "numerical_value": "75",
+                        "inherited": 1
+                    },
+                    {
+                        "id": "275",
+                        "name": "Phishing",
+                        "colour": "#856c13",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "14",
+                        "name": "circl:incident-classification=\"phishing\"",
+                        "colour": "#326300",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "130",
+                        "name": "kill-chain:Delivery",
+                        "colour": "#8a0064",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "517",
+                        "name": "misp-galaxy:sector=\"Finance\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "16621",
+                        "name": "cryptocurrency",
+                        "colour": "#5f959d",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "2272",
+                        "name": "misp-galaxy:country=\"united states\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "1021",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Phishing - T1566\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "2004",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Domains - T1583.001\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "956",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Masquerading - T1036\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "4382",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Web Portal Capture - T1056.003\"",
+                        "colour": "#054100",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "2250",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Phishing for Information - T1598\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    }
+                ]
+            },
+            {
+                "id": "19450220",
+                "event_id": "214502",
+                "object_id": "0",
+                "object_relation": null,
+                "category": "External analysis",
+                "type": "attachment",
+                "to_ids": false,
+                "uuid": "b80f248f-bb64-42ed-8bf3-3ba7ade32668",
+                "timestamp": "1781178004",
+                "distribution": "5",
+                "sharing_group_id": "0",
+                "comment": "Screenshot of https://startio-bridgeapp.wixstudio.com/us-en at detection time",
+                "deleted": false,
+                "disable_correlation": false,
+                "first_seen": null,
+                "last_seen": null,
+                "value": "startio-bridgeapp.wixstudio.com_screenshot.png",
+                "event_uuid": "0366aa69-9660-4104-91b2-6ea93e7d6e80",
+                "Event": {
+                    "org_id": "4",
+                    "distribution": "3",
+                    "publish_timestamp": "1781316075",
+                    "id": "214502",
+                    "info": "APVA phishing/scam indicators 2026-06-11 11:40 (42 indicators)",
+                    "orgc_id": "1473",
+                    "uuid": "0366aa69-9660-4104-91b2-6ea93e7d6e80"
+                },
+                "Tag": [
+                    {
+                        "id": "3666",
+                        "name": "tlp:clear",
+                        "colour": "#ffffff",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "222",
+                        "name": "ecsirt:fraud=\"phishing\"",
+                        "colour": "#00e2e2",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "375",
+                        "name": "enisa:nefarious-activity-abuse=\"phishing-attacks\"",
+                        "colour": "#3ab700",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "1644",
+                        "name": "veris:action:social:variety=\"Phishing\"",
+                        "colour": "#007f9b",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "99",
+                        "name": "osint:source-type=\"technical-report\"",
+                        "colour": "#002b4a",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "37",
+                        "name": "admiralty-scale:source-reliability=\"b\"",
+                        "colour": "#075200",
+                        "numerical_value": "75",
+                        "inherited": 1
+                    },
+                    {
+                        "id": "17686",
+                        "name": "misp:automation-level=\"reviewed\"",
+                        "colour": "#009645",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "27",
+                        "name": "admiralty-scale:information-credibility=\"2\"",
+                        "colour": "#0fc000",
+                        "numerical_value": "75",
+                        "inherited": 1
+                    },
+                    {
+                        "id": "275",
+                        "name": "Phishing",
+                        "colour": "#856c13",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "14",
+                        "name": "circl:incident-classification=\"phishing\"",
+                        "colour": "#326300",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "130",
+                        "name": "kill-chain:Delivery",
+                        "colour": "#8a0064",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "517",
+                        "name": "misp-galaxy:sector=\"Finance\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "16621",
+                        "name": "cryptocurrency",
+                        "colour": "#5f959d",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "2272",
+                        "name": "misp-galaxy:country=\"united states\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "1021",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Phishing - T1566\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "2004",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Domains - T1583.001\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "956",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Masquerading - T1036\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "4382",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Web Portal Capture - T1056.003\"",
+                        "colour": "#054100",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "2250",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Phishing for Information - T1598\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    }
+                ]
+            },
+            {
+                "id": "19450221",
+                "event_id": "214502",
+                "object_id": "0",
+                "object_relation": null,
+                "category": "External analysis",
+                "type": "attachment",
+                "to_ids": false,
+                "uuid": "8a26030f-2acf-4aad-a402-ae9561ccbecc",
+                "timestamp": "1781178005",
+                "distribution": "5",
+                "sharing_group_id": "0",
+                "comment": "Screenshot of https://trxoresuites.wixstudio.com/us-en at detection time",
+                "deleted": false,
+                "disable_correlation": false,
+                "first_seen": null,
+                "last_seen": null,
+                "value": "trxoresuites.wixstudio.com_screenshot.png",
+                "event_uuid": "0366aa69-9660-4104-91b2-6ea93e7d6e80",
+                "Event": {
+                    "org_id": "4",
+                    "distribution": "3",
+                    "publish_timestamp": "1781316075",
+                    "id": "214502",
+                    "info": "APVA phishing/scam indicators 2026-06-11 11:40 (42 indicators)",
+                    "orgc_id": "1473",
+                    "uuid": "0366aa69-9660-4104-91b2-6ea93e7d6e80"
+                },
+                "Tag": [
+                    {
+                        "id": "3666",
+                        "name": "tlp:clear",
+                        "colour": "#ffffff",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "222",
+                        "name": "ecsirt:fraud=\"phishing\"",
+                        "colour": "#00e2e2",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "375",
+                        "name": "enisa:nefarious-activity-abuse=\"phishing-attacks\"",
+                        "colour": "#3ab700",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "1644",
+                        "name": "veris:action:social:variety=\"Phishing\"",
+                        "colour": "#007f9b",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "99",
+                        "name": "osint:source-type=\"technical-report\"",
+                        "colour": "#002b4a",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "37",
+                        "name": "admiralty-scale:source-reliability=\"b\"",
+                        "colour": "#075200",
+                        "numerical_value": "75",
+                        "inherited": 1
+                    },
+                    {
+                        "id": "17686",
+                        "name": "misp:automation-level=\"reviewed\"",
+                        "colour": "#009645",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "27",
+                        "name": "admiralty-scale:information-credibility=\"2\"",
+                        "colour": "#0fc000",
+                        "numerical_value": "75",
+                        "inherited": 1
+                    },
+                    {
+                        "id": "275",
+                        "name": "Phishing",
+                        "colour": "#856c13",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "14",
+                        "name": "circl:incident-classification=\"phishing\"",
+                        "colour": "#326300",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "130",
+                        "name": "kill-chain:Delivery",
+                        "colour": "#8a0064",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "517",
+                        "name": "misp-galaxy:sector=\"Finance\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "16621",
+                        "name": "cryptocurrency",
+                        "colour": "#5f959d",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "2272",
+                        "name": "misp-galaxy:country=\"united states\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "1021",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Phishing - T1566\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "2004",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Domains - T1583.001\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "956",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Masquerading - T1036\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "4382",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Web Portal Capture - T1056.003\"",
+                        "colour": "#054100",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "2250",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Phishing for Information - T1598\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    }
+                ]
+            },
+            {
+                "id": "19450222",
+                "event_id": "214502",
+                "object_id": "0",
+                "object_relation": null,
+                "category": "External analysis",
+                "type": "attachment",
+                "to_ids": false,
+                "uuid": "3a38bc5e-c5a6-49ab-88fe-63a097655356",
+                "timestamp": "1781178007",
+                "distribution": "5",
+                "sharing_group_id": "0",
+                "comment": "Screenshot of https://nav-trzosuite.wixstudio.com/us-en at detection time",
+                "deleted": false,
+                "disable_correlation": false,
+                "first_seen": null,
+                "last_seen": null,
+                "value": "nav-trzosuite.wixstudio.com_screenshot.png",
+                "event_uuid": "0366aa69-9660-4104-91b2-6ea93e7d6e80",
+                "Event": {
+                    "org_id": "4",
+                    "distribution": "3",
+                    "publish_timestamp": "1781316075",
+                    "id": "214502",
+                    "info": "APVA phishing/scam indicators 2026-06-11 11:40 (42 indicators)",
+                    "orgc_id": "1473",
+                    "uuid": "0366aa69-9660-4104-91b2-6ea93e7d6e80"
+                },
+                "Tag": [
+                    {
+                        "id": "3666",
+                        "name": "tlp:clear",
+                        "colour": "#ffffff",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "222",
+                        "name": "ecsirt:fraud=\"phishing\"",
+                        "colour": "#00e2e2",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "375",
+                        "name": "enisa:nefarious-activity-abuse=\"phishing-attacks\"",
+                        "colour": "#3ab700",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "1644",
+                        "name": "veris:action:social:variety=\"Phishing\"",
+                        "colour": "#007f9b",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "99",
+                        "name": "osint:source-type=\"technical-report\"",
+                        "colour": "#002b4a",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "37",
+                        "name": "admiralty-scale:source-reliability=\"b\"",
+                        "colour": "#075200",
+                        "numerical_value": "75",
+                        "inherited": 1
+                    },
+                    {
+                        "id": "17686",
+                        "name": "misp:automation-level=\"reviewed\"",
+                        "colour": "#009645",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "27",
+                        "name": "admiralty-scale:information-credibility=\"2\"",
+                        "colour": "#0fc000",
+                        "numerical_value": "75",
+                        "inherited": 1
+                    },
+                    {
+                        "id": "275",
+                        "name": "Phishing",
+                        "colour": "#856c13",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "14",
+                        "name": "circl:incident-classification=\"phishing\"",
+                        "colour": "#326300",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "130",
+                        "name": "kill-chain:Delivery",
+                        "colour": "#8a0064",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "517",
+                        "name": "misp-galaxy:sector=\"Finance\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "16621",
+                        "name": "cryptocurrency",
+                        "colour": "#5f959d",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "2272",
+                        "name": "misp-galaxy:country=\"united states\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "1021",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Phishing - T1566\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "2004",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Domains - T1583.001\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "956",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Masquerading - T1036\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "4382",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Web Portal Capture - T1056.003\"",
+                        "colour": "#054100",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "2250",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Phishing for Information - T1598\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    }
+                ]
+            },
+            {
+                "id": "19450223",
+                "event_id": "214502",
+                "object_id": "0",
+                "object_relation": null,
+                "category": "External analysis",
+                "type": "attachment",
+                "to_ids": false,
+                "uuid": "1bd00ca3-cd7c-453a-a9b5-48d463577ad5",
+                "timestamp": "1781178008",
+                "distribution": "5",
+                "sharing_group_id": "0",
+                "comment": "Screenshot of https://appstart-tresuitee.wixstudio.com/us-en at detection time",
+                "deleted": false,
+                "disable_correlation": false,
+                "first_seen": null,
+                "last_seen": null,
+                "value": "appstart-tresuitee.wixstudio.com_screenshot.png",
+                "event_uuid": "0366aa69-9660-4104-91b2-6ea93e7d6e80",
+                "Event": {
+                    "org_id": "4",
+                    "distribution": "3",
+                    "publish_timestamp": "1781316075",
+                    "id": "214502",
+                    "info": "APVA phishing/scam indicators 2026-06-11 11:40 (42 indicators)",
+                    "orgc_id": "1473",
+                    "uuid": "0366aa69-9660-4104-91b2-6ea93e7d6e80"
+                },
+                "Tag": [
+                    {
+                        "id": "3666",
+                        "name": "tlp:clear",
+                        "colour": "#ffffff",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "222",
+                        "name": "ecsirt:fraud=\"phishing\"",
+                        "colour": "#00e2e2",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "375",
+                        "name": "enisa:nefarious-activity-abuse=\"phishing-attacks\"",
+                        "colour": "#3ab700",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "1644",
+                        "name": "veris:action:social:variety=\"Phishing\"",
+                        "colour": "#007f9b",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "99",
+                        "name": "osint:source-type=\"technical-report\"",
+                        "colour": "#002b4a",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "37",
+                        "name": "admiralty-scale:source-reliability=\"b\"",
+                        "colour": "#075200",
+                        "numerical_value": "75",
+                        "inherited": 1
+                    },
+                    {
+                        "id": "17686",
+                        "name": "misp:automation-level=\"reviewed\"",
+                        "colour": "#009645",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "27",
+                        "name": "admiralty-scale:information-credibility=\"2\"",
+                        "colour": "#0fc000",
+                        "numerical_value": "75",
+                        "inherited": 1
+                    },
+                    {
+                        "id": "275",
+                        "name": "Phishing",
+                        "colour": "#856c13",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "14",
+                        "name": "circl:incident-classification=\"phishing\"",
+                        "colour": "#326300",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "130",
+                        "name": "kill-chain:Delivery",
+                        "colour": "#8a0064",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "517",
+                        "name": "misp-galaxy:sector=\"Finance\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "16621",
+                        "name": "cryptocurrency",
+                        "colour": "#5f959d",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "2272",
+                        "name": "misp-galaxy:country=\"united states\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "1021",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Phishing - T1566\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "2004",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Domains - T1583.001\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "956",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Masquerading - T1036\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "4382",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Web Portal Capture - T1056.003\"",
+                        "colour": "#054100",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "2250",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Phishing for Information - T1598\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    }
+                ]
+            },
+            {
+                "id": "19450224",
+                "event_id": "214502",
+                "object_id": "0",
+                "object_relation": null,
+                "category": "External analysis",
+                "type": "attachment",
+                "to_ids": false,
+                "uuid": "cdf9a37a-6de8-4a3b-a002-cc131b280e6a",
+                "timestamp": "1781178009",
+                "distribution": "5",
+                "sharing_group_id": "0",
+                "comment": "Screenshot of https://en-suites-io.wixstudio.com/apps at detection time",
+                "deleted": false,
+                "disable_correlation": false,
+                "first_seen": null,
+                "last_seen": null,
+                "value": "en-suites-io.wixstudio.com_screenshot.png",
+                "event_uuid": "0366aa69-9660-4104-91b2-6ea93e7d6e80",
+                "Event": {
+                    "org_id": "4",
+                    "distribution": "3",
+                    "publish_timestamp": "1781316075",
+                    "id": "214502",
+                    "info": "APVA phishing/scam indicators 2026-06-11 11:40 (42 indicators)",
+                    "orgc_id": "1473",
+                    "uuid": "0366aa69-9660-4104-91b2-6ea93e7d6e80"
+                },
+                "Tag": [
+                    {
+                        "id": "3666",
+                        "name": "tlp:clear",
+                        "colour": "#ffffff",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "222",
+                        "name": "ecsirt:fraud=\"phishing\"",
+                        "colour": "#00e2e2",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "375",
+                        "name": "enisa:nefarious-activity-abuse=\"phishing-attacks\"",
+                        "colour": "#3ab700",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "1644",
+                        "name": "veris:action:social:variety=\"Phishing\"",
+                        "colour": "#007f9b",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "99",
+                        "name": "osint:source-type=\"technical-report\"",
+                        "colour": "#002b4a",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "37",
+                        "name": "admiralty-scale:source-reliability=\"b\"",
+                        "colour": "#075200",
+                        "numerical_value": "75",
+                        "inherited": 1
+                    },
+                    {
+                        "id": "17686",
+                        "name": "misp:automation-level=\"reviewed\"",
+                        "colour": "#009645",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "27",
+                        "name": "admiralty-scale:information-credibility=\"2\"",
+                        "colour": "#0fc000",
+                        "numerical_value": "75",
+                        "inherited": 1
+                    },
+                    {
+                        "id": "275",
+                        "name": "Phishing",
+                        "colour": "#856c13",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "14",
+                        "name": "circl:incident-classification=\"phishing\"",
+                        "colour": "#326300",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "130",
+                        "name": "kill-chain:Delivery",
+                        "colour": "#8a0064",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "517",
+                        "name": "misp-galaxy:sector=\"Finance\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "16621",
+                        "name": "cryptocurrency",
+                        "colour": "#5f959d",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "2272",
+                        "name": "misp-galaxy:country=\"united states\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "1021",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Phishing - T1566\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "2004",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Domains - T1583.001\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "956",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Masquerading - T1036\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "4382",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Web Portal Capture - T1056.003\"",
+                        "colour": "#054100",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "2250",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Phishing for Information - T1598\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    }
+                ]
+            },
+            {
+                "id": "19450225",
+                "event_id": "214502",
+                "object_id": "0",
+                "object_relation": null,
+                "category": "External analysis",
+                "type": "attachment",
+                "to_ids": false,
+                "uuid": "bc5a0205-d402-495a-8390-0ee3521fbd19",
+                "timestamp": "1781178011",
+                "distribution": "5",
+                "sharing_group_id": "0",
+                "comment": "Screenshot of https://startsio-suiteapps.wixstudio.com/us-en at detection time",
+                "deleted": false,
+                "disable_correlation": false,
+                "first_seen": null,
+                "last_seen": null,
+                "value": "startsio-suiteapps.wixstudio.com_screenshot.png",
+                "event_uuid": "0366aa69-9660-4104-91b2-6ea93e7d6e80",
+                "Event": {
+                    "org_id": "4",
+                    "distribution": "3",
+                    "publish_timestamp": "1781316075",
+                    "id": "214502",
+                    "info": "APVA phishing/scam indicators 2026-06-11 11:40 (42 indicators)",
+                    "orgc_id": "1473",
+                    "uuid": "0366aa69-9660-4104-91b2-6ea93e7d6e80"
+                },
+                "Tag": [
+                    {
+                        "id": "3666",
+                        "name": "tlp:clear",
+                        "colour": "#ffffff",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "222",
+                        "name": "ecsirt:fraud=\"phishing\"",
+                        "colour": "#00e2e2",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "375",
+                        "name": "enisa:nefarious-activity-abuse=\"phishing-attacks\"",
+                        "colour": "#3ab700",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "1644",
+                        "name": "veris:action:social:variety=\"Phishing\"",
+                        "colour": "#007f9b",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "99",
+                        "name": "osint:source-type=\"technical-report\"",
+                        "colour": "#002b4a",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "37",
+                        "name": "admiralty-scale:source-reliability=\"b\"",
+                        "colour": "#075200",
+                        "numerical_value": "75",
+                        "inherited": 1
+                    },
+                    {
+                        "id": "17686",
+                        "name": "misp:automation-level=\"reviewed\"",
+                        "colour": "#009645",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "27",
+                        "name": "admiralty-scale:information-credibility=\"2\"",
+                        "colour": "#0fc000",
+                        "numerical_value": "75",
+                        "inherited": 1
+                    },
+                    {
+                        "id": "275",
+                        "name": "Phishing",
+                        "colour": "#856c13",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "14",
+                        "name": "circl:incident-classification=\"phishing\"",
+                        "colour": "#326300",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "130",
+                        "name": "kill-chain:Delivery",
+                        "colour": "#8a0064",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "517",
+                        "name": "misp-galaxy:sector=\"Finance\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "16621",
+                        "name": "cryptocurrency",
+                        "colour": "#5f959d",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "2272",
+                        "name": "misp-galaxy:country=\"united states\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "1021",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Phishing - T1566\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "2004",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Domains - T1583.001\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "956",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Masquerading - T1036\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "4382",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Web Portal Capture - T1056.003\"",
+                        "colour": "#054100",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "2250",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Phishing for Information - T1598\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    }
+                ]
+            },
+            {
+                "id": "19450226",
+                "event_id": "214502",
+                "object_id": "0",
+                "object_relation": null,
+                "category": "External analysis",
+                "type": "attachment",
+                "to_ids": false,
+                "uuid": "0decae80-0851-4bf6-a66a-9d193610c09d",
+                "timestamp": "1781178012",
+                "distribution": "5",
+                "sharing_group_id": "0",
+                "comment": "Screenshot of https://view-trexoapp.wixstudio.com/en-us at detection time",
+                "deleted": false,
+                "disable_correlation": false,
+                "first_seen": null,
+                "last_seen": null,
+                "value": "view-trexoapp.wixstudio.com_screenshot.png",
+                "event_uuid": "0366aa69-9660-4104-91b2-6ea93e7d6e80",
+                "Event": {
+                    "org_id": "4",
+                    "distribution": "3",
+                    "publish_timestamp": "1781316075",
+                    "id": "214502",
+                    "info": "APVA phishing/scam indicators 2026-06-11 11:40 (42 indicators)",
+                    "orgc_id": "1473",
+                    "uuid": "0366aa69-9660-4104-91b2-6ea93e7d6e80"
+                },
+                "Tag": [
+                    {
+                        "id": "3666",
+                        "name": "tlp:clear",
+                        "colour": "#ffffff",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "222",
+                        "name": "ecsirt:fraud=\"phishing\"",
+                        "colour": "#00e2e2",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "375",
+                        "name": "enisa:nefarious-activity-abuse=\"phishing-attacks\"",
+                        "colour": "#3ab700",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "1644",
+                        "name": "veris:action:social:variety=\"Phishing\"",
+                        "colour": "#007f9b",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "99",
+                        "name": "osint:source-type=\"technical-report\"",
+                        "colour": "#002b4a",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "37",
+                        "name": "admiralty-scale:source-reliability=\"b\"",
+                        "colour": "#075200",
+                        "numerical_value": "75",
+                        "inherited": 1
+                    },
+                    {
+                        "id": "17686",
+                        "name": "misp:automation-level=\"reviewed\"",
+                        "colour": "#009645",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "27",
+                        "name": "admiralty-scale:information-credibility=\"2\"",
+                        "colour": "#0fc000",
+                        "numerical_value": "75",
+                        "inherited": 1
+                    },
+                    {
+                        "id": "275",
+                        "name": "Phishing",
+                        "colour": "#856c13",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "14",
+                        "name": "circl:incident-classification=\"phishing\"",
+                        "colour": "#326300",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "130",
+                        "name": "kill-chain:Delivery",
+                        "colour": "#8a0064",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "517",
+                        "name": "misp-galaxy:sector=\"Finance\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "16621",
+                        "name": "cryptocurrency",
+                        "colour": "#5f959d",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "2272",
+                        "name": "misp-galaxy:country=\"united states\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "1021",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Phishing - T1566\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "2004",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Domains - T1583.001\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "956",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Masquerading - T1036\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "4382",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Web Portal Capture - T1056.003\"",
+                        "colour": "#054100",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "2250",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Phishing for Information - T1598\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    }
+                ]
+            },
+            {
+                "id": "19450227",
+                "event_id": "214502",
+                "object_id": "0",
+                "object_relation": null,
+                "category": "External analysis",
+                "type": "attachment",
+                "to_ids": false,
+                "uuid": "58f06e53-e62b-4170-919e-8073fc80f1cb",
+                "timestamp": "1781178014",
+                "distribution": "5",
+                "sharing_group_id": "0",
+                "comment": "Screenshot of https://trezssutrt.wixstudio.com/en-iie at detection time",
+                "deleted": false,
+                "disable_correlation": false,
+                "first_seen": null,
+                "last_seen": null,
+                "value": "trezssutrt.wixstudio.com_screenshot.png",
+                "event_uuid": "0366aa69-9660-4104-91b2-6ea93e7d6e80",
+                "Event": {
+                    "org_id": "4",
+                    "distribution": "3",
+                    "publish_timestamp": "1781316075",
+                    "id": "214502",
+                    "info": "APVA phishing/scam indicators 2026-06-11 11:40 (42 indicators)",
+                    "orgc_id": "1473",
+                    "uuid": "0366aa69-9660-4104-91b2-6ea93e7d6e80"
+                },
+                "Tag": [
+                    {
+                        "id": "3666",
+                        "name": "tlp:clear",
+                        "colour": "#ffffff",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "222",
+                        "name": "ecsirt:fraud=\"phishing\"",
+                        "colour": "#00e2e2",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "375",
+                        "name": "enisa:nefarious-activity-abuse=\"phishing-attacks\"",
+                        "colour": "#3ab700",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "1644",
+                        "name": "veris:action:social:variety=\"Phishing\"",
+                        "colour": "#007f9b",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "99",
+                        "name": "osint:source-type=\"technical-report\"",
+                        "colour": "#002b4a",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "37",
+                        "name": "admiralty-scale:source-reliability=\"b\"",
+                        "colour": "#075200",
+                        "numerical_value": "75",
+                        "inherited": 1
+                    },
+                    {
+                        "id": "17686",
+                        "name": "misp:automation-level=\"reviewed\"",
+                        "colour": "#009645",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "27",
+                        "name": "admiralty-scale:information-credibility=\"2\"",
+                        "colour": "#0fc000",
+                        "numerical_value": "75",
+                        "inherited": 1
+                    },
+                    {
+                        "id": "275",
+                        "name": "Phishing",
+                        "colour": "#856c13",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "14",
+                        "name": "circl:incident-classification=\"phishing\"",
+                        "colour": "#326300",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "130",
+                        "name": "kill-chain:Delivery",
+                        "colour": "#8a0064",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "517",
+                        "name": "misp-galaxy:sector=\"Finance\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "16621",
+                        "name": "cryptocurrency",
+                        "colour": "#5f959d",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "2272",
+                        "name": "misp-galaxy:country=\"united states\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "1021",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Phishing - T1566\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "2004",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Domains - T1583.001\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "956",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Masquerading - T1036\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "4382",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Web Portal Capture - T1056.003\"",
+                        "colour": "#054100",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "2250",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Phishing for Information - T1598\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    }
+                ]
+            },
+            {
+                "id": "19450228",
+                "event_id": "214502",
+                "object_id": "0",
+                "object_relation": null,
+                "category": "External analysis",
+                "type": "attachment",
+                "to_ids": false,
+                "uuid": "56959b8e-c311-4a62-8f1b-d2b7ab9a9869",
+                "timestamp": "1781178015",
+                "distribution": "5",
+                "sharing_group_id": "0",
+                "comment": "Screenshot of https://apsuites-page-us.wixstudio.com/suite-eng at detection time",
+                "deleted": false,
+                "disable_correlation": false,
+                "first_seen": null,
+                "last_seen": null,
+                "value": "apsuites-page-us.wixstudio.com_screenshot.png",
+                "event_uuid": "0366aa69-9660-4104-91b2-6ea93e7d6e80",
+                "Event": {
+                    "org_id": "4",
+                    "distribution": "3",
+                    "publish_timestamp": "1781316075",
+                    "id": "214502",
+                    "info": "APVA phishing/scam indicators 2026-06-11 11:40 (42 indicators)",
+                    "orgc_id": "1473",
+                    "uuid": "0366aa69-9660-4104-91b2-6ea93e7d6e80"
+                },
+                "Tag": [
+                    {
+                        "id": "3666",
+                        "name": "tlp:clear",
+                        "colour": "#ffffff",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "222",
+                        "name": "ecsirt:fraud=\"phishing\"",
+                        "colour": "#00e2e2",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "375",
+                        "name": "enisa:nefarious-activity-abuse=\"phishing-attacks\"",
+                        "colour": "#3ab700",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "1644",
+                        "name": "veris:action:social:variety=\"Phishing\"",
+                        "colour": "#007f9b",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "99",
+                        "name": "osint:source-type=\"technical-report\"",
+                        "colour": "#002b4a",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "37",
+                        "name": "admiralty-scale:source-reliability=\"b\"",
+                        "colour": "#075200",
+                        "numerical_value": "75",
+                        "inherited": 1
+                    },
+                    {
+                        "id": "17686",
+                        "name": "misp:automation-level=\"reviewed\"",
+                        "colour": "#009645",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "27",
+                        "name": "admiralty-scale:information-credibility=\"2\"",
+                        "colour": "#0fc000",
+                        "numerical_value": "75",
+                        "inherited": 1
+                    },
+                    {
+                        "id": "275",
+                        "name": "Phishing",
+                        "colour": "#856c13",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "14",
+                        "name": "circl:incident-classification=\"phishing\"",
+                        "colour": "#326300",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "130",
+                        "name": "kill-chain:Delivery",
+                        "colour": "#8a0064",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "517",
+                        "name": "misp-galaxy:sector=\"Finance\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "16621",
+                        "name": "cryptocurrency",
+                        "colour": "#5f959d",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "2272",
+                        "name": "misp-galaxy:country=\"united states\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "1021",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Phishing - T1566\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "2004",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Domains - T1583.001\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "956",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Masquerading - T1036\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "4382",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Web Portal Capture - T1056.003\"",
+                        "colour": "#054100",
+                        "numerical_value": null,
+                        "inherited": 1
+                    },
+                    {
+                        "id": "2250",
+                        "name": "misp-galaxy:mitre-attack-pattern=\"Phishing for Information - T1598\"",
+                        "colour": "#0088cc",
+                        "numerical_value": null,
+                        "inherited": 1
+                    }
+                ]
+            }
+        ]
+    }
+}

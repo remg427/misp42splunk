@@ -566,7 +566,7 @@
             <td>to_ids</td>
             <td>to_ids=(1|y|Y|t|true|True|0|n|N|f|false|False)</td>
             <td/>
-            <td>Boolean to search only attributes with the flag "to_ids" set to true or false</td>
+            <td>When set to `true`, returns only attributes with the flag "to_ids" set to `true`. If not set or set to `false`, there no filter on the flag `to_ids`</td>
         </tr>
         <tr>
             <td>type</td>

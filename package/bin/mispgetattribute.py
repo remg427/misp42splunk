@@ -9,8 +9,6 @@
 #
 
 from __future__ import absolute_import, division, print_function, unicode_literals
-import json
-import misp42splunk_declare
 from splunklib.searchcommands import dispatch, StreamingCommand, Configuration, Option, validators
 import sys
 import logging
@@ -71,7 +69,7 @@ class MispGetAttributeCommand(StreamingCommand):
 
     def set_log_level(self):
         # logging.root
-        loglevel = logging_level('misp42splunk')
+        loglevel = logging_level(self.service, 'misp42splunk')
         logging.root.setLevel(loglevel)
         logging.error('[AT-101] logging level is set to %s', loglevel)
         logging.debug('[AT-102] PYTHON VERSION: ' + sys.version)
@@ -82,8 +80,7 @@ class MispGetAttributeCommand(StreamingCommand):
         storage = self.service.storage_passwords
         config = prepare_config(self, 'misp42splunk', misp_instance, storage)
         if config is None:
-            raise Exception(
-                "[AT-201] Sorry, no configuration for misp_instance={}".format(misp_instance))
+            self.log_error(f"[AT-201] Sorry, no configuration for {misp_instance}")
         base_url = config['misp_url'] + "/attributes/view/"
 
         shown_fields = []
@@ -111,7 +108,13 @@ class MispGetAttributeCommand(StreamingCommand):
                     self.log_error('[AT-202] connection failed')
                     record[f"{prefix}error_message"] = connection_status
                 else:
-                    response, response_size = urllib_request(self, connection, "GET", config['misp_url'], {}, config)
+                    response, response_size = urllib_request(
+                        self, 
+                        connection, 
+                        "GET", 
+                        config['misp_url'],
+                        {},
+                        config)
                     if not isinstance(response, dict):
                         self.log_warn("[AT-203] Unexpected response format")
                         yield record

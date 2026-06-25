@@ -1,144 +1,203 @@
 # mispfetch
+
 ## Description
 
-Use the `mispfetch` command to pull events or attributes from a [MISP](https://www.misp-project.org/) instance and **append** to the current set.  
+The `mispfetch` command is a **streaming command** that pulls events or attributes from a MISP instance and **appends** them to the current dataset. Unlike `mispgetioc` and `mispgetevent`, this command can dynamically build MISP queries from SPL fields.
 
-`mispfetch` is a very versatile command (like a Swiss knife) to pull information from MISP.
-- All keys supported by MISP endpoint `/events/restSearch` or `/attributes/restSearch` can be used to build the HTTP body.
-- In other words, any request that works with MISP REST client will work with `mispfetch`.
-- there are arguments to further filter or format the results.
+### Features
 
-The simplest way is to create fields with the same names as the expected keys in the HTTP body and use `tojson` command to create an output field **misp\_http\_body**.
+- Streaming command that appends MISP data to existing results
+- All MISP REST API parameters can be built dynamically from SPL fields
+- Supports both `/events/restSearch` and `/attributes/restSearch` endpoints
+- Parameters can be set via SPL fields (priority) or command arguments
+- Output in tabular or JSON format
 
-### mispfetch vs mispgetioc or mispgetevent
--   `mispfetch`
-    * is a **streaming** command that **cannot** be on the first line of a search (or a sub-search).
-    * all `mispfetch` arguments can be prepared on the SPL as fields before calling the custom command (see examples).
-    * or passed on the same ligne as `mispfetch` (fields in the SPL have priority over the arguments on the command line).
-    * therefore arguments values may be calculated based on the fields of the main search.
--   `mispgetioc`and `mispgetevent` 
-    * are **generating** commands.
-    * they must be on the first line of an SPL.
-    * arguments must be on the same ligne. They may be prepared with a subsearch but this is complex and without link with main search.
+### mispfetch vs mispgetioc/mispgetevent
+
+| Feature | mispfetch | mispgetioc/mispgetevent |
+|---------|-----------|-------------------------|
+| Command Type | Streaming | Generating |
+| Position | Cannot be first line | Must be first line |
+| Dynamic Parameters | Yes, via SPL fields | No, arguments only |
+| Use Case | Dynamic queries, enrichment | Static queries |
 
 ## Syntax
-#### | mispfetch
-> **misp_instance**=string  
-> **misp_restsearch**=(attributes|events)  
-> **misp_http_body**=JSON object  
-> attribute_limit=int  
-> expand_object=bool  
-> getioc=bool  
-> keep_galaxy=bool  
-> limit=int  
-> misp\_output\_mode=(JSON|native)  
-> not_tags=string (, comma-separated)  
-> only_to_ids=bool  
-> page=int  
-> pipesplit=bool  
-> tags=string (, comma-separated)  
 
-#### Required arguments
-With `mispfetch`, all arguments are defined as optional **but misp_instance must be a valid account name**. All other arguments have default values or are really optional.   
+```spl
+... | mispfetch 
+    [misp_instance=<string>] [misp_restsearch=<events|attributes>] 
+    [misp_http_body=<JSON>] [misp_output_mode=<fields|json>]
+    [attribute_limit=<int>] [expand_object=<bool>] [getioc=<bool>] 
+    [keep_galaxy=<bool>] [keep_related=<bool>] [limit=<int>] 
+    [not_tags=<CSV string>] [page=<int>] [pipesplit=<bool>] 
+    [prefix=<string>] [tags=<CSV string>]
+```
 
-They can be set as field names (e.g. using `eval`) before calling `mispfetch`. If not defined as field names, they can be passed as arguments on the command line. A field value has priority over an argument following `| mispfetch`
+## Parameters
+
+All parameters can be set as SPL fields (using `eval`) or as command arguments. **Field values take priority over command arguments.**
+
+### Required Parameters
 
 - **misp_instance**
   - **Syntax:** `misp_instance=<string>`
-  - **Description:** Specifies the MISP instance to use. The configuration must be defined in `local/misp42splunk_instances.conf`.
+  - **Description:** Specifies the MISP instance to use. Must be a valid instance name defined in the MISP42 Configuration page.
+
+### Optional Query Parameters
 
 - **misp_restsearch**
-    - **Syntax:** misp_restsearch=<string>
-    - **Description:** define the restSearch endpoint. Either `events` or `attributes`. Default is `events`.
+  - **Syntax:** `misp_restsearch=<events|attributes>`
+  - **Description:** MISP REST endpoint to use. Default: `events`.
 
-- **misp\_http\_body**
-    - **Syntax:** misp\_http\_body=<JSON>
-    - **Description:** A valid JSON request (use `tojson` to build it easily)
-
-- **misp\_output\_mode**
-    - **Syntax:** mmisp\_output\_mode=(fields|json)
-    - **Description:** define how to render on Splunk either as native tabular view (`fields`)or JSON object (`json`). Default: is `fields`.
-
-#### Optional arguments to query MISP
-- **attribute_limit**
-    - **Syntax:** `attribute_limit=<int>
-    - **Description:**define the attribute_limit for max count of returned attributes for each MISP default. ; 0 = no limit. Default is 0.
-
-- **expand_object**
-  - **Syntax:** `expand_object=<bool>`
-  - **Description:** Expands object attributes to one attribute per line. Default is `false`.
-
-- **getioc**
-  - **Syntax:** `getioc=<bool>`
-  - **Description:** Retrieves the list of attributes along with the event. Default is `false`.
-
-- **keep_galaxy**
-  - **Syntax:** `keep_galaxy=<bool>`
-  - **Description:** Retains galaxy information in the output. Default is `false`.
-
-- **keep_related**
-  - **Syntax:** `keep_related=<bool>`
-  - **Description:** Includes related events per attribute in the output. Default is `false`.
+- **misp_http_body**
+  - **Syntax:** `misp_http_body=<JSON>`
+  - **Description:** Valid JSON request body for the MISP API. Use `tojson` command to build dynamically. If not provided, defaults to `{"last": "1h", "published": true}`.
 
 - **limit**
   - **Syntax:** `limit=<int>`
-  - **Description:** Limits the number of events retrieved. Default is `1000`.
-
-- **not_tags**
-  - **Syntax:** `not_tags=<CSV string>`
-  - **Description:** Comma-separated list of tags to exclude from the search. Wildcard is `%`.
+  - **Description:** Maximum results per page. Default: `1000`. Set to `0` for no pagination.
 
 - **page**
   - **Syntax:** `page=<int>`
-  - **Description:** Specifies the page number for paginated results. Default is `0` (fetches all pages).
-
-- **pipesplit**
-  - **Syntax:** `pipesplit=<bool>`
-  - **Description:** Splits multivalue attributes into separate rows. Default is `true`.
-
-- **prefix**
-  - **Syntax:** `prefix=<string>`
-  - **Description:** A string prefix for MISP keys.
+  - **Description:** Specific page to retrieve. Default: `0` (get all pages).
 
 - **tags**
   - **Syntax:** `tags=<CSV string>`
-  - **Description:** Comma-separated list of tags to include in the search. Wildcard is `%`.
+  - **Description:** Comma-separated list of tags to include. Wildcard is `%`.
 
-## Usage
+- **not_tags**
+  - **Syntax:** `not_tags=<CSV string>`
+  - **Description:** Comma-separated list of tags to exclude. Wildcard is `%`.
 
-The `mispfetch` command is a dataset streaming command that appends data pulled from MISP instance to the current dataset.
+### Optional Output Parameters
 
-### Basic examples
+- **misp_output_mode**
+  - **Syntax:** `misp_output_mode=<fields|json>`
+  - **Description:** Output format: `fields` (tabular) or `json`. Default: `fields`.
 
-The minimum code to run the `mispfetch` is to set the argument `misp_instance`.
+- **attribute_limit**
+  - **Syntax:** `attribute_limit=<int>`
+  - **Description:** Maximum attributes per event when `getioc=true`. Default: `0` (no limit).
 
-    | makeresults
-    | eval misp_instance="misp_instance_name"
-    | mispfetch
+- **expand_object**
+  - **Syntax:** `expand_object=<bool>`
+  - **Description:** Expands object attributes to one per line. Default: `false`.
 
-This will run the command will all default values.
+- **getioc**
+  - **Syntax:** `getioc=<bool>`
+  - **Description:** Include attributes with events. Default: `false`.
 
-A second example shows how argument misp\_http\_body can be build to make a query MISP.
+- **keep_galaxy**
+  - **Syntax:** `keep_galaxy=<bool>`
+  - **Description:** Retain galaxy information in output. Default: `false`.
 
-Any argument supported by MISP REST API can be used. See MISP REST API documentation.  
-This example introduces how arguments defined above can be set from the SPL or as argument of `mispfetch` command.  
-The field in SPL has priority over the argument passed to the `mispfetch` command
+- **keep_related**
+  - **Syntax:** `keep_related=<bool>`
+  - **Description:** Include related events. Default: `false`.
 
-    | makeresults
-    | eval misp_instance="misp_instance_name", published_time="1d", published="True"
-    | tojson misp_instance, published_time, published output_field=misp_http_body
-    | mispfetch getioc=1 limit=100 attribute_limit=1000
+- **pipesplit**
+  - **Syntax:** `pipesplit=<bool>`
+  - **Description:** Split multivalue attributes. Default: `true`.
 
-The query is done on the endpoint `/events/restSearch`. It will return a maximum of 100 events published in the last day.  
-Event attributes are also returned with a limit per event of 1000 attributes.
+- **prefix**
+  - **Syntax:** `prefix=<string>`
+  - **Description:** Custom prefix for MISP keys.
 
-The third example uses the endpoint `/attributes/restSearch`.
+## Examples
 
-    | makeresults
-    | eval misp_instance="misp_instance_name", published_time="1d", published="True"
-    | eval misp_restsearch="attributes", limit=1000
-    | tojson misp_instance, published_time, published output_field=misp_http_body
-    | mispfetch getioc=1 limit=100 attribute_limit=1000
+### Example 1: Basic usage with defaults
 
-The query will returns all attributes of events published in last day. Attributes will be retrieved by chunks of 1000 (`limit=1000`) iterating through all pages (default `page=0`)
+```spl
+| makeresults
+| eval misp_instance="default_misp"
+| mispfetch
+```
 
+Retrieves published events from the last hour (default behavior).
+
+### Example 2: Dynamic query with tojson
+
+```spl
+| makeresults
+| eval misp_instance="default_misp", last="7d", published=true, type="ip-dst"
+| tojson last, published, type output_field=misp_http_body
+| mispfetch getioc=true limit=100 attribute_limit=500
+```
+
+Retrieves up to 100 published events from the last 7 days with ip-dst attributes, including up to 500 attributes per event.
+
+### Example 3: Query attributes endpoint
+
+```spl
+| makeresults
+| eval misp_instance="default_misp", misp_restsearch="attributes"
+| eval last="30d", to_ids=true
+| tojson last, to_ids output_field=misp_http_body
+| mispfetch limit=5000
+```
+
+Retrieves attributes with to_ids flag from the last 30 days.
+
+### Example 4: Filter by tags
+
+```spl
+| makeresults
+| eval misp_instance="default_misp"
+| eval last="14d"
+| tojson last output_field=misp_http_body
+| mispfetch tags="malware,apt" not_tags="false-positive"
+```
+
+Retrieves events from the last 14 days tagged as malware or apt, excluding false positives.
+
+### Example 5: JSON output mode
+
+```spl
+| makeresults
+| eval misp_instance="default_misp"
+| eval eventid="123,456,789"
+| tojson eventid output_field=misp_http_body
+| mispfetch misp_output_mode=json getioc=true
+```
+
+Retrieves specific events with full JSON output including attributes.
+
+### Example 6: Dynamic instance selection
+
+```spl
+| inputlookup misp_queries.csv
+| mispfetch
+```
+
+If the lookup contains `misp_instance` and `misp_http_body` fields, each row queries its specified instance with its parameters.
+
+## Building the Request Body
+
+Use the `tojson` command to easily build the `misp_http_body` field:
+
+```spl
+| eval last="7d", published=true, type="ip-dst", tags="malware"
+| tojson last, published, type, tags output_field=misp_http_body
+```
+
+This creates: `{"last": "7d", "published": true, "type": "ip-dst", "tags": "malware"}`
+
+Any parameter supported by the MISP REST API can be included in the request body.
+
+## Notes
+
+- If `misp_http_body` is not provided, the command defaults to `{"last": "1h", "published": true}`.
+- Field values always take priority over command arguments.
+- Boolean parameters accept values like `1`, `y`, `Y`, `t`, `true`, `True`, `0`, `n`, `N`, `f`, `false`, or `False`.
+- Global resource limits (max response size, max execution time) configured in MISP42 settings apply to this command.
+- Sightings are included by default.
+
+## Logging
+
+Logs are written to `$SPLUNK_HOME/var/log/splunk/misp42splunk.log`. Configure the logging level in the MISP42 Configuration page.
+
+## Version
+
+- **Current Version:** 6.0.0
+- **Author:** Remi Seguy
+- **License:** LGPLv3

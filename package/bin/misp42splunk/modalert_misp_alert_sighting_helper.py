@@ -27,7 +27,7 @@ import splunklib.client as client
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "5.0.0"
+__version__ = "6.0.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -126,7 +126,8 @@ def create_alert(helper, config):
 
     connection, connection_status = urllib_init_pool(helper, config)
     for sighting in sightings:
-        response = urllib_request(helper, connection, 'POST', misp_url, sighting, config) if connection else connection_status
+        response, response_size = urllib_request(
+            helper, connection, 'POST', misp_url, sighting, config) if connection else connection_status
         if '_raw' not in response:
             helper.log_info("[AL303] INFO MISP event is successfully edited.")
         else:

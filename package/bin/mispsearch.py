@@ -191,7 +191,7 @@ class MispSearchCommand(StreamingCommand):
 
     def set_log_level(self):
         logging.root
-        loglevel = logging_level('misp42splunk')
+        loglevel = logging_level(self.service, 'misp42splunk')
         logging.root.setLevel(loglevel)
         logging.error('[SE-101] logging level is set to %s', loglevel)
         logging.error('[SE-102] PYTHON VERSION: ' + sys.version)
@@ -320,7 +320,7 @@ class MispSearchCommand(StreamingCommand):
                                         if a_value not in merged_list[a_key]:
                                             merged_list[a_key].append(a_value)
 
-                            attribute_key = prefix + 'attributes'
+                            attribute_key = config['prefix'] + 'attributes'
                             if attribute_key not in merged_list:
                                 merged_list[attribute_key] = []
                             merged_list[attribute_key].append(attribute)

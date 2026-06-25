@@ -510,7 +510,7 @@
             <td>to_ids</td>
             <td>to_ids=(1|y|Y|t|true|True|0|n|N|f|false|False)</td>
             <td/>
-            <td>Boolean to search only attributes with the flag "to_ids" set to true or false</td>
+            <td>When set to `true`, returns only attributes with the flag "to_ids" set to `true`. If not set or set to `false`, there no filter on the flag `to_ids`</td>
         </tr>
         <tr>
             <td>type</td>
@@ -567,8 +567,8 @@
         <change>
           <set token="param_getioc">getioc=$value$</set>
         </change>
-        <choice value="true">True</choice>
-        <choice value="false">False</choice>
+        <choice value="True">True</choice>
+        <choice value="False">False</choice>
         <default>False</default>
         <initialValue>False</initialValue>
       </input>
@@ -577,8 +577,8 @@
         <change>
           <set token="param_keep_galaxy">keep_galaxy=$value$</set>
         </change>
-        <choice value="true">True</choice>
-        <choice value="false">False</choice>
+        <choice value="True">True</choice>
+        <choice value="False">False</choice>
         <default>True</default>
         <initialValue>True</initialValue>
       </input>
@@ -587,8 +587,8 @@
         <change>
           <set token="param_keep_related">keep_related=$value$</set>
         </change>
-        <choice value="true">True</choice>
-        <choice value="false">False</choice>
+        <choice value="True">True</choice>
+        <choice value="False">False</choice>
         <default>False</default>
         <initialValue>False</initialValue>
       </input>
