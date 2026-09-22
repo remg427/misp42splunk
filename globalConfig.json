@@ -3,9 +3,8 @@
         "name": "misp42splunk",
         "restRoot": "misp42splunk",
         "displayName": "MISP42",
-        "version": "5.9.9",
-        "schemaVersion": "0.0.9",
-        "_uccVersion": "5.52.0"
+        "version": "6.0.1",
+        "schemaVersion": "0.0.10"
     },
     "pages": {
         "configuration": {
@@ -60,8 +59,8 @@
                             "field": "misp_url",
                             "validators": [
                                 {
-                                    "pattern": "^https://[0-9a-zA-Z_\\-\\.]+(?:\\:\\d+)?$",
-                                    "errorMsg": "Invalid URL; it must start with https://.",
+                                    "pattern": "^https://[0-9a-zA-Z_\\-\\.]+(?:\\:\\d+)?\\/?$",
+                                    "errorMsg": "Invalid URL; it must start with https:// and may optionally end with /.",
                                     "type": "regex"
                                 }
                             ],
@@ -130,7 +129,7 @@
                                     "type": "number",
                                     "range": [
                                         1,
-                                        60
+                                        120
                                     ],
                                     "isInteger": true,
                                     "errorMsg": "Value must be between 1 and 60 seconds."
@@ -149,7 +148,7 @@
                                     "type": "number",
                                     "range": [
                                         1,
-                                        300
+                                        600
                                     ],
                                     "isInteger": true,
                                     "errorMsg": "Value must be between 1 and 300 seconds"
@@ -243,7 +242,7 @@
                             "label": "Max Response Size (MB)",
                             "field": "max_response_size_mb",
                             "help": "Maximum cumulative size of MISP responses in megabytes. Set to 0 to disable this limit. Default: 100 MB",
-                            "defaultValue": 100,
+                            "defaultValue": 512,
                             "required": false,
                             "validators": [
                                 {
@@ -261,7 +260,7 @@
                             "label": "Max Execution Time (seconds)",
                             "field": "max_execution_time_sec",
                             "help": "Maximum execution time for MISP commands in seconds. Set to 0 to disable this limit. Default: 300 seconds (5 minutes)",
-                            "defaultValue": 300,
+                            "defaultValue": 900,
                             "required": false,
                             "validators": [
                                 {
@@ -293,7 +292,7 @@
                                     "type": "number",
                                     "range": [
                                         1,
-                                        300
+                                        60
                                     ],
                                     "errorMsg": "Value must be between 1 and 300"
                                 }

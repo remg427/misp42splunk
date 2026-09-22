@@ -13,7 +13,6 @@ import misp42splunk_declare
 from splunklib.searchcommands import dispatch, GeneratingCommand, Configuration, Option, validators
 import sys
 import json
-import logging
 from misp_common import prepare_config, generate_record, logging_level, urllib_init_pool, get_events, map_event_table, splunk_timestamp
 
 __author__ = "Remi Seguy"
@@ -79,7 +78,7 @@ class MispGetEventCommand(GeneratingCommand):
         "last": param,
         "eventid": param,
         "withAttachments": forced to False,
-        "metadata": not managed,
+        "metadata": forced to 1 when getioc=false,
         "uuid": not managed,
         "published": param,
         "publish_timestamp": param,
@@ -175,10 +174,10 @@ class MispGetEventCommand(GeneratingCommand):
         **Syntax:** **include_sightings=** *<1|y|Y|t|true|True|0|n|N|f|false|False>*
         **Description:** Boolean includeSightings. Extend response with Sightings DB 
         results if the module is enabled
-        **Default:** True
+        **Default:** False
         ''',
         require=False,
-        default=True,
+        default=False,
         validate=validators.Boolean()
     )
     limit = Option(
@@ -282,10 +281,10 @@ class MispGetEventCommand(GeneratingCommand):
         doc='''
         **Syntax:** **keep_galaxy=** *<1|y|Y|t|true|True|0|n|N|f|false|False>*
         **Description:**Boolean to keep or remove key Galaxy (useful with output=json)
-        **Default:** True
+        **Default:** False
         ''',
         require=False, 
-        default=True,
+        default=False,
         validate=validators.Boolean()
     )
     keep_related = Option(
@@ -328,23 +327,22 @@ class MispGetEventCommand(GeneratingCommand):
     )
 
     def log_error(self, msg):
-        logging.error(msg)
+        self.logger.error(msg)
 
     def log_info(self, msg):
-        logging.info(msg)
+        self.logger.info(msg)
 
     def log_debug(self, msg):
-        logging.debug(msg)
+        self.logger.debug(msg)
 
     def log_warn(self, msg):
-        logging.warning(msg)
+        self.logger.warning(msg)
 
     def set_log_level(self):
-        logging.root
         loglevel = logging_level(self.service, 'misp42splunk')
-        logging.root.setLevel(loglevel)
-        logging.error('[EV-101] logging level is set to %s', loglevel)
-        logging.error('[EV-102] PYTHON VERSION: ' + sys.version)
+        self.logger.setLevel(loglevel)
+        self.logger.info('[EV-101] logging level is set to %s', loglevel)
+        self.logger.info('[EV-102] PYTHON VERSION: %s', sys.version)
 
     def generate(self):
         # loggging
@@ -435,6 +433,66 @@ class MispGetEventCommand(GeneratingCommand):
         body_dict['excludeLocalTags'] = body_dict.get('excludeLocalTags', self.exclude_local_tags)
         body_dict['enforceWarninglist'] = body_dict.get('enforceWarninglist', self.warning_list)
 
+        # When attributes are not requested, ask MISP for event metadata only.
+        # This is the default path, since getioc defaults to false. Otherwise
+        # MISP serialises every Attribute, which get_events() discards right
+        # after download: the transfer cost is paid for nothing and large result
+        # sets hit max_response_size_mb long before the last page is reached.
+        # fetchEvent() drops Attribute, ShadowAttribute, Object, EventReport and
+        # Sighting; Galaxy and RelatedEvent are attached afterwards and stay
+        # subject to keep_galaxy / keep_related.
+        # An explicit "metadata" in json_request always wins.
+        if self.getioc is False and 'metadata' not in body_dict:
+            body_dict['metadata'] = 1
+            self.log_info(
+                '[EV-210] Option "getioc" is false; key metadata set to 1 '
+                'to fetch event metadata only')
+
+        # MISP bug (confirmed on 2.5.33): Event::fetchEvent() unsets the
+        # Attribute and ShadowAttribute containers when metadata is set, but its
+        # warninglist block is not guarded by metadata and still passes
+        # $event['Attribute'] to attachWarninglistToAttributes(array &$attrs).
+        # The missing key materialises as null, the array type rejects it, and
+        # the request dies with HTTP 500. Both flags only ever filtered
+        # attributes, which metadata does not return, so turning them off costs
+        # nothing here.
+        if body_dict.get('metadata'):
+            for flag in ('enforceWarninglist', 'includeWarninglistHits'):
+                if body_dict.get(flag):
+                    body_dict[flag] = False
+                    self.log_warn(
+                        f'[EV-211] key {flag} forced to False: it is '
+                        'incompatible with metadata and makes MISP return '
+                        'HTTP 500')
+
+        # Same principle as metadata: do not pay to transfer structures that
+        # get_events() discards on arrival. Event::restSearch() hands the whole
+        # filter set to fetchEvent(), so these reach $options even though
+        # includeEventCorrelations is not in $possibleOptions.
+        #   excludeGalaxy=1            -> __attachGalaxies() returns early
+        #   includeEventCorrelations=0 -> RelatedEvent is never built
+        # Both default to "include" server-side, and fetchFullClusters also
+        # defaults to true, so galaxy clusters otherwise arrive with their
+        # complete definitions attached to every event.
+        if self.keep_galaxy is False and 'excludeGalaxy' not in body_dict:
+            body_dict['excludeGalaxy'] = 1
+            self.log_info(
+                '[EV-212] Option "keep_galaxy" is false; key excludeGalaxy '
+                'set to 1 so MISP does not attach galaxy clusters')
+
+        # Note: unlike metadata and excludeGalaxy, includeEventCorrelations is
+        # NOT in Event::$possibleOptions, and MISP 2.5.33 drops it before
+        # fetchEvent() sees it - measured: RelatedEvent still arrives. Kept
+        # because it is harmless and correct if MISP ever accepts it; watch the
+        # [MC-807] breakdown for what actually came over the wire.
+        if self.keep_related is False \
+           and 'includeEventCorrelations' not in body_dict:
+            body_dict['includeEventCorrelations'] = 0
+            self.log_info(
+                '[EV-213] Option "keep_related" is false; requesting '
+                'includeEventCorrelations=0 (ignored by MISP 2.5.33, so '
+                'RelatedEvent is still transferred and then discarded)')
+
         # set REST http body keys without default value
         if self.category and 'category' not in body_dict:
             if "," in self.category:
@@ -444,11 +502,14 @@ class MispGetEventCommand(GeneratingCommand):
                 body_dict['category'] = cat_criteria
             else:
                 body_dict['category'] = self.category
+        
+        if self.include_sightings is True and 'includeSightingdb' not in body_dict:
+            body_dict['includeSightingdb'] = 1
 
-        if self.published is not None:
+        if self.published is not None and 'published' not in body_dict:
             body_dict['published'] = body_dict.get('published', self.published)
 
-        if self.to_ids is not None:
+        if self.to_ids is not None and 'to_ids' not in body_dict:
             body_dict['to_ids'] = body_dict.get('to_ids', self.to_ids)
 
         if self.type and 'type' not in body_dict:
@@ -470,12 +531,15 @@ class MispGetEventCommand(GeneratingCommand):
                 tags_criteria['NOT'] = tags_list
             body_dict['tags'] = tags_criteria
 
-        if self.threat_level_id:
+        if self.threat_level_id and 'threat_level_id' not in body_dict:
             body_dict['threat_level_id'] = self.threat_level_id
 
         # output filter parameters
         config['expand_object'] = self.expand_object
-        config['getioc'] = self.getioc
+        # metadata=1 tells MISP to omit Attribute, ShadowAttribute, Object and
+        # EventReport, so attribute-level output is impossible no matter what
+        # getioc asked for.
+        config['getioc'] = self.getioc and not body_dict.get('metadata')
         config['include_sightings'] = body_dict.get('includeSightingdb', self.include_sightings)
         config['keep_galaxy'] = self.keep_galaxy
         config['keep_related'] = self.keep_related

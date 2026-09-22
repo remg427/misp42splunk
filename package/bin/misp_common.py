@@ -1,11 +1,49 @@
 # coding=utf-8
 import json
+import logging
 import re
 import ssl
 import time
 import urllib3
 import splunklib.client
 import splunklib.data
+
+# Absolute upper bound on pagination iterations. Acts as a last-resort guard
+# against runaway/infinite pagination (e.g. a MISP endpoint that ignores the
+# "page" parameter and keeps returning the same non-empty result set).
+MAX_PAGINATION_PAGES = 100000
+
+
+def _resolve_logger(helper):
+    """
+    Return the most appropriate logger for diagnostic messages.
+
+    Prefers the per-command logger provided by the Splunk searchcommands
+    framework (``helper.logger``, named after the command class and honouring
+    the ``logging_level`` SPL option). Falls back to the root logger when the
+    caller does not expose one.
+    """
+    logger = getattr(helper, "logger", None)
+    if logger is not None:
+        return logger
+    return logging.getLogger()
+
+
+def _log_request_failure(helper, iter_response, page, code):
+    """
+    Report a MISP reply that carries no "response" key.
+
+    urllib_request() turns HTTP error statuses and transport exceptions into a
+    plain dict holding a "_raw" description rather than raising. Without this
+    message the caller cannot tell an empty result set from a failed request:
+    pagination simply stops and the command returns nothing at all. Logged at
+    ERROR so the reason stays visible at the default loglevel.
+    """
+    detail = iter_response.get('_raw', iter_response)
+    helper.log_error(
+        f'[{code}] request on page {page} returned no "response" key; '
+        f'no further page will be fetched: {detail}'
+    )
 
 __license__ = "LGPLv3"
 __version__ = "6.0.0"
@@ -198,6 +236,20 @@ def create_limit_checker(settings, logger=None):
     max_size = (settings['max_response_size_mb'] if settings.get('max_response_size_mb', 0) > 0 else None)
     max_time = (settings['max_execution_time_sec'] if settings.get('max_execution_time_sec', 0) > 0 else None)
 
+    if max_size is None and max_time is None and logger is not None:
+        # get_events()/get_attributes() accumulate the whole result set in
+        # memory before the command yields anything, so these two settings are
+        # also the only thing bounding memory growth. With both disabled a wide
+        # search (notably getioc=true, where every attribute is fetched) can
+        # exhaust the search process and get it killed by the OOM killer -
+        # Splunk reports that as "exited unexpectedly with non-zero error
+        # code 9", with no Python traceback.
+        logger.warning(
+            '[LimitChecker] max_response_size_mb and max_execution_time_sec '
+            'are both 0: pagination has no size or time backstop and memory '
+            'growth is unbounded'
+        )
+
     return LimitChecker(
         max_size_mb=max_size,
         max_time_sec=max_time,
@@ -207,10 +259,25 @@ def create_limit_checker(settings, logger=None):
     )
 
 
+def stanza_content(service, app_name, stanza_name):
+    """
+    Return a conf stanza as a plain dict of its keys.
+
+    Always go through ``Entity.content`` rather than calling ``.get()`` on the
+    stanza. ``splunklib.client.Stanza`` subclasses ``Entity``, whose ``get()``
+    is an HTTP GET on a sub-path of the entity, not a dict lookup:
+    ``stanza.get("loglevel", "ERROR")`` requests ``<stanza>/loglevel`` with
+    ``owner="ERROR"`` and raises on the 404. Callers that wrapped such a call in
+    ``try/except`` silently fell back to their hardcoded defaults, so every
+    value configured in the app's Configuration tab was ignored.
+    """
+    return dict(service.confs[f"{app_name}_settings"][stanza_name].content)
+
+
 def logging_level(service, app_name):
     try:
-        conf = service.confs[f"{app_name}_settings"]["logging"]
-        level = conf.get("loglevel", "ERROR")
+        content = stanza_content(service, app_name, "logging")
+        level = content.get("loglevel", "ERROR")
         if level in {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}:
             return level
     except Exception:
@@ -296,9 +363,13 @@ def prepare_config(
     # ------------------------------------------------------------------
 
     try:
-        global_conf = service.confs[
-            "misp42splunk_settings"
-        ]["global_settings"]
+        # stanza_content() returns the stanza's real key/value dict. Calling
+        # .get() on the Stanza itself performs an HTTP GET and raises, which the
+        # except branch below turned into "use the defaults" - the reason the
+        # Global Settings tab never had any effect.
+        global_conf = stanza_content(
+            service, app_name, "global_settings"
+        )
 
         config["max_response_size_mb"] = to_int(
             global_conf.get("max_response_size_mb"),
@@ -325,11 +396,15 @@ def prepare_config(
         )
 
     except Exception as exc:
-        helper.log_info(
-            "[MC-PC-D01] Global settings not available; "
-            "defaults will be used"
+        # ERROR, not INFO: falling back here means every value set in the
+        # Global Settings tab is ignored, which silently changes the size and
+        # time budgets the pagination loop enforces.
+        helper.log_error(
+            "[MC-PC-D01] Global settings could not be read; built-in defaults "
+            f"will be used (max_response_size_mb="
+            f"{config['max_response_size_mb']}, max_execution_time_sec="
+            f"{config['max_execution_time_sec']}): {exc}"
         )
-        helper.log_debug(f"[MC-PC-D01-DETAIL] {exc}")
 
     # ------------------------------------------------------------------
     # Retrieve MISP instance via REST
@@ -374,7 +449,7 @@ def prepare_config(
 
     config["misp_url"] = misp_url
 
-    match = re.search(r"(?:https?://)?([^:/ ]+)", misp_url)
+    match = re.search(r"(?:https://)?([^:/ ]+)", misp_url)
     config["host"] = match.group(1) if match else misp_url
 
     # ------------------------------------------------------------------
@@ -512,11 +587,26 @@ def generate_record(data, event_time=None, generator=None):
         event_time = time.time()
     encoder = json.JSONEncoder(ensure_ascii=False, separators=(',', ':'))
 
+    # Splunk field size limit (2MB)
+    MAX_FIELD_SIZE = 2097152
+    TRUNCATION_MARKER = "...[TRUNCATED: field exceeded 2MB limit]"
+
     data_dict = dict()
     record = normalise_data('none', data)
     for key, val in record:
         val = str(val)
         key = str(key)
+        
+        # Check and truncate oversized fields
+        if len(val) > MAX_FIELD_SIZE:
+            # Truncate to leave room for truncation marker
+            truncate_at = MAX_FIELD_SIZE - len(TRUNCATION_MARKER) - 100
+            val = val[:truncate_at] + TRUNCATION_MARKER
+            if generator:
+                generator.log_warn(
+                    f"[GR-001] Field '{key}' truncated from original size to {MAX_FIELD_SIZE} bytes (2MB)"
+                )
+        
         if key in data_dict:
             if isinstance(data_dict[key], list):
                 data_dict[key].append(val)
@@ -526,11 +616,44 @@ def generate_record(data, event_time=None, generator=None):
             data_dict[key] = val
 
     data_dict['_time'] = event_time
-    data_dict['_raw'] = encoder.encode(data)
+    
+    # Also check _raw field size
+    raw_data = encoder.encode(data)
+    if len(raw_data) > MAX_FIELD_SIZE:
+        truncate_at = MAX_FIELD_SIZE - len(TRUNCATION_MARKER) - 100
+        raw_data = raw_data[:truncate_at] + TRUNCATION_MARKER
+        if generator:
+            generator.log_warn(
+                f"[GR-002] _raw field truncated from original size to {MAX_FIELD_SIZE} bytes (2MB)"
+            )
+    data_dict['_raw'] = raw_data
 
     if generator:
         return generator.gen_record(**data_dict)
     return data_dict
+
+
+def truncate_large_value(value, max_size=2097152):
+    """
+    Truncate large values to prevent exceeding Splunk field size limits.
+    
+    Args:
+        value: The value to check and potentially truncate
+        max_size: Maximum allowed size in bytes (default: 2MB)
+    
+    Returns:
+        Truncated value if oversized, original value otherwise
+    """
+    if value is None:
+        return value
+    
+    value_str = str(value)
+    if len(value_str) > max_size:
+        truncation_marker = "...[TRUNCATED: value exceeded 2MB limit]"
+        truncate_at = max_size - len(truncation_marker) - 100
+        return value_str[:truncate_at] + truncation_marker
+    
+    return value
 
 
 def misp_url_request(
@@ -720,6 +843,12 @@ def get_attributes(helper, connection, config, body_dict,
     """
     response = []
     response_count = 0
+    rlength = 0  # Initialize to avoid UnboundLocalError
+
+    # Ensure runtime safety limits (max size / max time) are always enforced,
+    # even when a caller does not provide its own LimitChecker.
+    if limit_checker is None:
+        limit_checker = create_limit_checker(config, logger=_resolve_logger(helper))
 
     body_dict['includeSightings'] = config['include_sightings']
 
@@ -729,11 +858,26 @@ def get_attributes(helper, connection, config, body_dict,
         body_dict['page'] = 1
 
         while request_loop:
-            # Check limits before requesting next page
+            # Hard safety net against infinite pagination
+            if body_dict['page'] > MAX_PAGINATION_PAGES:
+                helper.log_error(
+                    f'[MC-604] Pagination stopped: reached hard page cap '
+                    f'({MAX_PAGINATION_PAGES} pages)'
+                )
+                break
+
+            # Check limits before requesting next page.
+            # Logged at ERROR, not WARNING: stopping here truncates the result
+            # set, and the user must be able to tell a partial answer from a
+            # complete one at the default loglevel.
             if limit_checker:
                 should_continue, stop_reason = (limit_checker.should_continue())
                 if not should_continue:
-                    helper.log_warning(f'[MC-603] Pagination stopped: {stop_reason}')
+                    helper.log_error(
+                        f'[MC-603] Pagination stopped after '
+                        f'{len(response)} attribute(s) on page '
+                        f"{body_dict['page']}: {stop_reason}"
+                    )
                     break
 
             response_size = 0
@@ -773,6 +917,9 @@ def get_attributes(helper, connection, config, body_dict,
                 else:
                     request_loop = False
             else:
+                _log_request_failure(
+                    helper, iter_response, body_dict['page'], 'MC-605'
+                )
                 request_loop = False
 
     else:
@@ -801,6 +948,10 @@ def get_attributes(helper, connection, config, body_dict,
                 rlength = len(
                     iter_response['response']['Attribute']
                 )
+        else:
+            _log_request_failure(
+                helper, iter_response, body_dict['page'], 'MC-606'
+            )
 
     helper.log_info(
         f'[MC-602] response contains {rlength} records'
@@ -907,7 +1058,11 @@ def map_attribute_table(helper, attributes, config):
         attribute = dict()
         for key, value in attribute_mapping.items():
             if key in a:
-                attribute[f'{prefix}{value}'] = a[key]
+                # Truncate fields that could be large
+                if key in ('value', 'comment'):
+                    attribute[f'{prefix}{value}'] = truncate_large_value(a[key])
+                else:
+                    attribute[f'{prefix}{value}'] = a[key]
         if 'Event' in a:
             e = a['Event']
             event_mapping = {
@@ -1110,6 +1265,58 @@ def map_attribute_table(helper, attributes, config):
     return list(output_dict.values())
 
 
+def _prune_event(event, config, discarded=None):
+    """
+    Drop the event structures the caller asked not to keep.
+
+    Every key removed here was still transferred over the wire and still counted
+    against max_response_size_mb, so anything dropped is paid-for bandwidth.
+    Pass ``discarded`` (a dict) to accumulate how many bytes each key cost; that
+    measurement is what tells you which request flag is worth setting
+    (metadata / excludeGalaxy / includeEventCorrelations).
+    """
+    drop = []
+    if config['getioc'] is False:
+        drop.append('Attribute')
+        drop.append('Object')
+    if config['keep_galaxy'] is False:
+        drop.append('Galaxy')
+    if config['keep_related'] is False:
+        drop.append('RelatedEvent')
+
+    for key in drop:
+        value = event.pop(key, None)
+        if discarded is not None and value:
+            try:
+                discarded[key] = discarded.get(key, 0) + len(
+                    json.dumps(value)
+                )
+            except (TypeError, ValueError):
+                pass
+
+    return event
+
+
+def _discard_report(helper, discarded, limit_checker, code):
+    """Log how much of the received payload was thrown away, biggest first."""
+    if not discarded:
+        return
+    total = sum(discarded.values())
+    parts = ', '.join(
+        f'{key}={size / (1024 * 1024):.2f}MB'
+        for key, size in sorted(
+            discarded.items(), key=lambda kv: kv[1], reverse=True
+        )
+    )
+    received = getattr(limit_checker, 'total_bytes_received', 0) or 0
+    share = f'{100 * total / received:.1f}%' if received else 'n/a'
+    helper.log_debug(
+        f'[{code}] discarded {total / (1024 * 1024):.2f}MB of the '
+        f'{received / (1024 * 1024):.2f}MB received ({share}): {parts}. '
+        'Suppress these server-side to keep them off the wire.'
+    )
+
+
 def get_events(helper, connection, config, body_dict,
                limit_checker=None):
     """
@@ -1127,8 +1334,23 @@ def get_events(helper, connection, config, body_dict,
     """
     response = []
     response_count = 0
+    rlength = 0  # Initialize to avoid UnboundLocalError
+
+    # Ensure runtime safety limits (max size / max time) are always enforced,
+    # even when a caller does not provide its own LimitChecker.
+    if limit_checker is None:
+        limit_checker = create_limit_checker(config, logger=_resolve_logger(helper))
 
     body_dict['includeSightingdb'] = config['include_sightings']
+
+    # Only measure the discarded payload when DEBUG is actually on: it costs a
+    # json.dumps() per dropped structure per event.
+    discarded = None
+    try:
+        if _resolve_logger(helper).isEnabledFor(logging.DEBUG):
+            discarded = {}
+    except Exception:
+        discarded = None
 
     if config['page'] == 0 and config['limit'] != 0:
         request_loop = True
@@ -1136,14 +1358,27 @@ def get_events(helper, connection, config, body_dict,
         body_dict['page'] = 1
 
         while request_loop:
-            # Check limits before requesting next page
+            # Hard safety net against infinite pagination
+            if body_dict['page'] > MAX_PAGINATION_PAGES:
+                helper.log_error(
+                    f'[MC-804] Pagination stopped: reached hard page cap '
+                    f'({MAX_PAGINATION_PAGES} pages)'
+                )
+                break
+
+            # Check limits before requesting next page.
+            # Logged at ERROR, not WARNING: stopping here truncates the result
+            # set, and the user must be able to tell a partial answer from a
+            # complete one at the default loglevel.
             if limit_checker:
                 should_continue, stop_reason = (
                     limit_checker.should_continue()
                 )
                 if not should_continue:
-                    helper.log_warning(
-                        f'[MC-803] Pagination stopped: {stop_reason}'
+                    helper.log_error(
+                        f'[MC-803] Pagination stopped after '
+                        f"{len(response)} event(s) on page "
+                        f"{body_dict['page']}: {stop_reason}"
                     )
                     break
 
@@ -1166,14 +1401,9 @@ def get_events(helper, connection, config, body_dict,
                 if rlength != 0:
                     for r_item in iter_response['response']:
                         event = r_item.get('Event') or {}
-                        if config['getioc'] is False:
-                            event.pop('Attribute', None)
-                            event.pop('Object', None)
-                        if config['keep_galaxy'] is False:
-                            event.pop('Galaxy', None)
-                        if config['keep_related'] is False:
-                            event.pop('RelatedEvent', None)
-                        response.append(event)
+                        response.append(
+                            _prune_event(event, config, discarded)
+                        )
                     helper.log_debug(
                         f"[MC-801] request on page {body_dict['page']} "
                         f"returned {rlength} event(s); querying next page"
@@ -1187,6 +1417,9 @@ def get_events(helper, connection, config, body_dict,
                     # Last page is reached
                     request_loop = False
             else:
+                _log_request_failure(
+                    helper, iter_response, body_dict['page'], 'MC-805'
+                )
                 request_loop = False
 
     else:
@@ -1209,19 +1442,18 @@ def get_events(helper, connection, config, body_dict,
         if 'response' in iter_response:
             for r_item in iter_response['response']:
                 event = r_item.get('Event') or {}
-                if config['getioc'] is False:
-                    event.pop('Attribute', None)
-                    event.pop('Object', None)
-                if config['keep_galaxy'] is False:
-                    event.pop('Galaxy', None)
-                if config['keep_related'] is False:
-                    event.pop('RelatedEvent', None)
-                response.append(event)
+                response.append(_prune_event(event, config, discarded))
             response_count = len(iter_response['response'])
+        else:
+            _log_request_failure(
+                helper, iter_response, body_dict['page'], 'MC-806'
+            )
 
     helper.log_info(
         f"[MC-802] response contains {response_count} records"
     )
+
+    _discard_report(helper, discarded, limit_checker, 'MC-807')
 
     # Log final statistics if limit checker is active
     if limit_checker:

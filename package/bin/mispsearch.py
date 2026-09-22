@@ -15,7 +15,6 @@ from itertools import chain
 from splunklib.searchcommands import dispatch, StreamingCommand, Configuration, Option, validators
 from misp_common import prepare_config, logging_level, urllib_init_pool, get_attributes, map_attribute_table
 import json
-import logging
 import sys
 
 """
@@ -178,23 +177,22 @@ class MispSearchCommand(StreamingCommand):
     )
 
     def log_error(self, msg):
-        logging.error(msg)
+        self.logger.error(msg)
 
     def log_info(self, msg):
-        logging.info(msg)
+        self.logger.info(msg)
 
     def log_debug(self, msg):
-        logging.debug(msg)
+        self.logger.debug(msg)
 
     def log_warn(self, msg):
-        logging.warning(msg)
+        self.logger.warning(msg)
 
     def set_log_level(self):
-        logging.root
         loglevel = logging_level(self.service, 'misp42splunk')
-        logging.root.setLevel(loglevel)
-        logging.error('[SE-101] logging level is set to %s', loglevel)
-        logging.error('[SE-102] PYTHON VERSION: ' + sys.version)
+        self.logger.setLevel(loglevel)
+        self.logger.info('[SE-101] logging level is set to %s', loglevel)
+        self.logger.info('[SE-102] PYTHON VERSION: %s', sys.version)
 
     # get parameters from record or command line
     def get_parameter(self, obj, key, default=False):

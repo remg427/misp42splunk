@@ -12,7 +12,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import misp42splunk_declare
 from itertools import chain
 import json
-import logging
 from misp_common import LimitChecker, create_limit_checker, prepare_config, logging_level, urllib_init_pool, generate_record, get_attributes, map_attribute_table, get_events, map_event_table, splunk_timestamp
 from splunklib.searchcommands import dispatch, StreamingCommand, Configuration, Option, validators
 import sys
@@ -273,10 +272,10 @@ class MispFetchCommand(StreamingCommand):
         doc='''
         **Syntax:** pipesplit=<1|y|Y|t|true|True|0|n|N|f|false|False>
         **Description:**Boolean to split multivalue attributes.
-        **Default:** False
+        **Default:** True
         ''',
         require=False,
-        default=False,
+        default=True,
         validate=validators.Boolean()
     )
     prefix = Option(
@@ -297,23 +296,22 @@ class MispFetchCommand(StreamingCommand):
     )
 
     def log_error(self, msg):
-        logging.error(msg)
+        self.logger.error(msg)
 
     def log_info(self, msg):
-        logging.info(msg)
+        self.logger.info(msg)
 
     def log_debug(self, msg):
-        logging.debug(msg)
+        self.logger.debug(msg)
 
     def log_warn(self, msg):
-        logging.warning(msg)
+        self.logger.warning(msg)
 
     def set_log_level(self):
-        logging.root
         loglevel = logging_level(self.service, 'misp42splunk')
-        logging.root.setLevel(loglevel)
-        logging.error('[EV-101] logging level is set to %s', loglevel)
-        logging.error('[EV-102] PYTHON VERSION: ' + sys.version)
+        self.logger.setLevel(loglevel)
+        self.logger.info('[MF-101] logging level is set to %s', loglevel)
+        self.logger.info('[MF-102] PYTHON VERSION: %s', sys.version)
 
     # get parameters from record or command line
     def get_parameter(self, obj, key, default=False):
@@ -425,7 +423,7 @@ class MispFetchCommand(StreamingCommand):
         # with a list of all attributes
         event_mapping = {
             'analysis': 'analysis', 
-            'attribute_count': 'analysis_count',
+            'attribute_count': 'attribute_count',
             'date': 'event_date',
             'disable_correlation': 'disable_correlation',
             'distribution': 'distribution', 
@@ -512,6 +510,76 @@ class MispFetchCommand(StreamingCommand):
                 body_dict['returnFormat'] = 'json'
                 body_dict['withAttachments'] = False
 
+                # When attributes are not requested, ask MISP for event
+                # metadata only. This is the default path, since getioc
+                # defaults to false. Otherwise MISP serialises every Attribute,
+                # which get_events() discards right after download: the
+                # transfer cost is paid for nothing and large result sets hit
+                # max_response_size_mb long before the last page is reached.
+                # Only /events/restSearch is concerned: get_attributes() never
+                # reads getioc.
+                # An explicit "metadata" in misp_http_body always wins.
+                if config['misp_restsearch'] == "events":
+                    if mf_params['getioc'] is False \
+                       and 'metadata' not in body_dict:
+                        body_dict['metadata'] = 1
+                        self.log_info(
+                            '[MF-103] getioc is false; key metadata set to 1 '
+                            'to fetch event metadata only')
+                    # MISP bug (confirmed on 2.5.33): Event::fetchEvent() unsets
+                    # the Attribute and ShadowAttribute containers when metadata
+                    # is set, but its warninglist block is not guarded by
+                    # metadata and still passes $event['Attribute'] to
+                    # attachWarninglistToAttributes(array &$attrs). The missing
+                    # key materialises as null, the array type rejects it, and
+                    # the request dies with HTTP 500. Both flags only ever
+                    # filtered attributes, which metadata does not return, so
+                    # turning them off costs nothing here.
+                    if body_dict.get('metadata'):
+                        for flag in ('enforceWarninglist',
+                                     'includeWarninglistHits'):
+                            if body_dict.get(flag):
+                                body_dict[flag] = False
+                                self.log_warn(
+                                    f'[MF-104] key {flag} forced to False: it '
+                                    'is incompatible with metadata and makes '
+                                    'MISP return HTTP 500')
+
+                    # Same principle as metadata: do not pay to transfer
+                    # structures that get_events() discards on arrival.
+                    # Event::restSearch() hands the whole filter set to
+                    # fetchEvent(), so these reach $options even though
+                    # includeEventCorrelations is not in $possibleOptions.
+                    #   excludeGalaxy=1            -> no galaxy clusters
+                    #   includeEventCorrelations=0 -> no RelatedEvent
+                    # Both default to "include" server-side.
+                    if mf_params['keep_galaxy'] is False \
+                       and 'excludeGalaxy' not in body_dict:
+                        body_dict['excludeGalaxy'] = 1
+                        self.log_info(
+                            '[MF-105] keep_galaxy is false; key excludeGalaxy '
+                            'set to 1 so MISP does not attach galaxy clusters')
+
+                    # Note: unlike metadata and excludeGalaxy,
+                    # includeEventCorrelations is NOT in
+                    # Event::$possibleOptions, and MISP 2.5.33 drops it before
+                    # fetchEvent() sees it - measured: RelatedEvent still
+                    # arrives. Kept because it is harmless and correct if MISP
+                    # ever accepts it.
+                    if mf_params['keep_related'] is False \
+                       and 'includeEventCorrelations' not in body_dict:
+                        body_dict['includeEventCorrelations'] = 0
+                        self.log_info(
+                            '[MF-106] keep_related is false; requesting '
+                            'includeEventCorrelations=0 (ignored by MISP '
+                            '2.5.33, so RelatedEvent is still transferred '
+                            'and then discarded)')
+                    # metadata=1 tells MISP to omit Attribute, ShadowAttribute,
+                    # Object and EventReport, so attribute-level output is
+                    # impossible no matter what getioc asked for.
+                    config['getioc'] = (
+                        mf_params['getioc'] and not body_dict.get('metadata'))
+
                 if 'tags' not in body_dict:
                     if config['tags'] is not None or\
                        config['not_tags'] is not None:
@@ -533,7 +601,7 @@ class MispFetchCommand(StreamingCommand):
                 elif 'includeSightingdb' in body_dict:
                     config['include_sightings'] = body_dict['includeSightingdb']
                 else:
-                    config['include_sightings'] = True  # default true whithout additional param
+                    config['include_sightings'] = False  # default False whithout additional param
 
                 self.log_info('[MF-100] actual http body: {} '.format(json.dumps(body_dict)))
 

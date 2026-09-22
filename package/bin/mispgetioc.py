@@ -15,7 +15,6 @@ import misp42splunk_declare
 from splunklib.searchcommands import dispatch, GeneratingCommand, Configuration, Option, validators
 import sys
 import json
-import logging
 from misp_common import prepare_config, generate_record, logging_level, urllib_init_pool, get_attributes, map_attribute_table, splunk_timestamp
 
 __author__ = "Remi Seguy"
@@ -349,23 +348,22 @@ class MispGetIocCommand(GeneratingCommand):
     )
 
     def log_error(self, msg):
-        logging.error(msg)
+        self.logger.error(msg)
 
     def log_info(self, msg):
-        logging.info(msg)
+        self.logger.info(msg)
 
     def log_debug(self, msg):
-        logging.debug(msg)
+        self.logger.debug(msg)
 
     def log_warn(self, msg):
-        logging.warning(msg)
+        self.logger.warning(msg)
 
     def set_log_level(self):
-        logging.root
         loglevel = logging_level(self.service, 'misp42splunk')
-        logging.root.setLevel(loglevel)
-        logging.error('[IO-201] logging level is set to %s', loglevel)
-        logging.error('[IO-202] PYTHON VERSION: ' + sys.version)
+        self.logger.setLevel(loglevel)
+        self.logger.info('[IO-201] logging level is set to %s', loglevel)
+        self.logger.info('[IO-202] PYTHON VERSION: %s', sys.version)
 
     def generate(self):
         # loggging

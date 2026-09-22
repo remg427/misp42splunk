@@ -11,7 +11,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 from splunklib.searchcommands import dispatch, StreamingCommand, Configuration, Option, validators
 import sys
-import logging
 from misp_common import prepare_config, urllib_request, logging_level, urllib_init_pool
 
 __author__ = "timothebot"
@@ -56,23 +55,22 @@ class MispGetAttributeCommand(StreamingCommand):
     )
 
     def log_error(self, msg):
-        logging.error(msg)
+        self.logger.error(msg)
 
     def log_info(self, msg):
-        logging.info(msg)
+        self.logger.info(msg)
 
     def log_debug(self, msg):
-        logging.debug(msg)
+        self.logger.debug(msg)
 
     def log_warn(self, msg):
-        logging.warning(msg)
+        self.logger.warning(msg)
 
     def set_log_level(self):
-        # logging.root
         loglevel = logging_level(self.service, 'misp42splunk')
-        logging.root.setLevel(loglevel)
-        logging.error('[AT-101] logging level is set to %s', loglevel)
-        logging.debug('[AT-102] PYTHON VERSION: ' + sys.version)
+        self.logger.setLevel(loglevel)
+        self.logger.info('[AT-101] logging level is set to %s', loglevel)
+        self.logger.info('[AT-102] PYTHON VERSION: %s', sys.version)
 
     def stream(self, records):
         self.set_log_level()
