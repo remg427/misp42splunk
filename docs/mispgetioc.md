@@ -22,9 +22,9 @@ The `mispgetioc` command retrieves Indicators of Compromise (IOCs) from a config
     [category=<CSV string>] [decay_score_threshold=<int>] [decaying_model=<int>] 
     [exclude_decayed=<bool>] [expand_object=<bool>] [geteventtag=<bool>] 
     [include_decay_score=<bool>] [include_deleted=<bool>] [include_sightings=<bool>] 
-    [limit=<int>] [not_tags=<CSV string>] [output=<fields|json>] [page=<int>] 
-    [pipesplit=<bool>] [prefix=<string>] [tags=<CSV string>] [threat_level_id=<int>] 
-    [to_ids=<bool>] [type=<CSV string>] [warning_list=<bool>]
+    [limit=<int>] [not_tags=<CSV string>] [order=<CSV string>|none] [output=<fields|json>] 
+    [page=<int>] [pipesplit=<bool>] [prefix=<string>] [tags=<CSV string>] 
+    [threat_level_id=<int>] [to_ids=<bool>] [type=<CSV string>] [warning_list=<bool>]
 ```
 
 ## Parameters
@@ -95,7 +95,7 @@ One and only one of the following parameters must be provided:
 
 - **to_ids**
   - **Syntax:** `to_ids=<bool>`
-  - **Description:** Filters attributes with the `to_ids` flag set to true or false.
+  - **Description:** Filters attributes with the `to_ids` flag set to true or false. Setting `to_ids=true` also forces the warning list on, overriding `warning_list=false` (see `warning_list`).
 
 - **type**
   - **Syntax:** `type=<CSV string>`
@@ -103,7 +103,7 @@ One and only one of the following parameters must be provided:
 
 - **warning_list**
   - **Syntax:** `warning_list=<bool>`
-  - **Description:** Filters out well-known values using MISP warning lists. Default: `true`.
+  - **Description:** Filters out well-known values using MISP warning lists. Default: `true`. Ignored when `to_ids=true`: attributes flagged for detection that also hit a warning list are almost always false positives, so the warning list is enforced regardless. To override, set `enforceWarninglist` explicitly in `json_request`. A forced change is logged as `[IO-111]`.
 
 ### Optional Output Parameters
 
@@ -131,13 +131,20 @@ One and only one of the following parameters must be provided:
   - **Syntax:** `limit=<int>`
   - **Description:** Maximum number of results per page. Set to `0` for no pagination. Default: `1000`.
 
+- **order**
+  - **Syntax:** `order=<CSV string>|none`
+  - **Description:** Sort order for `/attributes/restSearch`, as `Model.field [asc|desc]` rules separated by commas. Default: `Attribute.event_id,Attribute.id`.
+    MISP applies no `ORDER BY` unless asked, and paginating an unordered query with `limit`/`page` can return overlapping or missing rows between pages, so a stable sort is what makes a multi-page fetch correct. Ordering by `event_id` first additionally allows results to be streamed page by page, keeping memory proportional to `limit` instead of to the whole result set.
+    MISP 2.5 accepts only these fields: `Attribute.id`, `Attribute.event_id`, `Attribute.object_id`, `Attribute.type`, `Attribute.category`, `Attribute.value`, `Attribute.distribution`, `Attribute.timestamp`, `Attribute.object_relation` and `Event.publish_timestamp`.
+    Set `order=none` to send no sort order; results are then buffered in full before being returned. An `order` given in `json_request` takes precedence.
+
 - **output**
   - **Syntax:** `output=<fields|json>`
   - **Description:** Output format: `fields` (tabular) or `json`. Default: `fields`.
 
 - **page**
   - **Syntax:** `page=<int>`
-  - **Description:** Specific page to retrieve when limit is not 0. Default: `0` (get all pages).
+  - **Description:** Specific page to retrieve when limit is not 0. Default: `0` (get all pages). With `limit=0` the page number is dropped from the request, since pagination is disabled.
 
 - **pipesplit**
   - **Syntax:** `pipesplit=<bool>`
@@ -145,7 +152,18 @@ One and only one of the following parameters must be provided:
 
 - **prefix**
   - **Syntax:** `prefix=<string>`
-  - **Description:** Custom prefix for all MISP keys in the output. Overrides instance default.
+  - **Description:** Custom prefix for all MISP keys in the output, including `<prefix>mispgetioc_message`. Overrides instance default. Default: `misp_`.
+
+## Result status field
+
+Every row carries a `<prefix>mispgetioc_message` field (by default `misp_mispgetioc_message`) summarising the fetch: how many attributes MISP reported as matching, and the reason if the result set was cut short. Use it to tell a complete answer from a partial one without opening `search.log`:
+
+```spl
+| mispgetioc misp_instance=default_misp last=24h
+| stats count by misp_mispgetioc_message
+```
+
+A fetch can stop early when it reaches Max Response Size, Max Execution Time or Max Output Size (see Notes). Because results are streamed, the last rows carry the most complete message.
 
 ## Examples
 
@@ -186,7 +204,8 @@ Uses a raw JSON request body for custom MISP API queries.
 - Boolean parameters accept values like `1`, `y`, `Y`, `t`, `true`, `True`, `0`, `n`, `N`, `f`, `false`, or `False`.
 - One and only one of the following parameters must be set: `json_request`, `date`, `eventid`, `last`, `publish_timestamp`, or `timestamp`.
 - Parameters like `tags`, `not_tags`, `category`, and `type` support wildcards using `%`.
-- Global resource limits (max response size, max execution time) configured in MISP42 settings apply to this command.
+- Global resource limits configured in MISP42 settings apply to this command: Max Response Size (what is transferred from MISP), Max Execution Time (how long the fetch may run) and Max Output Size (what is handed to Splunk). Reaching any of them truncates the result set, which is reported at ERROR in the log and in `<prefix>mispgetioc_message`.
+- Before paging, the command asks MISP for a count of matching attributes and logs it as `[MC-608]`, so `[MC-602]` can report the fetched total against it.
 
 ## Logging
 
@@ -194,6 +213,6 @@ Logs are written to `$SPLUNK_HOME/var/log/splunk/misp42splunk.log`. Configure th
 
 ## Version
 
-- **Current Version:** 6.0.0
+- **Current Version:** 6.1.0
 - **Author:** Remi Seguy
 - **License:** LGPLv3

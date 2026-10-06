@@ -13,11 +13,11 @@ import misp42splunk_declare
 from splunklib.searchcommands import dispatch, GeneratingCommand, Configuration, Option, validators
 import sys
 import json
-from misp_common import prepare_config, generate_record, logging_level, urllib_init_pool, get_events, map_event_table, splunk_timestamp
+from misp_common import prepare_config, generate_record, logging_level, urllib_init_pool, iter_event_pages, map_event_table, prefixed, splunk_timestamp, create_output_budget, log_truncation_summary, CommandMessage, message_field
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "5.0.0"
+__version__ = "6.1.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -433,13 +433,11 @@ class MispGetEventCommand(GeneratingCommand):
         body_dict['excludeLocalTags'] = body_dict.get('excludeLocalTags', self.exclude_local_tags)
         body_dict['enforceWarninglist'] = body_dict.get('enforceWarninglist', self.warning_list)
 
-        # When attributes are not requested, ask MISP for event metadata only.
-        # This is the default path, since getioc defaults to false. Otherwise
-        # MISP serialises every Attribute, which get_events() discards right
-        # after download: the transfer cost is paid for nothing and large result
-        # sets hit max_response_size_mb long before the last page is reached.
-        # fetchEvent() drops Attribute, ShadowAttribute, Object, EventReport and
-        # Sighting; Galaxy and RelatedEvent are attached afterwards and stay
+        # Without metadata MISP serialises every Attribute, which _prune_event()
+        # discards on arrival: the transfer is paid for nothing and large result
+        # sets hit max_response_size_mb before the last page.
+        # metadata drops Attribute, ShadowAttribute, Object, EventReport and
+        # Sighting; Galaxy and RelatedEvent are attached afterwards and remain
         # subject to keep_galaxy / keep_related.
         # An explicit "metadata" in json_request always wins.
         if self.getioc is False and 'metadata' not in body_dict:
@@ -448,14 +446,11 @@ class MispGetEventCommand(GeneratingCommand):
                 '[EV-210] Option "getioc" is false; key metadata set to 1 '
                 'to fetch event metadata only')
 
-        # MISP bug (confirmed on 2.5.33): Event::fetchEvent() unsets the
-        # Attribute and ShadowAttribute containers when metadata is set, but its
-        # warninglist block is not guarded by metadata and still passes
-        # $event['Attribute'] to attachWarninglistToAttributes(array &$attrs).
-        # The missing key materialises as null, the array type rejects it, and
-        # the request dies with HTTP 500. Both flags only ever filtered
-        # attributes, which metadata does not return, so turning them off costs
-        # nothing here.
+        # MISP bug (2.5.33): fetchEvent() unsets the Attribute container under
+        # metadata, but its warninglist block still passes $event['Attribute']
+        # to attachWarninglistToAttributes(array &$attrs) - null against an
+        # array type, so the request dies with HTTP 500. Both flags only filter
+        # attributes, which metadata does not return, so disabling them is free.
         if body_dict.get('metadata'):
             for flag in ('enforceWarninglist', 'includeWarninglistHits'):
                 if body_dict.get(flag):
@@ -465,26 +460,19 @@ class MispGetEventCommand(GeneratingCommand):
                         'incompatible with metadata and makes MISP return '
                         'HTTP 500')
 
-        # Same principle as metadata: do not pay to transfer structures that
-        # get_events() discards on arrival. Event::restSearch() hands the whole
-        # filter set to fetchEvent(), so these reach $options even though
-        # includeEventCorrelations is not in $possibleOptions.
-        #   excludeGalaxy=1            -> __attachGalaxies() returns early
-        #   includeEventCorrelations=0 -> RelatedEvent is never built
-        # Both default to "include" server-side, and fetchFullClusters also
-        # defaults to true, so galaxy clusters otherwise arrive with their
-        # complete definitions attached to every event.
+        # Same principle as metadata: do not transfer structures that
+        # _prune_event() discards. excludeGalaxy=1 makes __attachGalaxies()
+        # return early; server-side defaults otherwise attach every cluster with
+        # its full definition to every event (fetchFullClusters defaults true).
         if self.keep_galaxy is False and 'excludeGalaxy' not in body_dict:
             body_dict['excludeGalaxy'] = 1
             self.log_info(
                 '[EV-212] Option "keep_galaxy" is false; key excludeGalaxy '
                 'set to 1 so MISP does not attach galaxy clusters')
 
-        # Note: unlike metadata and excludeGalaxy, includeEventCorrelations is
-        # NOT in Event::$possibleOptions, and MISP 2.5.33 drops it before
-        # fetchEvent() sees it - measured: RelatedEvent still arrives. Kept
-        # because it is harmless and correct if MISP ever accepts it; watch the
-        # [MC-807] breakdown for what actually came over the wire.
+        # includeEventCorrelations is not in Event::$possibleOptions, so MISP
+        # 2.5.33 drops it and RelatedEvent still arrives. Sent anyway: harmless,
+        # and correct if MISP ever accepts it. [MC-807] reports what arrived.
         if self.keep_related is False \
            and 'includeEventCorrelations' not in body_dict:
             body_dict['includeEventCorrelations'] = 0
@@ -536,9 +524,8 @@ class MispGetEventCommand(GeneratingCommand):
 
         # output filter parameters
         config['expand_object'] = self.expand_object
-        # metadata=1 tells MISP to omit Attribute, ShadowAttribute, Object and
-        # EventReport, so attribute-level output is impossible no matter what
-        # getioc asked for.
+        # Under metadata MISP returns no Attribute, so attribute-level output is
+        # impossible whatever getioc asked for.
         config['getioc'] = self.getioc and not body_dict.get('metadata')
         config['include_sightings'] = body_dict.get('includeSightingdb', self.include_sightings)
         config['keep_galaxy'] = self.keep_galaxy
@@ -554,27 +541,44 @@ class MispGetEventCommand(GeneratingCommand):
             self.log_info('[EV-401] connection for {} failed'.format(config['misp_url']))
             yield response
         else:
-            response_list = get_events(self, connection, config, body_dict)
-            self.log_info('[EV-402] response_list: {}'.format(len(response_list)))
-            # response contains results
-            # if output=json, returns JSON objects
-            if config['output'] == "json":
-                for e in response_list:
-                    splunk_ts = splunk_timestamp(e.get('timestamp'))
-                    yield generate_record(
-                        e,
-                        event_time=splunk_ts,
+            # One page at a time, so peak memory follows limit rather than the
+            # whole result set. map_event_table() per page is equivalent to
+            # calling it on the full list: it only merges records within one
+            # event's own attribute list, never across events.
+            # The generator is single-pass - do not call len() on it.
+            #
+            # splunklib buffers every record until generate() returns and cannot
+            # flush partial chunks, so the budget is what keeps this terminating.
+            budget = create_output_budget(config, logger=self.logger)
+            # Reports totals and any truncation reason as
+            # <prefix>mispgetevent_message. This path streams, so the last
+            # records carry the most complete message.
+            message = CommandMessage(message_field(config, 'mispgetevent'))
+            for page in iter_event_pages(self, connection, config, body_dict,
+                                         message=message):
+                # if output=json, returns JSON objects
+                if config['output'] == "json":
+                    # Raw MISP events, so the key is unprefixed here.
+                    rows = page
+                    ts_key = 'timestamp'
+                else:
+                    rows = map_event_table(self, page, config)
+                    ts_key = prefixed(config, 'timestamp')
+                for result in rows:
+                    record = generate_record(
+                        message.stamp(result),
+                        event_time=splunk_timestamp(result.get(ts_key)),
                         generator=self
                     )
-            else:
-                output_list = map_event_table(self, response_list, config)
-                for result in output_list:
-                    splunk_ts = splunk_timestamp(result.get('misp_timestamp'))
-                    yield generate_record(
-                        result,
-                        event_time=splunk_ts,
-                        generator=self
-                    )
+                    yield record
+                    if budget.consume(record):
+                        break
+                if budget.exhausted:
+                    break
+            self.log_info(
+                '[EV-402] yielded {} record(s)'.format(budget.rows))
+            budget.log_summary(self, message=message)
+            log_truncation_summary(self, message=message)
 
 
 if __name__ == "__main__":

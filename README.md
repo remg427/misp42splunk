@@ -35,8 +35,9 @@ MISP42 is a Splunk add-on that enables bidirectional integration between [Splunk
 ![Add MISP Instance](images/misp42_add_misp_instance.png)
 
 3. **Configure Global Settings** (optional):
-   - Max Response Size (MB): Limit cumulative response size (default: 100 MB, 0 = unlimited)
-   - Max Execution Time (seconds): Limit query duration (default: 300s, 0 = unlimited)
+   - Max Response Size (MB): Limit cumulative response size (default: 512 MB, 0 = unlimited)
+   - Max Execution Time (seconds): Limit query duration (default: 900s, 0 = unlimited)
+   - Max Output Size (MB): Limit what a command hands to Splunk (default: 256 MB, 0 = unlimited)
    - Enable Limit Logging: Track pagination progress in logs
    - Progress Log Interval: How often to log progress (default: 10s)
 

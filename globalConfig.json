@@ -3,7 +3,7 @@
         "name": "misp42splunk",
         "restRoot": "misp42splunk",
         "displayName": "MISP42",
-        "version": "6.0.1",
+        "version": "6.1.0",
         "schemaVersion": "0.0.10"
     },
     "pages": {
@@ -60,7 +60,7 @@
                             "validators": [
                                 {
                                     "pattern": "^https://[0-9a-zA-Z_\\-\\.]+(?:\\:\\d+)?\\/?$",
-                                    "errorMsg": "Invalid URL; it must start with https:// and may optionally end with /.",
+                                    "errorMsg": "Invalid URL; it must start with https:// and may end with /.",
                                     "type": "regex"
                                 }
                             ],
@@ -241,7 +241,7 @@
                             "type": "text",
                             "label": "Max Response Size (MB)",
                             "field": "max_response_size_mb",
-                            "help": "Maximum cumulative size of MISP responses in megabytes. Set to 0 to disable this limit. Default: 100 MB",
+                            "help": "Maximum cumulative size of MISP responses in megabytes, counted across all pages of one search. Pagination stops once it is reached, which truncates the result set, so a value too low silently returns a partial answer. Set to 0 to disable this limit. Default: 512 MB",
                             "defaultValue": 512,
                             "required": false,
                             "validators": [
@@ -259,7 +259,7 @@
                             "type": "text",
                             "label": "Max Execution Time (seconds)",
                             "field": "max_execution_time_sec",
-                            "help": "Maximum execution time for MISP commands in seconds. Set to 0 to disable this limit. Default: 300 seconds (5 minutes)",
+                            "help": "Maximum time a MISP command spends fetching pages, in seconds. Pagination stops once it is reached, which truncates the result set. Keep it below the Splunk search timeout. Set to 0 to disable this limit. Default: 900 seconds (15 minutes)",
                             "defaultValue": 900,
                             "required": false,
                             "validators": [
@@ -270,6 +270,24 @@
                                         7200
                                     ],
                                     "errorMsg": "Value must be between 0 and 7200 (2 hours)"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "text",
+                            "label": "Max Output Size (MB)",
+                            "field": "max_output_size_mb",
+                            "help": "Maximum cumulative size of the results a command hands to Splunk. Splunk buffers every result in memory until the command finishes, so without this bound a search returning very large rows can hang or run out of memory. Expect peak memory of roughly three times this value, because Splunk copies the whole buffer twice when it finally writes it. Set to 0 to disable. Default: 256 MB",
+                            "defaultValue": 256,
+                            "required": false,
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        0,
+                                        4096
+                                    ],
+                                    "errorMsg": "Value must be between 0 and 4096"
                                 }
                             ]
                         },

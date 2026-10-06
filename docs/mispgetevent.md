@@ -196,6 +196,6 @@ Logs are written to `$SPLUNK_HOME/var/log/splunk/misp42splunk.log`. Configure th
 
 ## Version
 
-- **Current Version:** 6.0.0
+- **Current Version:** 6.1.0
 - **Author:** Remi Seguy
 - **License:** LGPLv3

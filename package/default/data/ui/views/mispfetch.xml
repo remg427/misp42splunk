@@ -10,6 +10,7 @@
     <set token="param_keep_related">keep_related=False</set>
     <set token="param_limit">limit=1000</set>
     <set token="param_not_tags"></set>
+    <set token="param_order">order="Attribute.event_id,Attribute.id"</set>
     <set token="param_page">page=0</set>
     <set token="param_pipesplit">pipesplit=True</set>
     <set token="param_prefix"></set>
@@ -142,6 +143,19 @@
           <set token="param_not_tags">not_tags="$not_tags$"</set>
         </condition>
       </change>
+    </input>
+    <input type="text" token="order" searchWhenChanged="false">
+      <label>order</label>
+      <change>
+        <condition match="$value$=&quot;&quot;">
+          <set token="param_order"></set>
+        </condition>
+        <condition>
+          <set token="param_order">order="$order$"</set>
+        </condition>
+      </change>
+      <default>Attribute.event_id,Attribute.id</default>
+      <initialValue>Attribute.event_id,Attribute.id</initialValue>
     </input>
     <input type="text" token="page" searchWhenChanged="false">
       <label>page</label>
@@ -286,16 +300,18 @@ account in the input field next to the drop-down list)</td>
             <td>False</td>
             <td>
             <p>Include event attributes in the output. In tabular view there will be one row per object or attribute of events.</p>
+            <p>When False, the request sets <code>metadata=1</code> so MISP returns event metadata only. Measured on a 1900-event search that is roughly 33 KB per event, against several MB per event with getioc=True.</p>
             <p>Effective only when using <code>/events/restSearch</code>.</p>
             </td>
           </tr>
           <tr>
             <td>keep_galaxy</td>
             <td>keep_galaxy=&lt;1|y|Y|t|true|True|0|n|N|f|false|False&gt;</td>
-            <td>True</td>
+            <td>False</td>
             <td>
-            <p>Boolean to keep Galaxy information (by default) or remove it.</p>
-            <p>It can be usefull for misp_output_mode=json if you plan to use spath that has a default limit of 5000 characters to parse the JSON payload.</p>
+            <p>Keep the Galaxy clusters attached to each event.</p>
+            <p>When False, the request sets <code>excludeGalaxy=1</code> so MISP never builds them. This is the single largest saving available: galaxy clusters arrive with their full definitions and measured around 400 KB per event.</p>
+            <p>It can also be useful for misp_output_mode=json if you plan to use spath, which has a default limit of 5000 characters to parse the JSON payload.</p>
             <p>Effective only when using <code>/events/restSearch</code>.</p>
             </td>
           </tr>
@@ -303,7 +319,9 @@ account in the input field next to the drop-down list)</td>
             <td>keep_related</td>
             <td>keep_related=(1|y|Y|t|true|True|0|n|N|f|false|False)</td>
             <td>False</td>
-            <td>Boolean to keep Related event info or remove it in ouput=json (full JSON record). This is useful if you plan to use spath that has a limit of 5000 characters to parse the JSON payload.
+            <td>
+            <p>Keep the RelatedEvent list attached to each event.</p>
+            <p>When False the request asks for <code>includeEventCorrelations=0</code>, but MISP 2.5.33 ignores that filter, so RelatedEvent is still transferred and then discarded. Check the <code>[MC-807]</code> line in search.log for how much that costs on your instance.</p>
             <p>Effective only when using <code>/events/restSearch</code>.</p>
             </td>
           </tr>
@@ -326,10 +344,21 @@ account in the input field next to the drop-down list)</td>
             <td>Comma(,)-separated string of tags to exclude. Wildcard is %.</td>
           </tr>
           <tr>
+            <td>order</td>
+            <td>order=CSV string | none</td>
+            <td>Attribute.event_id,Attribute.id</td>
+            <td>
+            <p>Sort order sent to MISP, as "Model.field [asc|desc]" rules separated by commas. MISP applies no ORDER BY unless asked, and paging an unordered query with limit/page can return overlapping or missing rows between pages, so a stable sort is what makes a multi-page fetch correct.</p>
+            <p>Ordering by event_id first also lets results stream page by page, so memory follows <strong>limit</strong> rather than the size of the whole result set. Change the first key and the whole result set is buffered instead.</p>
+            <p>MISP 2.5 accepts only: Attribute.id, Attribute.event_id, Attribute.object_id, Attribute.type, Attribute.category, Attribute.value, Attribute.distribution, Attribute.timestamp, Attribute.object_relation and Event.publish_timestamp. Set <strong>order=none</strong> to send no sort order.</p>
+            <p>Effective only when using <code>/attributes/restSearch</code>; the events endpoint has different sortable fields.</p>
+            </td>
+          </tr>
+          <tr>
             <td>page</td>
             <td>page=int</td>
             <td>0</td>
-            <td>define the page for each MISP search; default 0 = iterate through all pages</td>
+            <td>define the page for each MISP search; default 0 = iterate through all pages. With limit=0 the page number is dropped from the request.</td>
           </tr>
           <tr>
             <td>pipesplit</td>
@@ -361,6 +390,17 @@ account in the input field next to the drop-down list)</td>
           </tr>
         </tbody>
       </table>
+      <h2>Result limits and partial results</h2>
+      <p>Three settings in the app Configuration tab bound a search. Each one reports at ERROR in search.log when it stops a run, so a partial result is never silent:</p>
+      <ul>
+        <li><strong>Max Response Size (MB)</strong> bounds what is transferred from MISP, reported as <code>[MC-803]</code> for events and <code>[MC-603]</code> for attributes.</li>
+        <li><strong>Max Execution Time (seconds)</strong> bounds how long the fetch may run, reported the same way.</li>
+        <li><strong>Max Output Size (MB)</strong> bounds what is handed to Splunk, reported as <code>[MC-808]</code>. Splunk buffers every result in memory until the command finishes, so this is what stops a very wide search from hanging with no output.</li>
+      </ul>
+      <p>Two other lines are worth knowing. <code>[MC-802]</code> gives the number of events fetched alongside MISP's own <code>X-Result-Count</code>, which is the quickest way to tell a complete answer from a truncated one. <code>[GR-004]</code> counts values that exceeded Splunk's 2 MB field limit and had to be cut; if you see it, try <code>expand_object=True</code> so each attribute becomes its own row instead of being merged into one oversized row.</p>
+      <p>Both paths stream a page at a time, so memory follows <code>limit</code> rather than the size of the whole result set. On the attributes path this requires an <code>order</code> starting with <code>Attribute.event_id</code>, which is the default: attributes of one event then arrive together, and a group split across a page boundary can be held back and completed from the next page. Override <code>order</code> with something else and the whole set has to be held in memory instead.</p>
+      <p>The same information reaches the results: every row carries a <code>&lt;prefix&gt;mispfetch_message</code> field (by default <code>misp_mispfetch_message</code>) with the matched total and the reason the fetch stopped, if it did. Results are streamed, so the last rows carry the most complete message. Each row also carries <code>&lt;prefix&gt;mispfetch_params</code>, the resolved parameter set used for that request.</p>
+      <p>Setting a limit to 0 disables it. Leaving all of them at 0 is not recommended, since nothing then bounds a runaway search.</p>
     </html>
     </panel>
   </row>
@@ -431,9 +471,9 @@ account in the input field next to the drop-down list)</td>
         <choice value="append base mispfetch">base_mispfetch</choice>
       </input>
       <table depends="$base_mispfetch$">
-        <title>$sample_query$ |  mispfetch misp_instance=$misp_instance$ $param_restsearch$ $param_misp_http_body$ $param_misp_output_mode$ $param_attribute_limit$ $param_expand_object$ $param_getioc$ $param_keep_galaxy$  $param_keep_related$ $param_limit$ $param_not_tags$ $param_page$ $param_pipesplit$ $param_prefix$ $param_tags$</title>
+        <title>$sample_query$ |  mispfetch misp_instance=$misp_instance$ $param_restsearch$ $param_misp_http_body$ $param_misp_output_mode$ $param_attribute_limit$ $param_expand_object$ $param_getioc$ $param_keep_galaxy$  $param_keep_related$ $param_limit$ $param_not_tags$ $param_order$ $param_page$ $param_pipesplit$ $param_prefix$ $param_tags$</title>
         <search>
-          <query>$sample_query$ |  mispfetch misp_instance=$misp_instance$ $param_restsearch$ $param_misp_http_body$ $param_misp_output_mode$ $param_attribute_limit$ $param_expand_object$ $param_getioc$ $param_keep_galaxy$  $param_keep_related$ $param_limit$ $param_not_tags$ $param_page$ $param_pipesplit$ $param_prefix$ $param_tags$ | table *</query>
+          <query>$sample_query$ |  mispfetch misp_instance=$misp_instance$ $param_restsearch$ $param_misp_http_body$ $param_misp_output_mode$ $param_attribute_limit$ $param_expand_object$ $param_getioc$ $param_keep_galaxy$  $param_keep_related$ $param_limit$ $param_not_tags$ $param_order$ $param_page$ $param_pipesplit$ $param_prefix$ $param_tags$ | table *</query>
           <earliest>0</earliest>
           <latest></latest>
           <sampleRatio>1</sampleRatio>

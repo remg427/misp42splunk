@@ -15,11 +15,11 @@ import misp42splunk_declare
 from splunklib.searchcommands import dispatch, GeneratingCommand, Configuration, Option, validators
 import sys
 import json
-from misp_common import prepare_config, generate_record, logging_level, urllib_init_pool, get_attributes, map_attribute_table, splunk_timestamp
+from misp_common import prepare_config, generate_record, logging_level, urllib_init_pool, iter_attribute_pages, iter_attribute_table, order_groups_by_event, map_attribute_table, misp_bool, prefixed, splunk_timestamp, create_output_budget, log_truncation_summary, CommandMessage, message_field
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "5.0.0"
+__version__ = "6.1.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -256,6 +256,28 @@ class MispGetIocCommand(GeneratingCommand):
         ''',
         require=False
     )
+    order = Option(
+        doc='''
+        **Syntax:** **order=** *CSV string*
+        **Description:** sort order for /attributes/restSearch, as
+        "Model.field [asc|desc]" rules separated by commas.
+        MISP applies no ORDER BY unless asked, and paginating an unordered query
+        with limit/page can return overlapping or missing rows across pages, so a
+        stable sort is required for a multi-page fetch to be correct.
+        Ordering by event_id first also lets results be streamed page by page:
+        attributes of one event stay contiguous, so no merged object row is split
+        across a page boundary.
+        MISP 2.5 accepts these fields only: Attribute.id, Attribute.event_id,
+        Attribute.object_id, Attribute.type, Attribute.category,
+        Attribute.value, Attribute.distribution, Attribute.timestamp,
+        Attribute.object_relation and Event.publish_timestamp.
+        Set to "none" to send no order; results are then buffered in full before
+        being returned.
+        **Default:** Attribute.event_id,Attribute.id
+        ''',
+        require=False,
+        default='Attribute.event_id,Attribute.id'
+    )
     page = Option(
         doc='''
         **Syntax:** **page=** *<int>*
@@ -300,7 +322,9 @@ class MispGetIocCommand(GeneratingCommand):
     warning_list = Option(
         doc='''
         **Syntax:** **warning_list=** *<1|y|Y|t|true|True|0|n|N|f|false|False>*
-        **Description:** boolean to filter out well known values.
+        **Description:** boolean to filter out well known values. Ignored when
+         to_ids=true, which always enforces the warninglist; set
+         enforceWarninglist in json_request to override that.
         **Default:** True
         ''',
         require=False,
@@ -452,14 +476,27 @@ class MispGetIocCommand(GeneratingCommand):
         self.log_info('[IO-201] limit {} page {}'.format(config['limit'], config['page']))
 
         # Search parameters: boolean and filter
-        # manage to_ids and enforceWarninglist
-        # to avoid FP enforceWarninglist is set to True if
-        # to_ids is set to True (search criterion)
 
         # set REST http body key having a default value
         body_dict['deleted'] = body_dict.get('deleted', self.include_deleted)
+        # Noted before the default is applied: after this line the key is always
+        # present, and the to_ids safeguard below must not override a choice the
+        # user spelled out in json_request.
+        warninglist_in_request = 'enforceWarninglist' in body_dict
         body_dict['enforceWarninglist'] = body_dict.get('enforceWarninglist', self.warning_list)
         body_dict['includeEventTags'] =  body_dict.get('includeEventTags', self.geteventtag)
+
+        # fetchAttributes() leaves $params['order'] empty unless asked, so
+        # restSearch paginates with LIMIT/OFFSET over an unordered set: pages can
+        # overlap and skip. Ordering by event_id also lets
+        # iter_attribute_table() stream (see order_groups_by_event()).
+        # An explicit order in json_request always wins; order=none opts out.
+        if 'order' not in body_dict and self.order \
+           and str(self.order).lower() != 'none':
+            body_dict['order'] = self.order
+            self.log_info(
+                '[IO-110] Option "order" set to {} for stable pagination'
+                .format(body_dict['order']))
 
         # set REST http body keys without default value
         if self.category and 'category' not in body_dict:
@@ -483,6 +520,23 @@ class MispGetIocCommand(GeneratingCommand):
 
         if self.to_ids is not None:
             body_dict['to_ids'] = body_dict.get('to_ids', self.to_ids)
+
+        # to_ids=true selects the attributes a publisher meant to feed
+        # detection, so a warninglist hit among them is a likely false positive
+        # (RFC1918 ranges, public resolvers, heavily visited domains). Those are
+        # the values that generate alert storms once the results reach a lookup
+        # or a correlation search, so the warninglist is enforced even when
+        # warning_list=false asked otherwise.
+        # An explicit enforceWarninglist in json_request still wins.
+        if misp_bool(body_dict.get('to_ids')) \
+           and not warninglist_in_request \
+           and not misp_bool(body_dict['enforceWarninglist']):
+            body_dict['enforceWarninglist'] = True
+            self.log_warn(
+                '[IO-111] key enforceWarninglist forced to True because '
+                'to_ids is true: warninglisted values are likely false '
+                'positives. Set enforceWarninglist in json_request to '
+                'override')
 
         if self.type and 'type' not in body_dict:
             if "," in self.type:
@@ -520,28 +574,47 @@ class MispGetIocCommand(GeneratingCommand):
             self.log_info('[IO-204] connection for {} failed'.format(config['misp_url']))
             yield response
         else:
-            response_list = get_attributes(self, connection, config, body_dict)
-            self.log_info('[IO-205] response_list: {} '.format(len(response_list)))
-            # response contains results
-            # if output=json, returns JSON objects
+            # Carries totals and any truncation reason into the result set as
+            # <prefix>mispgetioc_message.
+            message = CommandMessage(message_field(config, 'mispgetioc'))
+            pages = iter_attribute_pages(
+                self, connection, config, body_dict, message=message)
+
             if config['output'] == "json":
-                for a in response_list:
-                    splunk_ts = splunk_timestamp(a.get('timestamp'))
-                    yield generate_record(
-                        a,
-                        event_time=splunk_ts,
-                        generator=self
-                    )
-            # default output=fields: extract some values from JSON attributes
+                # Raw MISP attributes, so the key is unprefixed here.
+                # No merging either, so pages stream straight through.
+                rows = (a for page in pages for a in page)
+                ts_key = 'timestamp'
+            elif order_groups_by_event(body_dict):
+                # Event-ordered: map a page at a time, carrying the trailing
+                # event over so no merged group is split.
+                rows = iter_attribute_table(self, pages, config)
+                ts_key = prefixed(config, 'timestamp')
             else:
-                output_list = map_attribute_table(self, response_list, config)
-                for result in output_list:
-                    splunk_ts = splunk_timestamp(result.get('misp_timestamp'))
-                    yield generate_record(
-                        result,
-                        event_time=splunk_ts,
-                        generator=self
-                    )
+                # Without event ordering a merged group may straddle a page
+                # boundary, so the whole set has to be mapped at once.
+                rows = map_attribute_table(
+                    self, [a for page in pages for a in page], config)
+                ts_key = prefixed(config, 'timestamp')
+
+            # splunklib buffers every record until generate() returns and cannot
+            # flush partial chunks, so maxresultrows gives no back-pressure.
+            # Bound what we produce instead.
+            budget = create_output_budget(config, logger=self.logger)
+            for result in rows:
+                record = generate_record(
+                    message.stamp(result),
+                    event_time=splunk_timestamp(result.get(ts_key)),
+                    generator=self
+                )
+                yield record
+                if budget.consume(record):
+                    break
+
+            self.log_info(
+                '[IO-206] yielded {} record(s)'.format(budget.rows))
+            budget.log_summary(self, message=message)
+            log_truncation_summary(self, message=message)
 
 
 if __name__ == "__main__":

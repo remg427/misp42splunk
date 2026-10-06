@@ -13,6 +13,22 @@ import splunklib.data
 # "page" parameter and keeps returning the same non-empty result set).
 MAX_PAGINATION_PAGES = 100000
 
+# Splunk's per-field size limit, and the size at which generate_record() cuts a
+# value. Kept at module level so the truncation summary can quote it.
+MAX_FIELD_SIZE = 2097152
+
+# Last-resort bound on the number of records a command hands to Splunk, applied
+# alongside the configurable max_output_size_mb. See OutputBudget for why a
+# producer-side bound is required at all.
+MAX_OUTPUT_ROWS = 1000000
+
+# MISP restSearch response headers worth surfacing in search.log.
+MISP_INFO_HEADERS = (
+    'X-Result-Count',
+    'X-Export-Module-Used',
+    'X-Response-Format',
+)
+
 
 def _resolve_logger(helper):
     """
@@ -33,11 +49,10 @@ def _log_request_failure(helper, iter_response, page, code):
     """
     Report a MISP reply that carries no "response" key.
 
-    urllib_request() turns HTTP error statuses and transport exceptions into a
-    plain dict holding a "_raw" description rather than raising. Without this
-    message the caller cannot tell an empty result set from a failed request:
-    pagination simply stops and the command returns nothing at all. Logged at
-    ERROR so the reason stays visible at the default loglevel.
+    urllib_request() turns HTTP errors and transport exceptions into a dict
+    holding a "_raw" description rather than raising, so without this the caller
+    cannot tell an empty result set from a failed request. ERROR level keeps the
+    reason visible at the default loglevel.
     """
     detail = iter_response.get('_raw', iter_response)
     helper.log_error(
@@ -46,7 +61,7 @@ def _log_request_failure(helper, iter_response, page, code):
     )
 
 __license__ = "LGPLv3"
-__version__ = "6.0.0"
+__version__ = "6.1.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -237,17 +252,11 @@ def create_limit_checker(settings, logger=None):
     max_time = (settings['max_execution_time_sec'] if settings.get('max_execution_time_sec', 0) > 0 else None)
 
     if max_size is None and max_time is None and logger is not None:
-        # get_events()/get_attributes() accumulate the whole result set in
-        # memory before the command yields anything, so these two settings are
-        # also the only thing bounding memory growth. With both disabled a wide
-        # search (notably getioc=true, where every attribute is fetched) can
-        # exhaust the search process and get it killed by the OOM killer -
-        # Splunk reports that as "exited unexpectedly with non-zero error
-        # code 9", with no Python traceback.
+        # With both disabled only an empty page stops the loop. Callers that
+        # buffer the whole result set also lose their only memory bound.
         logger.warning(
             '[LimitChecker] max_response_size_mb and max_execution_time_sec '
-            'are both 0: pagination has no size or time backstop and memory '
-            'growth is unbounded'
+            'are both 0: pagination has no size or time backstop'
         )
 
     return LimitChecker(
@@ -259,17 +268,114 @@ def create_limit_checker(settings, logger=None):
     )
 
 
+class OutputBudget:
+    """
+    Bound on what a command hands to Splunk.
+
+    splunklib's SCP v2 record writer cannot emit partial chunks:
+    ``RecordWriterV2.flush()`` returns immediately for ``partial=True`` and
+    ``_execute_chunk_v2()`` drains the whole generator before writing, so every
+    record is buffered until generate()/stream() returns and ``maxresultrows``
+    provides no back-pressure. Without a producer-side bound a search with large
+    rows appears to hang, then runs out of memory.
+
+    Peak memory is several times the figure counted here: ``write_chunk()``
+    holds the buffer, a str copy and a bytes copy at once. Budget roughly a
+    third of the memory the search process can afford.
+    """
+
+    def __init__(self, max_rows=None, max_size_mb=None, logger=None):
+        self.max_rows = max_rows or MAX_OUTPUT_ROWS
+        self.max_size_bytes = max_size_mb * 1024 * 1024 if max_size_mb else None
+        self.logger = logger
+        self.rows = 0
+        self.bytes = 0
+        self.exhausted = False
+        self.stop_reason = None
+
+    @staticmethod
+    def _record_size(record):
+        """
+        Approximate what one record occupies in splunklib's buffer.
+
+        The serialised row carries _raw *and* every individual field, so counting
+        only _raw under-reports by roughly half.
+        """
+        total = 0
+        for value in record.values():
+            if isinstance(value, str):
+                total += len(value)
+            elif isinstance(value, (list, tuple)):
+                total += sum(len(str(item)) for item in value)
+            else:
+                total += len(str(value))
+        return total
+
+    def consume(self, record):
+        """
+        Account for one emitted record.
+
+        Returns True once the budget is spent, meaning the caller should stop
+        producing. The record passed in has already been yielded: the boundary is
+        checked after the fact so a record is never built and then dropped.
+        """
+        self.rows += 1
+        try:
+            self.bytes += self._record_size(record)
+        except Exception:
+            pass
+
+        if self.max_size_bytes and self.bytes >= self.max_size_bytes:
+            self.stop_reason = (
+                f'output size limit reached: {self.bytes / (1024 * 1024):.2f}MB '
+                f'(limit: {self.max_size_bytes / (1024 * 1024):.2f}MB) '
+                f'after {self.rows} record(s)'
+            )
+        elif self.rows >= self.max_rows:
+            self.stop_reason = (
+                f'output row limit reached: {self.rows} record(s) '
+                f'(limit: {self.max_rows})'
+            )
+
+        self.exhausted = self.stop_reason is not None
+        return self.exhausted
+
+    def log_summary(self, helper, code='MC-808', message=None):
+        """Report truncation at ERROR; stay quiet when the budget held."""
+        if not self.exhausted:
+            if self.logger:
+                self.logger.info(
+                    f'[OutputBudget] {self.rows} record(s), '
+                    f'{self.bytes / (1024 * 1024):.2f}MB handed to Splunk'
+                )
+            return
+        helper.log_error(
+            f'[{code}] Output stopped: {self.stop_reason}. Results are '
+            'incomplete - narrow the search, or raise max_output_size_mb'
+        )
+        if message:
+            message.add(f'INCOMPLETE - output stopped: {self.stop_reason}')
+
+
+def create_output_budget(settings, logger=None):
+    """Build an OutputBudget from the global settings (0 disables the size cap)."""
+    max_size = (
+        settings['max_output_size_mb']
+        if settings.get('max_output_size_mb', 0) > 0
+        else None
+    )
+    return OutputBudget(
+        max_rows=MAX_OUTPUT_ROWS, max_size_mb=max_size, logger=logger
+    )
+
+
 def stanza_content(service, app_name, stanza_name):
     """
     Return a conf stanza as a plain dict of its keys.
 
     Always go through ``Entity.content`` rather than calling ``.get()`` on the
-    stanza. ``splunklib.client.Stanza`` subclasses ``Entity``, whose ``get()``
-    is an HTTP GET on a sub-path of the entity, not a dict lookup:
-    ``stanza.get("loglevel", "ERROR")`` requests ``<stanza>/loglevel`` with
-    ``owner="ERROR"`` and raises on the 404. Callers that wrapped such a call in
-    ``try/except`` silently fell back to their hardcoded defaults, so every
-    value configured in the app's Configuration tab was ignored.
+    stanza: ``splunklib.client.Stanza`` subclasses ``Entity``, whose ``get()`` is
+    an HTTP GET on a sub-path, not a dict lookup, and raises on the resulting 404.
     """
     return dict(service.confs[f"{app_name}_settings"][stanza_name].content)
 
@@ -283,6 +389,22 @@ def logging_level(service, app_name):
     except Exception:
         pass
     return "ERROR"
+
+
+def misp_bool(value, default=False):
+    """
+    Read a boolean out of a conf value or a json_request key.
+
+    Both sources are untyped: a flag can arrive as a real bool, as 1/0, or as
+    "true"/"yes"/"on". Anything unrecognised returns ``default``.
+    """
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.lower() in {"1", "true", "yes", "on"}
+    if isinstance(value, int):
+        return value == 1
+    return default
 
 
 def prepare_config(
@@ -318,8 +440,13 @@ def prepare_config(
         "prefix": "misp_",
         "connection_timeout": 3,
         "read_timeout": 200,
-        "max_response_size_mb": 100,
-        "max_execution_time_sec": 300,
+        # Fallbacks used until Global Settings is saved; keep them aligned with
+        # the defaultValue of each field in globalConfig.json.
+        "max_response_size_mb": 512,
+        "max_execution_time_sec": 900,
+        # Peak memory at flush is about three times this figure (buffer + str
+        # copy + bytes copy, see OutputBudget).
+        "max_output_size_mb": 256,
         "enable_limit_logging": True,
         "progress_log_interval": 10,
     }
@@ -334,14 +461,7 @@ def prepare_config(
         except (TypeError, ValueError):
             return default
 
-    def to_bool(value, default=False):
-        if isinstance(value, bool):
-            return value
-        if isinstance(value, str):
-            return value.lower() in {"1", "true", "yes", "on"}
-        if isinstance(value, int):
-            return value == 1
-        return default
+    to_bool = misp_bool
 
     # ------------------------------------------------------------------
     # Obtain Splunk service
@@ -379,6 +499,11 @@ def prepare_config(
         config["max_execution_time_sec"] = to_int(
             global_conf.get("max_execution_time_sec"),
             config["max_execution_time_sec"],
+        )
+
+        config["max_output_size_mb"] = to_int(
+            global_conf.get("max_output_size_mb"),
+            config["max_output_size_mb"],
         )
 
         config["progress_log_interval"] = to_int(
@@ -582,13 +707,66 @@ def normalise_data(key, value):
     return normalised_data
 
 
+def _note_truncation(generator, key, original_size):
+    """
+    Record that one field value had to be cut to MAX_FIELD_SIZE.
+
+    Counted rather than logged per occurrence, which would flood search.log. The
+    first is reported at ERROR so the data loss is visible at the default
+    loglevel; the rest are summarised by log_truncation_summary().
+    """
+    if generator is None:
+        return
+    stats = getattr(generator, '_misp_truncations', None)
+    if stats is None:
+        stats = {'count': 0, 'fields': {}, 'largest': 0}
+        try:
+            generator._misp_truncations = stats
+        except Exception:
+            return  # command object refuses attributes; skip accounting
+
+    stats['count'] += 1
+    stats['fields'][key] = stats['fields'].get(key, 0) + 1
+    if original_size > stats['largest']:
+        stats['largest'] = original_size
+
+    if stats['count'] == 1 and hasattr(generator, 'log_error'):
+        generator.log_error(
+            f"[GR-003] value of '{key}' truncated from {original_size} to "
+            f'{MAX_FIELD_SIZE} bytes: data is being lost. Further truncations '
+            'are counted and reported once at the end of the search'
+        )
+
+
+def log_truncation_summary(generator, message=None):
+    """Report the truncations accumulated by _note_truncation(), if any."""
+    stats = getattr(generator, '_misp_truncations', None)
+    if not stats or not stats.get('count'):
+        return
+    if message:
+        message.add(
+            f"{stats['count']} value(s) cut at {MAX_FIELD_SIZE} bytes"
+        )
+    top = ', '.join(
+        f'{key}={count}'
+        for key, count in sorted(
+            stats['fields'].items(), key=lambda kv: kv[1], reverse=True
+        )[:5]
+    )
+    if hasattr(generator, 'log_error'):
+        generator.log_error(
+            f"[GR-004] {stats['count']} value(s) truncated to "
+            f"{MAX_FIELD_SIZE} bytes (largest original was "
+            f"{stats['largest']} bytes); most affected: {top}. Those values are "
+            'incomplete in the results'
+        )
+
+
 def generate_record(data, event_time=None, generator=None):
     if event_time is None:
         event_time = time.time()
     encoder = json.JSONEncoder(ensure_ascii=False, separators=(',', ':'))
 
-    # Splunk field size limit (2MB)
-    MAX_FIELD_SIZE = 2097152
     TRUNCATION_MARKER = "...[TRUNCATED: field exceeded 2MB limit]"
 
     data_dict = dict()
@@ -600,13 +778,12 @@ def generate_record(data, event_time=None, generator=None):
         # Check and truncate oversized fields
         if len(val) > MAX_FIELD_SIZE:
             # Truncate to leave room for truncation marker
+            original_size = len(val)
             truncate_at = MAX_FIELD_SIZE - len(TRUNCATION_MARKER) - 100
             val = val[:truncate_at] + TRUNCATION_MARKER
-            if generator:
-                generator.log_warn(
-                    f"[GR-001] Field '{key}' truncated from original size to {MAX_FIELD_SIZE} bytes (2MB)"
-                )
-        
+            _note_truncation(generator, key, original_size)
+
+
         if key in data_dict:
             if isinstance(data_dict[key], list):
                 data_dict[key].append(val)
@@ -620,12 +797,10 @@ def generate_record(data, event_time=None, generator=None):
     # Also check _raw field size
     raw_data = encoder.encode(data)
     if len(raw_data) > MAX_FIELD_SIZE:
+        original_size = len(raw_data)
         truncate_at = MAX_FIELD_SIZE - len(TRUNCATION_MARKER) - 100
         raw_data = raw_data[:truncate_at] + TRUNCATION_MARKER
-        if generator:
-            generator.log_warn(
-                f"[GR-002] _raw field truncated from original size to {MAX_FIELD_SIZE} bytes (2MB)"
-            )
+        _note_truncation(generator, '_raw', original_size)
     data_dict['_raw'] = raw_data
 
     if generator:
@@ -721,6 +896,20 @@ def urllib_init_pool(helper, config):
         cert_reqs = ssl.CERT_REQUIRED
     else:
         cert_reqs = ssl.CERT_NONE
+        # urllib3 emits an InsecureRequestWarning per request when certificate
+        # verification is off. Splunk's ChunkedExternProcessor labels everything a
+        # search command writes to stderr as ERROR, so each one lands in
+        # search.log as two spurious ERROR lines - the message and the
+        # "warnings.warn(" source line. A 254-page search produced over 500 of
+        # them, burying the real diagnostics. Say it once, then silence it.
+        helper.log_warn(
+            '[MC404] misp_verifycert is false for this instance: TLS '
+            'certificates are NOT validated. Per-request urllib3 warnings are '
+            'suppressed to keep search.log readable'
+        )
+        urllib3.disable_warnings(
+            urllib3.exceptions.InsecureRequestWarning
+        )
 
     retries = urllib3.Retry(
         total=3,
@@ -784,7 +973,48 @@ def urllib_init_pool(helper, config):
         )
 
 
-def urllib_request(helper, url_connection, method, misp_url, body, config):
+def _capture_response_headers(helper, response, headers_out=None):
+    """
+    Log the informative MISP response headers, and expose them to the caller.
+
+    X-Result-Count is MISP's own count for the search, which is the only
+    server-side number available to tell a complete answer from a truncated one.
+    Whether it reports the page or the whole match set depends on the MISP
+    version, so it is logged verbatim rather than interpreted.
+    """
+    try:
+        headers = response.headers
+    except Exception:
+        return
+
+    captured = {}
+    for name in MISP_INFO_HEADERS:
+        value = headers.get(name)
+        if value is not None:
+            captured[name] = value
+
+    if headers_out is not None:
+        headers_out.update(captured)
+
+    if captured:
+        helper.log_debug(
+            '[MC504] MISP response headers: '
+            + ', '.join(f'{key}={value}' for key, value in captured.items())
+        )
+
+
+def urllib_request(helper, url_connection, method, misp_url, body, config,
+                   headers_out=None):
+    """
+    Perform one request against MISP.
+
+    Args:
+        headers_out: optional dict, filled with the MISP_INFO_HEADERS present on
+            the response so the caller can report result counts.
+
+    Returns:
+        tuple: (decoded body or an error dict carrying "_raw", response size)
+    """
     # Set proper headers
     headers = {'Content-type': 'application/json'}
     headers['Authorization'] = config['misp_key']
@@ -802,6 +1032,7 @@ def urllib_request(helper, url_connection, method, misp_url, body, config):
             connection_timeout,
             read_timeout
         )
+        _capture_response_headers(helper, r, headers_out)
         if r.status in (200, 201, 204):
             helper.log_info(
                 f"[MC501] {method} request is successful. HTTP status={r.status}")
@@ -826,10 +1057,85 @@ def urllib_request(helper, url_connection, method, misp_url, body, config):
     return data, response_size
 
 
-def get_attributes(helper, connection, config, body_dict,
-                   limit_checker=None):
+def misp_count(helper, connection, config, body_dict):
     """
-    Fetch attributes from MISP with optional limit checking.
+    Ask MISP how many records a search matches, before fetching any of them.
+
+    Issued once per search, before any page is fetched, so the log can state what
+    fraction of the match set was retrieved.
+
+    returnFormat=count walks the matching rows but serialises none of them and
+    attaches no per-attribute context, so it is far cheaper than fetching them.
+    The cost still scales with the match set and is charged against
+    max_execution_time_sec.
+
+    The scope matches what the fetch will do:
+      - no page, or page 0: count the whole search, with limit=0 and no page
+      - an explicit page: count that page, with the same limit and page
+
+    Filters are sent verbatim. Both CountExport and JsonExport declare
+    non_restrictive_export, so neither gets restSearch's to_ids/published
+    defaults and nothing needs adding here.
+
+    Returns:
+        int, or None when no usable count came back.
+    """
+    probe = dict(body_dict)
+    probe['returnFormat'] = 'count'
+    if config.get('page'):
+        probe['limit'] = config['limit']
+        probe['page'] = config['page']
+    else:
+        probe['limit'] = 0
+        probe.pop('page', None)
+
+    headers_out = {}
+    data, response_size = urllib_request(
+        helper, connection, 'POST', config['misp_url'], probe, config,
+        headers_out=headers_out
+    )
+
+    # The body is a bare number, so json.loads() yields an int. Fall back to the
+    # X-Result-Count header, which the count export sets to the same value.
+    count = None
+    if isinstance(data, bool):
+        pass
+    elif isinstance(data, int):
+        count = data
+    elif isinstance(data, str) and data.strip().lstrip('-').isdigit():
+        count = int(data.strip())
+    if count is None:
+        reported = headers_out.get('X-Result-Count')
+        try:
+            count = int(reported)
+        except (TypeError, ValueError):
+            count = None
+
+    if count is None:
+        detail = data.get('_raw', data) if isinstance(data, dict) else data
+        helper.log_error(
+            f'[MC-607] returnFormat=count returned no usable number, '
+            f'continuing without a total: {detail}'
+        )
+    else:
+        helper.log_info(
+            f'[MC-608] MISP reports {count} record(s) matching this search '
+            f'(returnFormat=count, {response_size} byte response)'
+        )
+    return count
+
+
+def iter_attribute_pages(helper, connection, config, body_dict,
+                         limit_checker=None, message=None):
+    """
+    Yield one list of attributes per MISP page.
+
+    Nothing is kept across pages, so a consumer that writes each page onward
+    keeps peak memory proportional to ``limit`` rather than to the whole result
+    set. The result is single-pass; use get_attributes() when a list is needed.
+
+    End-of-fetch reporting sits in a finally block because a generator may be
+    abandoned before it is exhausted.
 
     Args:
         helper: Splunk helper object
@@ -837,131 +1143,215 @@ def get_attributes(helper, connection, config, body_dict,
         config: Configuration dict from prepare_config()
         body_dict: MISP API request body
         limit_checker: Optional LimitChecker instance
-
-    Returns:
-        list: List of attributes
+        message: Optional CommandMessage collecting the run status
     """
-    response = []
     response_count = 0
-    rlength = 0  # Initialize to avoid UnboundLocalError
+    reported_count = None
 
-    # Ensure runtime safety limits (max size / max time) are always enforced,
-    # even when a caller does not provide its own LimitChecker.
     if limit_checker is None:
         limit_checker = create_limit_checker(config, logger=_resolve_logger(helper))
 
     body_dict['includeSightings'] = config['include_sightings']
 
-    if config['page'] == 0 and config['limit'] != 0:
-        request_loop = True
-        body_dict['limit'] = config['limit']
-        body_dict['page'] = 1
+    # The per-page X-Result-Count is page-scoped here, so a count request is the
+    # only way to know the total. It runs after the LimitChecker starts, so its
+    # cost is charged against max_execution_time_sec.
+    probe_total = misp_count(helper, connection, config, body_dict)
+    if message:
+        message.add(
+            f'matched={probe_total}' if probe_total is not None
+            else 'matched=unknown (count request failed)'
+        )
 
-        while request_loop:
-            # Hard safety net against infinite pagination
-            if body_dict['page'] > MAX_PAGINATION_PAGES:
-                helper.log_error(
-                    f'[MC-604] Pagination stopped: reached hard page cap '
-                    f'({MAX_PAGINATION_PAGES} pages)'
-                )
-                break
+    try:
+        if config['page'] == 0 and config['limit'] != 0:
+            request_loop = True
+            body_dict['limit'] = config['limit']
+            body_dict['page'] = 1
 
-            # Check limits before requesting next page.
-            # Logged at ERROR, not WARNING: stopping here truncates the result
-            # set, and the user must be able to tell a partial answer from a
-            # complete one at the default loglevel.
-            if limit_checker:
-                should_continue, stop_reason = (limit_checker.should_continue())
-                if not should_continue:
+            while request_loop:
+                # Guard against an endpoint that ignores "page"
+                if body_dict['page'] > MAX_PAGINATION_PAGES:
                     helper.log_error(
-                        f'[MC-603] Pagination stopped after '
-                        f'{len(response)} attribute(s) on page '
-                        f"{body_dict['page']}: {stop_reason}"
+                        f'[MC-604] Pagination stopped: reached hard page cap '
+                        f'({MAX_PAGINATION_PAGES} pages)'
                     )
                     break
 
-            response_size = 0
+                # ERROR, not WARNING: stopping here truncates the result set and
+                # must be visible at the default loglevel.
+                if limit_checker:
+                    should_continue, stop_reason = limit_checker.should_continue()
+                    if not should_continue:
+                        helper.log_error(
+                            f'[MC-603] Pagination stopped after '
+                            f'{response_count} attribute(s) on page '
+                            f"{body_dict['page']}: {stop_reason}"
+                        )
+                        if message:
+                            message.add(f'INCOMPLETE - fetch stopped after '
+                                        f'{response_count}: {stop_reason}')
+                        break
+
+                page_headers = {}
+                iter_response, response_size = urllib_request(
+                    helper,
+                    connection,
+                    'POST',
+                    config['misp_url'],
+                    body_dict,
+                    config,
+                    headers_out=page_headers
+                )
+                reported_count = page_headers.get(
+                    'X-Result-Count', reported_count
+                )
+
+                if limit_checker:
+                    limit_checker.add_response_size(response_size)
+
+                if 'response' in iter_response:
+                    if 'Attribute' in iter_response['response']:
+                        page = [
+                            dict(attribute) for attribute
+                            in iter_response['response']['Attribute']
+                        ]
+                        rlength = len(page)
+                        helper.log_debug(
+                            f"[MC-601] request on page {body_dict['page']} returned {rlength}")
+                        if rlength != 0:
+                            body_dict['page'] = body_dict['page'] + 1
+                            response_count += rlength
+                            yield page
+                        else:
+                            # Last page is reached
+                            request_loop = False
+                    else:
+                        request_loop = False
+                else:
+                    _log_request_failure(
+                        helper, iter_response, body_dict['page'], 'MC-605'
+                    )
+                    request_loop = False
+
+        else:
+            _apply_pagination(body_dict, config)
+            page_headers = {}
             iter_response, response_size = urllib_request(
                 helper,
                 connection,
                 'POST',
                 config['misp_url'],
                 body_dict,
-                config
+                config,
+                headers_out=page_headers
             )
+            reported_count = page_headers.get('X-Result-Count', reported_count)
 
-            # Record response size if limit checker is active
             if limit_checker:
                 limit_checker.add_response_size(response_size)
 
             if 'response' in iter_response:
                 if 'Attribute' in iter_response['response']:
-                    rlength = len(
-                        iter_response['response']['Attribute']
-                    )
-                    if rlength != 0:
-                        attr_list = (
-                            iter_response['response']['Attribute']
-                        )
-                        for attribute in attr_list:
-                            response.append(dict(attribute))
-                        helper.log_debug(
-                            f"[MC-601] request on page {body_dict['page']} returned {rlength}")
-                        body_dict['page'] = body_dict['page'] + 1
-                        response_count += rlength
-                    else:
-                        helper.log_debug(
-                            f"[MC-601] request on page {body_dict['page']} returned {rlength}")
-                        # Last page is reached
-                        request_loop = False
-                else:
-                    request_loop = False
+                    page = [
+                        dict(attribute) for attribute
+                        in iter_response['response']['Attribute']
+                    ]
+                    response_count = len(page)
+                    if page:
+                        yield page
             else:
                 _log_request_failure(
-                    helper, iter_response, body_dict['page'], 'MC-605'
+                    helper, iter_response, body_dict.get('page', 'n/a'),
+                    'MC-606'
                 )
-                request_loop = False
-
-    else:
-        body_dict['limit'] = config['limit']
-        body_dict['page'] = config['page']
-        response_size = 0
-        iter_response, response_size = urllib_request(
-            helper,
-            connection,
-            'POST',
-            config['misp_url'],
-            body_dict,
-            config
+    finally:
+        if probe_total is not None:
+            coverage = _coverage_suffix(response_count, probe_total,
+                                        'count request')
+        else:
+            coverage = _coverage_suffix(response_count, reported_count)
+        helper.log_info(
+            f'[MC-602] response contains {response_count} records{coverage}'
         )
 
-        # Record response size if limit checker is active
         if limit_checker:
-            limit_checker.add_response_size(response_size)
+            limit_checker.log_final_stats()
 
-        if 'response' in iter_response:
-            if 'Attribute' in iter_response['response']:
-                for attribute in (
-                    iter_response['response']['Attribute']
-                ):
-                    response.append(dict(attribute))
-                rlength = len(
-                    iter_response['response']['Attribute']
-                )
-        else:
-            _log_request_failure(
-                helper, iter_response, body_dict['page'], 'MC-606'
-            )
 
-    helper.log_info(
-        f'[MC-602] response contains {rlength} records'
-    )
+def get_attributes(helper, connection, config, body_dict,
+                   limit_checker=None, message=None):
+    """
+    Fetch attributes from MISP as a single list.
 
-    # Log final statistics if limit checker is active
-    if limit_checker:
-        limit_checker.log_final_stats()
+    List form of iter_attribute_pages(): it materialises every page, so peak
+    memory scales with the number of attributes fetched. Prefer
+    iter_attribute_pages() where each page can be written onward as it arrives.
 
-    return response
+    Returns:
+        list: List of attributes
+    """
+    return [
+        attribute
+        for page in iter_attribute_pages(
+            helper, connection, config, body_dict, limit_checker, message
+        )
+        for attribute in page
+    ]
+
+
+def order_groups_by_event(body_dict):
+    """
+    True when the request order makes attributes of one event contiguous.
+
+    Required by iter_attribute_table(): its carry-over window only works if the
+    first sort key is event_id.
+    """
+    order = body_dict.get('order')
+    if not order:
+        return False
+    if not isinstance(order, str):
+        order = ','.join(str(rule) for rule in order)
+    first = order.split(',')[0].strip().split(' ')[0]
+    return first.lower().endswith('event_id')
+
+
+def iter_attribute_table(helper, pages, config):
+    """
+    Map attribute pages to output rows, one page at a time.
+
+    map_attribute_table() merges attributes sharing event_id+object_id, so a
+    group split across a page boundary would yield two partial rows. With the
+    results ordered by event_id an event's attributes are contiguous, so holding
+    back the trailing event of each page and prepending it to the next keeps
+    every group whole. Peak memory is one page plus one event.
+
+    Requires an event_id-ordered request; see order_groups_by_event().
+    """
+    carry = []
+    for page in pages:
+        batch = carry + page
+        carry = []
+        if not batch:
+            continue
+
+        # Hold back the trailing event: more of it may arrive on the next page.
+        last_event = batch[-1].get('event_id')
+        split = len(batch)
+        while split > 0 and batch[split - 1].get('event_id') == last_event:
+            split -= 1
+        if split == 0:
+            # Whole batch is one event; keep accumulating.
+            carry = batch
+            continue
+        carry = batch[split:]
+
+        for row in map_attribute_table(helper, batch[:split], config):
+            yield row
+
+    if carry:
+        for row in map_attribute_table(helper, carry, config):
+            yield row
 
 
 def map_sighting_table(helper, sightings, config):
@@ -1191,10 +1581,16 @@ def map_attribute_table(helper, attributes, config):
     # Consolidate attribute values under output table
     output_dict = dict()
     for r in result_list:
-        if (
+        # Two different kinds of collision share this dict, and the key says
+        # which: attributes of one object group under the object, while the two
+        # halves the pipesplit above produced share one attribute id. Decided
+        # from r, whose ids are still scalars - the accumulated row may already
+        # hold lists.
+        is_object_group = (
             expand_object is False
             and int(r[f'{prefix}object_id']) != 0
-        ):
+        )
+        if is_object_group:
             r_key = (
                 str(r[f'{prefix}event_id'])
                 + '_object_'
@@ -1215,7 +1611,7 @@ def map_attribute_table(helper, attributes, config):
             output_dict[r_key] = r
         else:
             v = output_dict[r_key]
-            if v[f'{prefix}object_id'] == 0:  # composed attribute
+            if not is_object_group:  # composed attribute
                 misp_t = prefix + r[f'{prefix}type'].replace(
                     '-', '_'
                 ).replace('|', '_p_')
@@ -1269,10 +1665,9 @@ def _prune_event(event, config, discarded=None):
     """
     Drop the event structures the caller asked not to keep.
 
-    Every key removed here was still transferred over the wire and still counted
-    against max_response_size_mb, so anything dropped is paid-for bandwidth.
-    Pass ``discarded`` (a dict) to accumulate how many bytes each key cost; that
-    measurement is what tells you which request flag is worth setting
+    Anything dropped here was still transferred and still counted against
+    max_response_size_mb. Pass ``discarded`` (a dict) to accumulate how many bytes
+    each key cost, which shows whether a request flag is worth setting
     (metadata / excludeGalaxy / includeEventCorrelations).
     """
     drop = []
@@ -1297,6 +1692,104 @@ def _prune_event(event, config, discarded=None):
     return event
 
 
+class CommandMessage:
+    """
+    Per-run status line, stamped onto every record a command emits.
+
+    Carries what the log says about totals and truncation into the result set as
+    ``<prefix><command>_message``, so a partial answer is visible without opening
+    search.log.
+
+    The value is whatever is known when a record is emitted. Pages are streamed,
+    so records emitted before a stop cannot mention it: the final records carry
+    the most complete message. ``| stats values(...)`` shows every variant.
+    """
+
+    def __init__(self, field):
+        self.field = field
+        self.notes = []
+
+    def add(self, note):
+        if note and note not in self.notes:
+            self.notes.append(note)
+
+    def text(self):
+        return '; '.join(self.notes) if self.notes else 'ok'
+
+    def stamp(self, record):
+        """Attach the message as it currently stands. Returns the record."""
+        try:
+            record[self.field] = self.text()
+        except Exception:
+            pass
+        return record
+
+
+def prefixed(config, name):
+    """
+    Name of an output field as the mappers build it: <prefix><name>.
+
+    ``prefix`` is a user option, so a literal like 'misp_timestamp' only matches
+    the default. Look field names up through here instead.
+    """
+    prefix = config.get('prefix') or 'misp_'
+    return f'{prefix}{name}'
+
+
+def message_field(config, command):
+    """Name of the message field: <prefix><command>_message."""
+    return prefixed(config, f'{command}_message')
+
+
+def _apply_pagination(body_dict, config):
+    """
+    Put limit/page on the request, or take them off when pagination is disabled.
+
+    ``limit`` is always stated, including 0, so the logged body reflects the limit
+    in force.
+
+    limit=0 means no pagination, so ``page`` is removed: MISP pages are 1-based
+    and the key is meaningless once paging is off. A ``page`` left over from the
+    caller's JSON body is dropped too.
+    """
+    body_dict['limit'] = config['limit']
+    if config['limit'] == 0:
+        body_dict.pop('page', None)
+    else:
+        body_dict['page'] = config['page']
+
+
+def _coverage_suffix(fetched, total_value, source='X-Result-Count'):
+    """
+    Report the total MISP gave us, and a coverage ratio only when it means one.
+
+    ``source`` names where the number came from; they are not interchangeable:
+
+      X-Result-Count on /events/restSearch      the whole match set
+      X-Result-Count on /attributes/restSearch  page-scoped, not a total
+      count request                             a real total, via
+                                                returnFormat=count
+
+    A percentage is only derived when the value can plausibly be a total, which
+    requires it to be at least what was already fetched.
+    """
+    if total_value is None:
+        return ''
+    try:
+        total = int(total_value)
+    except (TypeError, ValueError):
+        return f'; MISP {source} reported {total_value}'
+    if total <= 0 or fetched > total:
+        return (
+            f'; MISP {source} reported {total}, which cannot be a total for '
+            'this search so no coverage is derived from it'
+        )
+    return (
+        f'; MISP {source} reported {total} '
+        f'({100.0 * fetched / total:.1f}% of it fetched)'
+    )
+
+
 def _discard_report(helper, discarded, limit_checker, code):
     """Log how much of the received payload was thrown away, biggest first."""
     if not discarded:
@@ -1317,10 +1810,18 @@ def _discard_report(helper, discarded, limit_checker, code):
     )
 
 
-def get_events(helper, connection, config, body_dict,
-               limit_checker=None):
+def iter_event_pages(helper, connection, config, body_dict,
+                     limit_checker=None, message=None):
     """
-    Fetch events from MISP with optional limit checking.
+    Yield one list of pruned events per MISP page.
+
+    Nothing is kept across pages, so a consumer that writes each page onward
+    keeps peak memory proportional to ``limit`` rather than to the whole result
+    set. This matters most with ``getioc=true``, where one event costs several
+    MB. The result is single-pass; use get_events() when a list is needed.
+
+    End-of-fetch reporting sits in a finally block because a generator may be
+    abandoned before it is exhausted.
 
     Args:
         helper: Splunk helper object
@@ -1328,23 +1829,20 @@ def get_events(helper, connection, config, body_dict,
         config: Configuration dict from prepare_config()
         body_dict: MISP API request body
         limit_checker: Optional LimitChecker instance
+        message: Optional CommandMessage collecting the run status
 
-    Returns:
-        list: List of events
+    Yields:
+        list: the events of one page, already pruned by _prune_event()
     """
-    response = []
     response_count = 0
-    rlength = 0  # Initialize to avoid UnboundLocalError
 
-    # Ensure runtime safety limits (max size / max time) are always enforced,
-    # even when a caller does not provide its own LimitChecker.
     if limit_checker is None:
         limit_checker = create_limit_checker(config, logger=_resolve_logger(helper))
 
     body_dict['includeSightingdb'] = config['include_sightings']
 
-    # Only measure the discarded payload when DEBUG is actually on: it costs a
-    # json.dumps() per dropped structure per event.
+    # Measuring the discarded payload costs a json.dumps() per dropped
+    # structure per event, so only do it under DEBUG.
     discarded = None
     try:
         if _resolve_logger(helper).isEnabledFor(logging.DEBUG):
@@ -1352,114 +1850,151 @@ def get_events(helper, connection, config, body_dict,
     except Exception:
         discarded = None
 
-    if config['page'] == 0 and config['limit'] != 0:
-        request_loop = True
-        body_dict['limit'] = config['limit']
-        body_dict['page'] = 1
+    # Last X-Result-Count seen, compared against the final tally.
+    reported_count = None
 
-        while request_loop:
-            # Hard safety net against infinite pagination
-            if body_dict['page'] > MAX_PAGINATION_PAGES:
-                helper.log_error(
-                    f'[MC-804] Pagination stopped: reached hard page cap '
-                    f'({MAX_PAGINATION_PAGES} pages)'
-                )
-                break
+    try:
+        if config['page'] == 0 and config['limit'] != 0:
+            request_loop = True
+            body_dict['limit'] = config['limit']
+            body_dict['page'] = 1
 
-            # Check limits before requesting next page.
-            # Logged at ERROR, not WARNING: stopping here truncates the result
-            # set, and the user must be able to tell a partial answer from a
-            # complete one at the default loglevel.
-            if limit_checker:
-                should_continue, stop_reason = (
-                    limit_checker.should_continue()
-                )
-                if not should_continue:
+            while request_loop:
+                # Guard against an endpoint that ignores "page"
+                if body_dict['page'] > MAX_PAGINATION_PAGES:
                     helper.log_error(
-                        f'[MC-803] Pagination stopped after '
-                        f"{len(response)} event(s) on page "
-                        f"{body_dict['page']}: {stop_reason}"
+                        f'[MC-804] Pagination stopped: reached hard page cap '
+                        f'({MAX_PAGINATION_PAGES} pages)'
                     )
                     break
 
-            response_size = 0
+                # ERROR, not WARNING: stopping here truncates the result set and
+                # must be visible at the default loglevel.
+                if limit_checker:
+                    should_continue, stop_reason = (
+                        limit_checker.should_continue()
+                    )
+                    if not should_continue:
+                        helper.log_error(
+                            f'[MC-803] Pagination stopped after '
+                            f"{response_count} event(s) on page "
+                            f"{body_dict['page']}: {stop_reason}"
+                        )
+                        if message:
+                            message.add(f'INCOMPLETE - fetch stopped after '
+                                        f'{response_count}: {stop_reason}')
+                        break
+
+                page_headers = {}
+                iter_response, response_size = urllib_request(
+                    helper,
+                    connection,
+                    'POST',
+                    config['misp_url'],
+                    body_dict,
+                    config,
+                    headers_out=page_headers
+                )
+                reported_count = page_headers.get(
+                    'X-Result-Count', reported_count
+                )
+                if message and reported_count is not None:
+                    # On /events/restSearch this header is the real total, so no
+                    # separate count request is needed.
+                    message.add(f'matched={reported_count}')
+
+                if limit_checker:
+                    limit_checker.add_response_size(response_size)
+
+                if 'response' in iter_response:
+                    rlength = len(iter_response['response'])
+                    if rlength != 0:
+                        page = [
+                            _prune_event(
+                                r_item.get('Event') or {}, config, discarded
+                            )
+                            for r_item in iter_response['response']
+                        ]
+                        helper.log_debug(
+                            f"[MC-801] request on page {body_dict['page']} "
+                            f"returned {rlength} event(s); querying next page"
+                        )
+                        body_dict['page'] = body_dict['page'] + 1
+                        response_count += rlength
+                        yield page
+                    else:
+                        helper.log_debug(
+                            f"[MC-801] request on page {body_dict['page']} returned {rlength}"
+                        )
+                        # Last page is reached
+                        request_loop = False
+                else:
+                    _log_request_failure(
+                        helper, iter_response, body_dict['page'], 'MC-805'
+                    )
+                    request_loop = False
+
+        else:
+            _apply_pagination(body_dict, config)
+            page_headers = {}
             iter_response, response_size = urllib_request(
                 helper,
                 connection,
                 'POST',
                 config['misp_url'],
                 body_dict,
-                config
+                config,
+                headers_out=page_headers
             )
+            reported_count = page_headers.get('X-Result-Count', reported_count)
 
-            # Record response size if limit checker is active
             if limit_checker:
                 limit_checker.add_response_size(response_size)
 
             if 'response' in iter_response:
-                rlength = len(iter_response['response'])
-                if rlength != 0:
-                    for r_item in iter_response['response']:
-                        event = r_item.get('Event') or {}
-                        response.append(
-                            _prune_event(event, config, discarded)
-                        )
-                    helper.log_debug(
-                        f"[MC-801] request on page {body_dict['page']} "
-                        f"returned {rlength} event(s); querying next page"
-                    )
-                    body_dict['page'] = body_dict['page'] + 1
-                    response_count += rlength
-                else:
-                    helper.log_debug(
-                        f"[MC-801] request on page {body_dict['page']} returned {rlength}"
-                    )
-                    # Last page is reached
-                    request_loop = False
+                page = [
+                    _prune_event(r_item.get('Event') or {}, config, discarded)
+                    for r_item in iter_response['response']
+                ]
+                response_count = len(page)
+                if page:
+                    yield page
             else:
                 _log_request_failure(
-                    helper, iter_response, body_dict['page'], 'MC-805'
+                    helper, iter_response, body_dict.get('page', 'n/a'),
+                    'MC-806'
                 )
-                request_loop = False
-
-    else:
-        body_dict['limit'] = config['limit']
-        body_dict['page'] = config['page']
-        response_size = 0
-        iter_response, response_size = urllib_request(
-            helper,
-            connection,
-            'POST',
-            config['misp_url'],
-            body_dict,
-            config
+    finally:
+        helper.log_info(
+            f"[MC-802] response contains {response_count} records"
+            f"{_coverage_suffix(response_count, reported_count)}"
         )
 
-        # Record response size if limit checker is active
+        _discard_report(helper, discarded, limit_checker, 'MC-807')
+
         if limit_checker:
-            limit_checker.add_response_size(response_size)
+            limit_checker.log_final_stats()
 
-        if 'response' in iter_response:
-            for r_item in iter_response['response']:
-                event = r_item.get('Event') or {}
-                response.append(_prune_event(event, config, discarded))
-            response_count = len(iter_response['response'])
-        else:
-            _log_request_failure(
-                helper, iter_response, body_dict['page'], 'MC-806'
-            )
 
-    helper.log_info(
-        f"[MC-802] response contains {response_count} records"
-    )
+def get_events(helper, connection, config, body_dict,
+               limit_checker=None):
+    """
+    Fetch events from MISP as a single list.
 
-    _discard_report(helper, discarded, limit_checker, 'MC-807')
+    List form of iter_event_pages(): it materialises every page, so peak memory
+    scales with the number of events fetched. Prefer iter_event_pages() where
+    each page can be written onward as it arrives.
 
-    # Log final statistics if limit checker is active
-    if limit_checker:
-        limit_checker.log_final_stats()
-
-    return response
+    Returns:
+        list: List of events
+    """
+    return [
+        event
+        for page in iter_event_pages(
+            helper, connection, config, body_dict, limit_checker
+        )
+        for event in page
+    ]
 
 
 def flatten_object(d, parent_key='', sep='_'):
@@ -1503,7 +2038,7 @@ def map_event_table(helper, events, config):
     # with a list of all attributes
     event_mapping = {
         'analysis': 'analysis',
-        'attribute_count': 'analysis_count',
+        'attribute_count': 'attribute_count',
         'date': 'event_date',
         'disable_correlation': 'disable_correlation',
         'distribution': 'distribution',
@@ -1603,9 +2138,12 @@ def map_event_table(helper, events, config):
                     a.update(event_dict)
                     result_list.append(a)
         if config['getioc'] is False:
-            event_dict[f'{prefix}timestamp'] = (
-                event_dict[f'{prefix}event_timestamp']
-            )
+            # Left unset when the event carries no timestamp; the caller then
+            # falls back to search time instead of raising.
+            if f'{prefix}event_timestamp' in event_dict:
+                event_dict[f'{prefix}timestamp'] = (
+                    event_dict[f'{prefix}event_timestamp']
+                )
             result_list.append(event_dict)
 
     return result_list

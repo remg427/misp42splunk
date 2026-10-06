@@ -17,6 +17,7 @@
     <set token="param_include_sightings">include_sightings=True</set>
     <set token="param_limit">limit=1000</set>
     <set token="param_not_tags"></set>
+    <set token="param_order">order="Attribute.event_id,Attribute.id"</set>
     <set token="param_output">output=fields</set>
     <set token="param_page">page=0</set>
     <set token="param_pipesplit">pipesplit=True</set>
@@ -81,6 +82,16 @@
           To select a misp instance, use the dropdown list that is populated if your Splunk account has the capability <code>rest_properties_get</code>to use the internal REST API <code>| rest</code>
         </p>
         <p>Otherwise simply type one of the names of the MISP instances that have been configured.</p>
+        <h2>Result limits and partial results</h2>
+        <p>Three settings in the app Configuration tab bound a search. Each one reports at ERROR in search.log when it stops a run, so a partial result is never silent:</p>
+        <ul>
+          <li><strong>Max Response Size (MB)</strong> bounds what is transferred from MISP, reported as <code>[MC-603]</code>.</li>
+          <li><strong>Max Execution Time (seconds)</strong> bounds how long the fetch may run, also reported as <code>[MC-603]</code>.</li>
+          <li><strong>Max Output Size (MB)</strong> bounds what is handed to Splunk, reported as <code>[MC-808]</code>. Splunk buffers every result in memory until the command finishes, so this is what stops a very wide search from hanging with no output.</li>
+        </ul>
+        <p>Before paging, the command asks MISP how many attributes match and logs it as <code>[MC-608]</code>; <code>[MC-602]</code> then reports how many were actually fetched against that total, which is the quickest way to tell a complete answer from a truncated one. <code>[GR-004]</code> counts values that exceeded Splunk's 2 MB field limit and had to be cut; if you see it, try <code>expand_object=True</code> so each attribute becomes its own row instead of being merged into one oversized row.</p>
+        <p>The same information reaches the results: every row carries a <code>&lt;prefix&gt;mispgetioc_message</code> field (by default <code>misp_mispgetioc_message</code>) with the matched total and the reason the fetch stopped, if it did. Results are streamed, so the last rows carry the most complete message.</p>
+        <p>Setting a limit to 0 disables it. Leaving all of them at 0 is not recommended, since nothing then bounds a runaway search.</p>
     </html>
     </panel>
   </row>
@@ -185,10 +196,10 @@
     <panel depends="$param_show_output_table$">
       <title>Custom command mispgetioc ($param_output$)</title>
       <table>
-        <title>| mispgetioc misp_instance=$misp_instance$ $param_output$ $param_json_request$ $param_date$ $param_eventid$ $param_last$ $param_publish_timestamp$ $param_timestamp$ $param_category$ $param_decay_score_threshold$ $param_decaying_model$ $param_exclude_decayed$ $param_expand_object$ $param_geteventtag$ $param_include_decay_score$ $param_include_deleted$ $param_include_sightings$ $param_limit$ $param_not_tags$ $param_page$ $param_pipesplit$ $param_prefix$ $param_tags$ $param_threat_level_id$ $param_to_ids$ $param_type$ $param_warning_list$</title>
+        <title>| mispgetioc misp_instance=$misp_instance$ $param_output$ $param_json_request$ $param_date$ $param_eventid$ $param_last$ $param_publish_timestamp$ $param_timestamp$ $param_category$ $param_decay_score_threshold$ $param_decaying_model$ $param_exclude_decayed$ $param_expand_object$ $param_geteventtag$ $param_include_decay_score$ $param_include_deleted$ $param_include_sightings$ $param_limit$ $param_not_tags$ $param_order$ $param_page$ $param_pipesplit$ $param_prefix$ $param_tags$ $param_threat_level_id$ $param_to_ids$ $param_type$ $param_warning_list$</title>
         <search>
           <query>
-            | mispgetioc misp_instance=$misp_instance$ $param_output$ $param_json_request$ $param_date$ $param_eventid$ $param_last$ $param_publish_timestamp$ $param_timestamp$ $param_category$ $param_decay_score_threshold$ $param_decaying_model$ $param_exclude_decayed$ $param_expand_object$ $param_geteventtag$ $param_include_decay_score$ $param_include_deleted$ $param_include_sightings$ $param_limit$ $param_not_tags$ $param_page$ $param_pipesplit$ $param_prefix$ $param_tags$ $param_threat_level_id$ $param_to_ids$ $param_type$ $param_warning_list$
+            | mispgetioc misp_instance=$misp_instance$ $param_output$ $param_json_request$ $param_date$ $param_eventid$ $param_last$ $param_publish_timestamp$ $param_timestamp$ $param_category$ $param_decay_score_threshold$ $param_decaying_model$ $param_exclude_decayed$ $param_expand_object$ $param_geteventtag$ $param_include_decay_score$ $param_include_deleted$ $param_include_sightings$ $param_limit$ $param_not_tags$ $param_order$ $param_page$ $param_pipesplit$ $param_prefix$ $param_tags$ $param_threat_level_id$ $param_to_ids$ $param_type$ $param_warning_list$
             | table * 
           </query>
           <earliest>-15m</earliest>
@@ -203,10 +214,10 @@
     <panel depends="$param_show_output_json$">
       <title>Custom command mispgetioc ($param_output$)</title>
       <event>
-        <title>| mispgetioc misp_instance=$misp_instance$ $param_output$ $param_json_request$ $param_date$ $param_eventid$ $param_last$ $param_publish_timestamp$ $param_timestamp$ $param_category$ $param_decay_score_threshold$ $param_decaying_model$ $param_exclude_decayed$ $param_expand_object$ $param_geteventtag$ $param_include_decay_score$ $param_include_deleted$ $param_include_sightings$ $param_limit$ $param_not_tags$ $param_page$ $param_prefix$ $param_pipesplit$ $param_tags$ $param_threat_level_id$ $param_to_ids$ $param_type$ $param_warning_list$</title>
+        <title>| mispgetioc misp_instance=$misp_instance$ $param_output$ $param_json_request$ $param_date$ $param_eventid$ $param_last$ $param_publish_timestamp$ $param_timestamp$ $param_category$ $param_decay_score_threshold$ $param_decaying_model$ $param_exclude_decayed$ $param_expand_object$ $param_geteventtag$ $param_include_decay_score$ $param_include_deleted$ $param_include_sightings$ $param_limit$ $param_not_tags$ $param_order$ $param_page$ $param_prefix$ $param_pipesplit$ $param_tags$ $param_threat_level_id$ $param_to_ids$ $param_type$ $param_warning_list$</title>
         <search>
           <query>
-            | mispgetioc misp_instance=$misp_instance$ $param_output$ $param_json_request$ $param_date$ $param_eventid$ $param_last$ $param_publish_timestamp$ $param_timestamp$ $param_category$ $param_decay_score_threshold$ $param_decaying_model$ $param_exclude_decayed$ $param_expand_object$ $param_geteventtag$ $param_include_decay_score$ $param_include_deleted$ $param_include_sightings$ $param_limit$ $param_not_tags$ $param_page$ $param_pipesplit$ $param_prefix$ $param_tags$ $param_threat_level_id$ $param_to_ids$ $param_type$ $param_warning_list$
+            | mispgetioc misp_instance=$misp_instance$ $param_output$ $param_json_request$ $param_date$ $param_eventid$ $param_last$ $param_publish_timestamp$ $param_timestamp$ $param_category$ $param_decay_score_threshold$ $param_decaying_model$ $param_exclude_decayed$ $param_expand_object$ $param_geteventtag$ $param_include_decay_score$ $param_include_deleted$ $param_include_sightings$ $param_limit$ $param_not_tags$ $param_order$ $param_page$ $param_pipesplit$ $param_prefix$ $param_tags$ $param_threat_level_id$ $param_to_ids$ $param_type$ $param_warning_list$
             | table * 
           </query>
           <earliest>-15m</earliest>
@@ -310,6 +321,19 @@
         </change>
         <default>0</default>
         <initialValue>0</initialValue>
+      </input>
+      <input type="text" token="order" searchWhenChanged="true">
+        <label>order</label>
+        <change>
+          <condition match="$value$=&quot;&quot;">
+            <set token="param_order"></set>
+          </condition>
+          <condition>
+            <set token="param_order">order="$value$"</set>
+          </condition>
+        </change>
+        <default>Attribute.event_id,Attribute.id</default>
+        <initialValue>Attribute.event_id,Attribute.id</initialValue>
       </input>
       <input type="text" token="category" searchWhenChanged="true">
         <label>category</label>
@@ -545,10 +569,20 @@
             <td>Comma(,)-separated string of tags to exclude. Wildcard is %.</td>
         </tr>
         <tr>
+            <td>order</td>
+            <td>order=CSV string | none</td>
+            <td>Attribute.event_id,Attribute.id</td>
+            <td>
+              <p>Sort order sent to MISP, as "Model.field [asc|desc]" rules separated by commas. MISP applies no ORDER BY unless asked, and paging an unordered query with limit/page can return overlapping or missing rows between pages, so a stable sort is what makes a multi-page fetch correct.</p>
+              <p>Ordering by event_id first also lets results stream page by page, so memory follows <strong>limit</strong> rather than the size of the whole result set. Change the first key and the whole result set is buffered instead.</p>
+              <p>MISP 2.5 accepts only: Attribute.id, Attribute.event_id, Attribute.object_id, Attribute.type, Attribute.category, Attribute.value, Attribute.distribution, Attribute.timestamp, Attribute.object_relation and Event.publish_timestamp. Set <strong>order=none</strong> to send no sort order.</p>
+            </td>
+        </tr>
+        <tr>
             <td>page</td>
             <td>page=int</td>
             <td>0</td>
-            <td>define the page for each MISP search; default 0 = iterate through all pages</td>
+            <td>define the page for each MISP search; default 0 = iterate through all pages. With limit=0 the page number is dropped from the request.</td>
         </tr>
         <tr>
             <td>tags</td>
@@ -578,7 +612,10 @@
             <td>warning_list</td>
             <td>warning_list=(1|y|Y|t|true|True|0|n|N|f|false|False)</td>
             <td>True</td>
-            <td>Boolean to filter out well known values.</td>
+            <td>
+              <p>Boolean to filter out well known values.</p>
+              <p>IMPORTANT: ignored when <strong>to_ids=True</strong>. An attribute flagged for detection that also hits a warning list is almost always a false positive, so the warning list is enforced regardless. The override is logged as <code>[IO-111]</code>. To force it off, set <code>enforceWarninglist</code> explicitly in <strong>json_request</strong>.</p>
+            </td>
         </tr>
       </table>
     </html>

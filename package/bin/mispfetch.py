@@ -12,7 +12,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import misp42splunk_declare
 from itertools import chain
 import json
-from misp_common import LimitChecker, create_limit_checker, prepare_config, logging_level, urllib_init_pool, generate_record, get_attributes, map_attribute_table, get_events, map_event_table, splunk_timestamp
+from misp_common import LimitChecker, create_limit_checker, prepare_config, logging_level, urllib_init_pool, generate_record, iter_attribute_pages, iter_attribute_table, order_groups_by_event, map_attribute_table, iter_event_pages, map_event_table, prefixed, splunk_timestamp, create_output_budget, log_truncation_summary, CommandMessage, message_field
 from splunklib.searchcommands import dispatch, StreamingCommand, Configuration, Option, validators
 import sys
 import copy
@@ -37,7 +37,7 @@ log.setLevel(logging.INFO)
 
 __author__ = "Remi Seguy"
 __license__ = "LGPLv3"
-__version__ = "5.1.0"
+__version__ = "6.1.0"
 __maintainer__ = "Remi Seguy"
 __email__ = "remg427@gmail.com"
 
@@ -52,6 +52,7 @@ MISPFETCH_INIT_PARAMS = {
     'limit': 1000,
     'page': 0,
     'not_tags': None,
+    'order': 'Attribute.event_id,Attribute.id',
     'tags': None,
     # optional parameters to format results
     'attribute_limit': 0,
@@ -258,6 +259,29 @@ class MispFetchCommand(StreamingCommand):
         ''',
         require=False
     )
+    order = Option(
+        doc='''
+        **Syntax:** order=<string>
+        **Description:**sort order for misp_restsearch=attributes, as
+        "Model.field [asc|desc]" rules separated by commas. MISP applies no
+        ORDER BY unless asked, and paginating an unordered query with limit/page
+        can return overlapping or missing rows across pages, so a stable sort is
+        required for a multi-page fetch to be correct.
+        Ignored for misp_restsearch=events, whose sortable fields are different.
+        Ordering by event_id first also lets results be streamed page by page:
+        attributes of one event stay contiguous, so no merged object row is split
+        across a page boundary.
+        MISP 2.5.x accepts these fields only: Attribute.id, Attribute.event_id,
+        Attribute.object_id, Attribute.type, Attribute.category,
+        Attribute.value, Attribute.distribution, Attribute.timestamp,
+        Attribute.object_relation and Event.publish_timestamp.
+        Set to "none" to send no order; results are then buffered in full before
+        being returned.
+        **Default:** Attribute.event_id,Attribute.id
+        ''',
+        require=False,
+        default='Attribute.event_id,Attribute.id'
+    )
     page = Option(
         doc='''
         **Syntax:** **page=** *<int>*
@@ -381,11 +405,20 @@ class MispFetchCommand(StreamingCommand):
             for key, value in attribute_mapping.items():
                 if key in a:
                     v[f'{prefix}{value}'] = a[key]
-            v[f'{prefix}timestamp'] = int(v[f'{prefix}timestamp'])
-            # append attribute tags to tag list
+            # Both absent on some attributes, so neither is dereferenced
+            # directly. Tag can also arrive as a single dict.
+            ts_field = f'{prefix}timestamp'
+            if ts_field in v:
+                try:
+                    v[ts_field] = int(v[ts_field])
+                except (TypeError, ValueError):
+                    pass
             tag_list = list()
-            if 'Tag' in a:
-                for tag in a['Tag']:
+            tag_value = a.get('Tag')
+            if isinstance(tag_value, dict):
+                tag_value = [tag_value]
+            if isinstance(tag_value, list):
+                for tag in tag_value:
                     try:
                         tag_list.append(str(tag['name']))
                     except Exception:
@@ -445,14 +478,21 @@ class MispFetchCommand(StreamingCommand):
             for key, value in event_mapping.items():
                 if key in e:
                     event_dict[f'{prefix}{value}'] = e[key]
-            event_org = e.get('Org')
+            # Absent or null on some events, so never dereferenced directly.
+            # Orgc goes under orgc_, as map_event_table() does: sharing org_
+            # made the creator overwrite the owner and dropped orgc_ entirely.
+            event_org = e.get('Org') or {}
             for org_key, org_value in event_org.items():
                 event_dict[f'{prefix}org_{org_key}'] = org_value
-            event_orgc = e.get('Orgc')
+            event_orgc = e.get('Orgc') or {}
             for orgc_key, orgc_value in event_orgc.items():
-                event_dict[f'{prefix}org_{orgc_key}'] = orgc_value
+                event_dict[f'{prefix}orgc_{orgc_key}'] = orgc_value
 
-            event_dict[f'{prefix}timestamp'] = event_dict[f'{prefix}event_timestamp']
+            # Left unset when the event carries no timestamp; the caller then
+            # falls back to search time instead of raising.
+            if f'{prefix}event_timestamp' in event_dict:
+                event_dict[f'{prefix}timestamp'] = \
+                    event_dict[f'{prefix}event_timestamp']
             event_dict[f'{prefix}host'] = host
             event_dict[f'{prefix}json'] = copy.deepcopy(e)
             event_json_list.append(event_dict)
@@ -463,6 +503,7 @@ class MispFetchCommand(StreamingCommand):
         self.set_log_level()
 
         config = dict()
+        record = None
         for record in records:
             yield record
 
@@ -510,14 +551,11 @@ class MispFetchCommand(StreamingCommand):
                 body_dict['returnFormat'] = 'json'
                 body_dict['withAttachments'] = False
 
-                # When attributes are not requested, ask MISP for event
-                # metadata only. This is the default path, since getioc
-                # defaults to false. Otherwise MISP serialises every Attribute,
-                # which get_events() discards right after download: the
-                # transfer cost is paid for nothing and large result sets hit
-                # max_response_size_mb long before the last page is reached.
-                # Only /events/restSearch is concerned: get_attributes() never
-                # reads getioc.
+                # Without metadata MISP serialises every Attribute, which
+                # _prune_event() discards on arrival: the transfer is paid for
+                # nothing and large result sets hit max_response_size_mb before
+                # the last page. Events endpoint only - the attributes endpoint
+                # never reads getioc.
                 # An explicit "metadata" in misp_http_body always wins.
                 if config['misp_restsearch'] == "events":
                     if mf_params['getioc'] is False \
@@ -526,15 +564,13 @@ class MispFetchCommand(StreamingCommand):
                         self.log_info(
                             '[MF-103] getioc is false; key metadata set to 1 '
                             'to fetch event metadata only')
-                    # MISP bug (confirmed on 2.5.33): Event::fetchEvent() unsets
-                    # the Attribute and ShadowAttribute containers when metadata
-                    # is set, but its warninglist block is not guarded by
-                    # metadata and still passes $event['Attribute'] to
-                    # attachWarninglistToAttributes(array &$attrs). The missing
-                    # key materialises as null, the array type rejects it, and
-                    # the request dies with HTTP 500. Both flags only ever
-                    # filtered attributes, which metadata does not return, so
-                    # turning them off costs nothing here.
+                    # MISP bug (2.5.33): fetchEvent() unsets the Attribute
+                    # container under metadata, but its warninglist block still
+                    # passes $event['Attribute'] to
+                    # attachWarninglistToAttributes(array &$attrs) - null
+                    # against an array type, so the request dies with HTTP 500.
+                    # Both flags only filter attributes, which metadata does not
+                    # return, so disabling them is free.
                     if body_dict.get('metadata'):
                         for flag in ('enforceWarninglist',
                                      'includeWarninglistHits'):
@@ -545,14 +581,9 @@ class MispFetchCommand(StreamingCommand):
                                     'is incompatible with metadata and makes '
                                     'MISP return HTTP 500')
 
-                    # Same principle as metadata: do not pay to transfer
-                    # structures that get_events() discards on arrival.
-                    # Event::restSearch() hands the whole filter set to
-                    # fetchEvent(), so these reach $options even though
-                    # includeEventCorrelations is not in $possibleOptions.
-                    #   excludeGalaxy=1            -> no galaxy clusters
-                    #   includeEventCorrelations=0 -> no RelatedEvent
-                    # Both default to "include" server-side.
+                    # Same principle as metadata: do not transfer structures
+                    # that _prune_event() discards. Galaxy clusters are attached
+                    # in full by default server-side.
                     if mf_params['keep_galaxy'] is False \
                        and 'excludeGalaxy' not in body_dict:
                         body_dict['excludeGalaxy'] = 1
@@ -560,12 +591,10 @@ class MispFetchCommand(StreamingCommand):
                             '[MF-105] keep_galaxy is false; key excludeGalaxy '
                             'set to 1 so MISP does not attach galaxy clusters')
 
-                    # Note: unlike metadata and excludeGalaxy,
-                    # includeEventCorrelations is NOT in
-                    # Event::$possibleOptions, and MISP 2.5.33 drops it before
-                    # fetchEvent() sees it - measured: RelatedEvent still
-                    # arrives. Kept because it is harmless and correct if MISP
-                    # ever accepts it.
+                    # includeEventCorrelations is not in
+                    # Event::$possibleOptions, so MISP 2.5.33 drops it and
+                    # RelatedEvent still arrives. Sent anyway: harmless, and
+                    # correct if MISP ever accepts it.
                     if mf_params['keep_related'] is False \
                        and 'includeEventCorrelations' not in body_dict:
                         body_dict['includeEventCorrelations'] = 0
@@ -574,11 +603,27 @@ class MispFetchCommand(StreamingCommand):
                             'includeEventCorrelations=0 (ignored by MISP '
                             '2.5.33, so RelatedEvent is still transferred '
                             'and then discarded)')
-                    # metadata=1 tells MISP to omit Attribute, ShadowAttribute,
-                    # Object and EventReport, so attribute-level output is
-                    # impossible no matter what getioc asked for.
+                    # Under metadata MISP returns no Attribute, so
+                    # attribute-level output is impossible whatever getioc asked
+                    # for.
                     config['getioc'] = (
                         mf_params['getioc'] and not body_dict.get('metadata'))
+
+                else:  # misp_restsearch=="attributes"
+                    # fetchAttributes() leaves $params['order'] empty unless
+                    # asked, so restSearch paginates with LIMIT/OFFSET over an
+                    # unordered set: pages can overlap and skip. Attributes
+                    # endpoint only - the events endpoint has other sortable
+                    # fields and would reject Attribute.*.
+                    # An explicit order in misp_http_body always wins;
+                    # order=none opts out.
+                    order = mf_params['order']
+                    if 'order' not in body_dict and order \
+                       and str(order).lower() != 'none':
+                        body_dict['order'] = order
+                        self.log_info(
+                            '[MF-108] order set to {} for stable pagination'
+                            .format(order))
 
                 if 'tags' not in body_dict:
                     if config['tags'] is not None or\
@@ -611,39 +656,89 @@ class MispFetchCommand(StreamingCommand):
                     self.log_info('[MF-200] connection for {} failed'.format(config['misp_url']))
                     yield response
                 else:
-                    output_list = []
-                    if mf_params['misp_restsearch'] == "events":
-                        response_list = get_events(self, connection, config, body_dict)
-                        event_list = list()
-                        if config['misp_output_mode'] == "json":
-                            event_list = self.map_event_json(response_list, config)
-                        else:
-                            event_list = map_event_table(self, response_list, config)
+                    # splunklib buffers every record until stream() returns and
+                    # cannot flush partial chunks, so the budget is what keeps
+                    # this terminating.
+                    budget = create_output_budget(config, logger=self.logger)
+                    # Reports totals and any truncation reason as
+                    # <prefix>mispfetch_message. The events branch streams, so
+                    # there the last records carry the most complete message.
+                    message = CommandMessage(
+                        message_field(config, 'mispfetch'))
+                    # Every mapper on both branches prefixes its keys, so these
+                    # names have to be derived, not spelled out.
+                    ts_key = prefixed(config, 'timestamp')
+                    params_key = prefixed(config, 'mispfetch_params')
 
-                        for event in event_list:
-                            event['misp_mispfetch_params'] = mf_params
-                            output_list.append(event)
+                    if mf_params['misp_restsearch'] == "events":
+                        # One page at a time, so peak memory follows limit rather
+                        # than the whole result set. Both mappers are safe per
+                        # page: map_event_json() is per-event pure, and
+                        # map_event_table() only merges records within one
+                        # event's own attribute list, never across events.
+                        # The generator is single-pass - do not call len() on it.
+                        for page in iter_event_pages(
+                            self, connection, config, body_dict,
+                            message=message
+                        ):
+                            if config['misp_output_mode'] == "json":
+                                rows = self.map_event_json(page, config)
+                            else:
+                                rows = map_event_table(self, page, config)
+
+                            for result in rows:
+                                result[params_key] = mf_params
+                                record = generate_record(
+                                    message.stamp(result),
+                                    event_time=splunk_timestamp(
+                                        result.get(ts_key)),
+                                    generator=self
+                                )
+                                yield record
+                                if budget.consume(record):
+                                    break
+                            if budget.exhausted:
+                                break
 
                     else:  # misp_restsearch=="attributes"
-                        response_list = get_attributes(self, connection, config, body_dict)
-                        attribute_list = list()
+                        pages = iter_attribute_pages(
+                            self, connection, config, body_dict,
+                            message=message)
                         if config['misp_output_mode'] == "json":
-                            attribute_list = self.map_attribute_json(response_list, config)
+                            # Per-attribute mapping, so pages stream through.
+                            attribute_list = (
+                                row
+                                for page in pages
+                                for row in self.map_attribute_json(page, config)
+                            )
+                        elif order_groups_by_event(body_dict):
+                            # Event-ordered: map a page at a time, carrying the
+                            # trailing event over so no merged group is split.
+                            attribute_list = iter_attribute_table(
+                                self, pages, config)
                         else:
-                            attribute_list = map_attribute_table(self, response_list, config)
+                            # Without event ordering a merged group may straddle
+                            # a page boundary, so map the whole set at once.
+                            attribute_list = map_attribute_table(
+                                self, [a for page in pages for a in page],
+                                config)
 
-                        for attribute in attribute_list:
-                            attribute['misp_mispfetch_params'] = mf_params
-                            output_list.append(attribute)
-
-                    if output_list is not None:
-                        for result in output_list:
-                            splunk_ts = splunk_timestamp(result.get('misp_timestamp'))
-                            yield generate_record(
-                                result,
-                                event_time=splunk_ts,
+                        for result in attribute_list:
+                            result[params_key] = mf_params
+                            record = generate_record(
+                                message.stamp(result),
+                                event_time=splunk_timestamp(
+                                    result.get(ts_key)),
                                 generator=self
                             )
+                            yield record
+                            if budget.consume(record):
+                                break
+
+                    self.log_info(
+                        '[MF-107] yielded {} record(s)'.format(budget.rows))
+                    budget.log_summary(self, message=message)
+                    log_truncation_summary(self, message=message)
 
 
 if __name__ == "__main__":

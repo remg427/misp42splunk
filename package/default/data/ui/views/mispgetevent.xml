@@ -11,8 +11,8 @@
     <set token="param_exclude_local_tags">exclude_local_tags=False</set>
     <set token="param_expand_object">expand_object=False</set>
     <set token="param_getioc">getioc=False</set>
-    <set token="param_include_sightings">include_sightings=True</set>
-    <set token="param_keep_galaxy">keep_galaxy=True</set>
+    <set token="param_include_sightings">include_sightings=False</set>
+    <set token="param_keep_galaxy">keep_galaxy=False</set>
     <set token="param_keep_related">keep_related=False</set>
     <set token="param_limit">limit=1000</set>
     <set token="param_not_tags"></set>
@@ -81,6 +81,16 @@
           To select a misp instance, use the dropdown list that is populated if your Splunk account has the capability <code>rest_properties_get</code> to use the internal REST API <code>| rest</code>
         </p>
         <p>Otherwise simply type one of the names of the MISP instances that have been configured.</p>
+        <h2>Result limits and partial results</h2>
+        <p>Three settings in the app Configuration tab bound a search. Each one reports at ERROR in search.log when it stops a run, so a partial result is never silent:</p>
+        <ul>
+          <li><strong>Max Response Size (MB)</strong> bounds what is transferred from MISP, reported as <code>[MC-803]</code>.</li>
+          <li><strong>Max Execution Time (seconds)</strong> bounds how long the fetch may run, also reported as <code>[MC-803]</code>.</li>
+          <li><strong>Max Output Size (MB)</strong> bounds what is handed to Splunk, reported as <code>[MC-808]</code>. Splunk buffers every result in memory until the command finishes, so this is what stops a very wide search from hanging with no output.</li>
+        </ul>
+        <p>Two other lines are worth knowing. <code>[MC-802]</code> gives the number of events fetched alongside MISP's own <code>X-Result-Count</code>, which is the quickest way to tell a complete answer from a truncated one. <code>[GR-004]</code> counts values that exceeded Splunk's 2 MB field limit and had to be cut; if you see it, try <code>expand_object=True</code> so each attribute becomes its own row instead of being merged into one oversized row.</p>
+        <p>The same information reaches the results: every row carries a <code>&lt;prefix&gt;mispgetevent_message</code> field (by default <code>misp_mispgetevent_message</code>) with the matched total and the reason the fetch stopped, if it did. Results are streamed, so the last rows carry the most complete message.</p>
+        <p>Setting a limit to 0 disables it. Leaving all of them at 0 is not recommended, since nothing then bounds a runaway search.</p>
     </html>
     </panel>
   </row>
@@ -340,8 +350,8 @@
         </change>
         <choice value="True">True</choice>
         <choice value="False">False</choice>
-        <default>True</default>
-        <initialValue>True</initialValue>
+        <default>False</default>
+        <initialValue>False</initialValue>
       </input>
       <input type="text" token="not_tags" searchWhenChanged="true">
         <label>not_tags</label>
@@ -467,8 +477,8 @@
         <tr>
             <td>include_sightings</td>
             <td>include_sightings=(1|y|Y|t|true|True|0|n|N|f|false|False)</td>
-            <td>True</td>
-            <td>include sightings metrics if available.</td>
+            <td>False</td>
+            <td>Include sightings metrics if available. Sets includeSightingdb on the request; leaving it False keeps the sightings payload off the wire.</td>
         </tr>
         <tr>
             <td>limit</td>
@@ -579,8 +589,8 @@
         </change>
         <choice value="True">True</choice>
         <choice value="False">False</choice>
-        <default>True</default>
-        <initialValue>True</initialValue>
+        <default>False</default>
+        <initialValue>False</initialValue>
       </input>
       <input type="radio" token="keep_related" searchWhenChanged="true">
         <label>keep_related</label>
@@ -646,19 +656,28 @@
             <td>getioc</td>
             <td>getioc=(1|y|Y|t|true|True|0|n|N|f|false|False)</td>
             <td>False</td>
-            <td>include event attributes.</td>
+            <td>
+              <p>Include event attributes, one row per attribute.</p>
+              <p>When False, the request sets <code>metadata=1</code> so MISP returns event metadata only. Measured on a 1900-event search that is roughly 33 KB per event, against several MB per event with getioc=True. Turning it on is expensive: expect a much larger transfer and far more rows.</p>
+            </td>
         </tr>
         <tr>
             <td>keep_galaxy</td>
             <td>keep_galaxy=(1|y|Y|t|true|True|0|n|N|f|false|False)</td>
-            <td>True</td>
-            <td>Boolean to keep Galaxy info (by default) or remove it in ouput=json (full JSON record). This is useful if you plan to use spath that has a limit of 5000 characters to parse the JSON payload.</td>
+            <td>False</td>
+            <td>
+              <p>Keep the Galaxy clusters attached to each event.</p>
+              <p>When False, the request sets <code>excludeGalaxy=1</code> so MISP never builds them. This is the single largest saving available: galaxy clusters arrive with their full definitions and measured around 400 KB per event.</p>
+            </td>
         </tr>
        <tr>
             <td>keep_related</td>
             <td>keep_related=(1|y|Y|t|true|True|0|n|N|f|false|False)</td>
             <td>False</td>
-            <td>Boolean to keep Related event info or remove it in ouput=json (full JSON record). This is useful if you plan to use spath that has a limit of 5000 characters to parse the JSON payload.</td>
+            <td>
+              <p>Keep the RelatedEvent list attached to each event.</p>
+              <p>When False the request asks for <code>includeEventCorrelations=0</code>, but MISP 2.5.33 ignores that filter, so RelatedEvent is still transferred and then discarded. Check the <code>[MC-807]</code> line in search.log for how much that costs on your instance.</p>
+            </td>
         </tr>
         <tr>
             <td>pipesplit</td>
