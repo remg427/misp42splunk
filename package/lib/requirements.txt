@@ -2,4 +2,4 @@
 # Update these periodically to get security fixes
 splunktaucclib>=8.2.0
 splunk-sdk>=2.0.2
-solnlib>=5.2.0
+solnlib>=7.0.0,<8.0.0
